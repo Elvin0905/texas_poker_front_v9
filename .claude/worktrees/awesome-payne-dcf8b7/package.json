@@ -1,0 +1,18 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "\\u9019\\u500b\\u524d\\u7aef\\u4ee5 Phaser \\u958b\\u767c\\uff0c\\u4f9d\\u7167 `Texas_Holdem_WebSocket_API_Spec_Official_zhTW_FINAL.pdf` \\u7684 WebSocket \\u6d41\\u7a0b\\u5be6\\u4f5c\\u3002",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 8090",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 8090"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "vite": "^8.0.9"
+  }
+}
+

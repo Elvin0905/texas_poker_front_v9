@@ -1,0 +1,671 @@
+
+win.webp
+size: 2160,2354
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+win_logo25
+  rotate: false
+  xy: 0, 0
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo26
+  rotate: false
+  xy: 240, 0
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo27
+  rotate: false
+  xy: 480, 0
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo28
+  rotate: false
+  xy: 720, 0
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo29
+  rotate: false
+  xy: 960, 0
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo30
+  rotate: false
+  xy: 1200, 0
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo31
+  rotate: false
+  xy: 1440, 0
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo32
+  rotate: false
+  xy: 1680, 0
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo33
+  rotate: false
+  xy: 1920, 0
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo34
+  rotate: false
+  xy: 0, 214
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo35
+  rotate: false
+  xy: 240, 214
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo36
+  rotate: false
+  xy: 480, 214
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo37
+  rotate: false
+  xy: 720, 214
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo38
+  rotate: false
+  xy: 960, 214
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo39
+  rotate: false
+  xy: 1200, 214
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo40
+  rotate: false
+  xy: 1440, 214
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo41
+  rotate: false
+  xy: 1680, 214
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo42
+  rotate: false
+  xy: 1920, 214
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo43
+  rotate: false
+  xy: 0, 428
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo44
+  rotate: false
+  xy: 240, 428
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo45
+  rotate: false
+  xy: 480, 428
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo46
+  rotate: false
+  xy: 720, 428
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo47
+  rotate: false
+  xy: 960, 428
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo48
+  rotate: false
+  xy: 1200, 428
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo49
+  rotate: false
+  xy: 1440, 428
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo50
+  rotate: false
+  xy: 1680, 428
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo51
+  rotate: false
+  xy: 1920, 428
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo52
+  rotate: false
+  xy: 0, 642
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo53
+  rotate: false
+  xy: 240, 642
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo54
+  rotate: false
+  xy: 480, 642
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo55
+  rotate: false
+  xy: 720, 642
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo56
+  rotate: false
+  xy: 960, 642
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo57
+  rotate: false
+  xy: 1200, 642
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo58
+  rotate: false
+  xy: 1440, 642
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo59
+  rotate: false
+  xy: 1680, 642
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo60
+  rotate: false
+  xy: 1920, 642
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo61
+  rotate: false
+  xy: 0, 856
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo62
+  rotate: false
+  xy: 240, 856
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo63
+  rotate: false
+  xy: 480, 856
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo64
+  rotate: false
+  xy: 720, 856
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo65
+  rotate: false
+  xy: 960, 856
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo66
+  rotate: false
+  xy: 1200, 856
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo67
+  rotate: false
+  xy: 1440, 856
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo68
+  rotate: false
+  xy: 1680, 856
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo69
+  rotate: false
+  xy: 1920, 856
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo70
+  rotate: false
+  xy: 0, 1070
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo71
+  rotate: false
+  xy: 240, 1070
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo72
+  rotate: false
+  xy: 480, 1070
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo73
+  rotate: false
+  xy: 720, 1070
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo74
+  rotate: false
+  xy: 960, 1070
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo75
+  rotate: false
+  xy: 1200, 1070
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo76
+  rotate: false
+  xy: 1440, 1070
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo77
+  rotate: false
+  xy: 1680, 1070
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo78
+  rotate: false
+  xy: 1920, 1070
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo79
+  rotate: false
+  xy: 0, 1284
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo80
+  rotate: false
+  xy: 240, 1284
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo81
+  rotate: false
+  xy: 480, 1284
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo82
+  rotate: false
+  xy: 720, 1284
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo83
+  rotate: false
+  xy: 960, 1284
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo84
+  rotate: false
+  xy: 1200, 1284
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo85
+  rotate: false
+  xy: 1440, 1284
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo86
+  rotate: false
+  xy: 1680, 1284
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo87
+  rotate: false
+  xy: 1920, 1284
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo88
+  rotate: false
+  xy: 0, 1498
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo89
+  rotate: false
+  xy: 240, 1498
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo90
+  rotate: false
+  xy: 480, 1498
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo91
+  rotate: false
+  xy: 720, 1498
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo92
+  rotate: false
+  xy: 960, 1498
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo93
+  rotate: false
+  xy: 1200, 1498
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo94
+  rotate: false
+  xy: 1440, 1498
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo95
+  rotate: false
+  xy: 1680, 1498
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo96
+  rotate: false
+  xy: 1920, 1498
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo97
+  rotate: false
+  xy: 0, 1712
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo98
+  rotate: false
+  xy: 240, 1712
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo99
+  rotate: false
+  xy: 480, 1712
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo100
+  rotate: false
+  xy: 720, 1712
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo101
+  rotate: false
+  xy: 960, 1712
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo102
+  rotate: false
+  xy: 1200, 1712
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo103
+  rotate: false
+  xy: 1440, 1712
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo104
+  rotate: false
+  xy: 1680, 1712
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo105
+  rotate: false
+  xy: 1920, 1712
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo106
+  rotate: false
+  xy: 0, 1926
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo107
+  rotate: false
+  xy: 240, 1926
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo108
+  rotate: false
+  xy: 480, 1926
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo109
+  rotate: false
+  xy: 720, 1926
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo110
+  rotate: false
+  xy: 960, 1926
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo111
+  rotate: false
+  xy: 1200, 1926
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo112
+  rotate: false
+  xy: 1440, 1926
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo113
+  rotate: false
+  xy: 1680, 1926
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo114
+  rotate: false
+  xy: 1920, 1926
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo115
+  rotate: false
+  xy: 0, 2140
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo116
+  rotate: false
+  xy: 240, 2140
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo117
+  rotate: false
+  xy: 480, 2140
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo118
+  rotate: false
+  xy: 720, 2140
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1
+win_logo119
+  rotate: false
+  xy: 960, 2140
+  size: 240, 214
+  orig: 240, 214
+  offset: 0, 0
+  index: -1

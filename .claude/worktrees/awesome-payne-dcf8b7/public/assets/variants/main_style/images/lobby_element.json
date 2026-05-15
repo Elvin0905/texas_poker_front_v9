@@ -1,0 +1,63 @@
+{
+  "frames": {  
+
+    "user_nickname": {
+      "frame": { "x": 5, "y": 15, "w": 360, "h": 140 }
+    },
+
+    "user_gamepoint": {
+      "frame": { "x": 5, "y": 160, "w": 360, "h": 140 }
+    },
+
+    "btn_texas_holdem": {
+      "frame": { "x": 376, "y": 0, "w": 355, "h": 513 }
+    },
+
+    "btn_big_two": {
+      "frame": { "x": 733, "y": 0, "w": 330, "h": 360 }
+    },
+
+    "btn_blackjack": {
+      "frame": { "x": 527, "y": 514, "w": 320, "h": 310 }
+    },
+
+    "toolbar_panel": {
+      "frame": { "x": 2, "y": 642, "w": 512, "h": 120 }
+    },
+
+    "btn_toolbar_log": {
+      "frame": { "x": 36, "y": 533, "w": 64, "h": 90 }
+    },
+
+    "btn_toolbar_shop": {
+      "frame": { "x": 136, "y": 533, "w": 64, "h": 90 }
+    },
+
+    "btn_toolbar_ranking": {
+      "frame": { "x": 225, "y": 533, "w": 75, "h": 90 }
+    },
+
+    "btn_toolbar_setup": {
+      "frame": { "x": 328, "y": 533, "w": 64, "h": 90 }
+    },
+
+    "btn_toolbar_qna": {
+      "frame": { "x": 423, "y": 533, "w": 64, "h": 90 }
+    },
+
+    "btn_texas_holdem_table": {
+      "frame": { "x": 1387, "y": 10, "w": 310, "h": 350 }
+    },
+
+    "btn_texas_holdem_table_gold": {
+      "frame": { "x": 1063, "y": 10, "w": 310, "h": 350 }
+    }
+    
+  },
+
+  "meta": {
+    "app": "phaser",
+    "version": "1.0",
+    "image": "lobby_element.webp"
+  }
+}

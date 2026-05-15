@@ -1,0 +1,1915 @@
+{
+  "frames": {
+    "win_logo25": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo26": {
+      "frame": {
+        "x": 240,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo27": {
+      "frame": {
+        "x": 480,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo28": {
+      "frame": {
+        "x": 720,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo29": {
+      "frame": {
+        "x": 960,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo30": {
+      "frame": {
+        "x": 1200,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo31": {
+      "frame": {
+        "x": 1440,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo32": {
+      "frame": {
+        "x": 1680,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo33": {
+      "frame": {
+        "x": 1920,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo34": {
+      "frame": {
+        "x": 0,
+        "y": 214,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo35": {
+      "frame": {
+        "x": 240,
+        "y": 214,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo36": {
+      "frame": {
+        "x": 480,
+        "y": 214,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo37": {
+      "frame": {
+        "x": 720,
+        "y": 214,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo38": {
+      "frame": {
+        "x": 960,
+        "y": 214,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo39": {
+      "frame": {
+        "x": 1200,
+        "y": 214,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo40": {
+      "frame": {
+        "x": 1440,
+        "y": 214,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo41": {
+      "frame": {
+        "x": 1680,
+        "y": 214,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo42": {
+      "frame": {
+        "x": 1920,
+        "y": 214,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo43": {
+      "frame": {
+        "x": 0,
+        "y": 428,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo44": {
+      "frame": {
+        "x": 240,
+        "y": 428,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo45": {
+      "frame": {
+        "x": 480,
+        "y": 428,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo46": {
+      "frame": {
+        "x": 720,
+        "y": 428,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo47": {
+      "frame": {
+        "x": 960,
+        "y": 428,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo48": {
+      "frame": {
+        "x": 1200,
+        "y": 428,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo49": {
+      "frame": {
+        "x": 1440,
+        "y": 428,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo50": {
+      "frame": {
+        "x": 1680,
+        "y": 428,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo51": {
+      "frame": {
+        "x": 1920,
+        "y": 428,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo52": {
+      "frame": {
+        "x": 0,
+        "y": 642,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo53": {
+      "frame": {
+        "x": 240,
+        "y": 642,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo54": {
+      "frame": {
+        "x": 480,
+        "y": 642,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo55": {
+      "frame": {
+        "x": 720,
+        "y": 642,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo56": {
+      "frame": {
+        "x": 960,
+        "y": 642,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo57": {
+      "frame": {
+        "x": 1200,
+        "y": 642,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo58": {
+      "frame": {
+        "x": 1440,
+        "y": 642,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo59": {
+      "frame": {
+        "x": 1680,
+        "y": 642,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo60": {
+      "frame": {
+        "x": 1920,
+        "y": 642,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo61": {
+      "frame": {
+        "x": 0,
+        "y": 856,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo62": {
+      "frame": {
+        "x": 240,
+        "y": 856,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo63": {
+      "frame": {
+        "x": 480,
+        "y": 856,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo64": {
+      "frame": {
+        "x": 720,
+        "y": 856,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo65": {
+      "frame": {
+        "x": 960,
+        "y": 856,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo66": {
+      "frame": {
+        "x": 1200,
+        "y": 856,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo67": {
+      "frame": {
+        "x": 1440,
+        "y": 856,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo68": {
+      "frame": {
+        "x": 1680,
+        "y": 856,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo69": {
+      "frame": {
+        "x": 1920,
+        "y": 856,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo70": {
+      "frame": {
+        "x": 0,
+        "y": 1070,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo71": {
+      "frame": {
+        "x": 240,
+        "y": 1070,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo72": {
+      "frame": {
+        "x": 480,
+        "y": 1070,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo73": {
+      "frame": {
+        "x": 720,
+        "y": 1070,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo74": {
+      "frame": {
+        "x": 960,
+        "y": 1070,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo75": {
+      "frame": {
+        "x": 1200,
+        "y": 1070,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo76": {
+      "frame": {
+        "x": 1440,
+        "y": 1070,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo77": {
+      "frame": {
+        "x": 1680,
+        "y": 1070,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo78": {
+      "frame": {
+        "x": 1920,
+        "y": 1070,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo79": {
+      "frame": {
+        "x": 0,
+        "y": 1284,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo80": {
+      "frame": {
+        "x": 240,
+        "y": 1284,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo81": {
+      "frame": {
+        "x": 480,
+        "y": 1284,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo82": {
+      "frame": {
+        "x": 720,
+        "y": 1284,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo83": {
+      "frame": {
+        "x": 960,
+        "y": 1284,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo84": {
+      "frame": {
+        "x": 1200,
+        "y": 1284,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo85": {
+      "frame": {
+        "x": 1440,
+        "y": 1284,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo86": {
+      "frame": {
+        "x": 1680,
+        "y": 1284,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo87": {
+      "frame": {
+        "x": 1920,
+        "y": 1284,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo88": {
+      "frame": {
+        "x": 0,
+        "y": 1498,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo89": {
+      "frame": {
+        "x": 240,
+        "y": 1498,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo90": {
+      "frame": {
+        "x": 480,
+        "y": 1498,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo91": {
+      "frame": {
+        "x": 720,
+        "y": 1498,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo92": {
+      "frame": {
+        "x": 960,
+        "y": 1498,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo93": {
+      "frame": {
+        "x": 1200,
+        "y": 1498,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo94": {
+      "frame": {
+        "x": 1440,
+        "y": 1498,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo95": {
+      "frame": {
+        "x": 1680,
+        "y": 1498,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo96": {
+      "frame": {
+        "x": 1920,
+        "y": 1498,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo97": {
+      "frame": {
+        "x": 0,
+        "y": 1712,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo98": {
+      "frame": {
+        "x": 240,
+        "y": 1712,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo99": {
+      "frame": {
+        "x": 480,
+        "y": 1712,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo100": {
+      "frame": {
+        "x": 720,
+        "y": 1712,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo101": {
+      "frame": {
+        "x": 960,
+        "y": 1712,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo102": {
+      "frame": {
+        "x": 1200,
+        "y": 1712,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo103": {
+      "frame": {
+        "x": 1440,
+        "y": 1712,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo104": {
+      "frame": {
+        "x": 1680,
+        "y": 1712,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo105": {
+      "frame": {
+        "x": 1920,
+        "y": 1712,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo106": {
+      "frame": {
+        "x": 0,
+        "y": 1926,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo107": {
+      "frame": {
+        "x": 240,
+        "y": 1926,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo108": {
+      "frame": {
+        "x": 480,
+        "y": 1926,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo109": {
+      "frame": {
+        "x": 720,
+        "y": 1926,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo110": {
+      "frame": {
+        "x": 960,
+        "y": 1926,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo111": {
+      "frame": {
+        "x": 1200,
+        "y": 1926,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo112": {
+      "frame": {
+        "x": 1440,
+        "y": 1926,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo113": {
+      "frame": {
+        "x": 1680,
+        "y": 1926,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo114": {
+      "frame": {
+        "x": 1920,
+        "y": 1926,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo115": {
+      "frame": {
+        "x": 0,
+        "y": 2140,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo116": {
+      "frame": {
+        "x": 240,
+        "y": 2140,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo117": {
+      "frame": {
+        "x": 480,
+        "y": 2140,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo118": {
+      "frame": {
+        "x": 720,
+        "y": 2140,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    },
+    "win_logo119": {
+      "frame": {
+        "x": 960,
+        "y": 2140,
+        "w": 240,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 214
+      }
+    }
+  },
+  "meta": {
+    "app": "Media Tool Atlas Packer",
+    "version": "1.0",
+    "image": "win.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2160,
+      "h": 2354
+    },
+    "scale": "1"
+  }
+}

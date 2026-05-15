@@ -1,0 +1,174 @@
+
+Lobby.webp
+size: 1175,2064
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+bg_big
+  rotate: false
+  xy: 0, 0
+  size: 768, 512
+  orig: 768, 512
+  offset: 0, 0
+  index: -1
+chart_icon
+  rotate: false
+  xy: 768, 0
+  size: 47, 56
+  orig: 47, 56
+  offset: 0, 0
+  index: -1
+coin
+  rotate: false
+  xy: 815, 0
+  size: 46, 47
+  orig: 46, 47
+  offset: 0, 0
+  index: -1
+cs_icon
+  rotate: false
+  xy: 861, 0
+  size: 60, 59
+  orig: 60, 59
+  offset: 0, 0
+  index: -1
+enter_btn
+  rotate: false
+  xy: 0, 512
+  size: 350, 155
+  orig: 350, 155
+  offset: 0, 0
+  index: -1
+home_icon
+  rotate: false
+  xy: 350, 512
+  size: 52, 49
+  orig: 52, 49
+  offset: 0, 0
+  index: -1
+human_number_icon
+  rotate: false
+  xy: 402, 512
+  size: 28, 29
+  orig: 28, 29
+  offset: 0, 0
+  index: -1
+info_bar
+  rotate: false
+  xy: 430, 512
+  size: 371, 107
+  orig: 371, 107
+  offset: 0, 0
+  index: -1
+info_label
+  rotate: false
+  xy: 0, 667
+  size: 702, 306
+  orig: 702, 306
+  offset: 0, 0
+  index: -1
+label_blue
+  rotate: false
+  xy: 702, 667
+  size: 357, 100
+  orig: 357, 100
+  offset: 0, 0
+  index: -1
+label_green
+  rotate: false
+  xy: 0, 973
+  size: 357, 100
+  orig: 357, 100
+  offset: 0, 0
+  index: -1
+label_purple
+  rotate: false
+  xy: 357, 973
+  size: 357, 100
+  orig: 357, 100
+  offset: 0, 0
+  index: -1
+label_red
+  rotate: false
+  xy: 714, 973
+  size: 357, 100
+  orig: 357, 100
+  offset: 0, 0
+  index: -1
+Lobby_bg
+  rotate: false
+  xy: 0, 1073
+  size: 375, 820
+  orig: 375, 820
+  offset: 0, 0
+  index: -1
+middle_icon
+  rotate: false
+  xy: 375, 1073
+  size: 155, 168
+  orig: 155, 168
+  offset: 0, 0
+  index: -1
+navigator_bar
+  rotate: false
+  xy: 530, 1073
+  size: 375, 69
+  orig: 375, 69
+  offset: 0, 0
+  index: -1
+setting
+  rotate: false
+  xy: 905, 1073
+  size: 266, 271
+  orig: 266, 271
+  offset: 0, 0
+  index: -1
+shopping_icon
+  rotate: false
+  xy: 0, 1893
+  size: 58, 53
+  orig: 58, 53
+  offset: 0, 0
+  index: -1
+title_border_left
+  rotate: false
+  xy: 58, 1893
+  size: 217, 35
+  orig: 217, 35
+  offset: 0, 0
+  index: -1
+title_border_right
+  rotate: false
+  xy: 275, 1893
+  size: 217, 35
+  orig: 217, 35
+  offset: 0, 0
+  index: -1
+token_blue_glow
+  rotate: false
+  xy: 492, 1893
+  size: 170, 171
+  orig: 170, 171
+  offset: 0, 0
+  index: -1
+token_green_glow
+  rotate: false
+  xy: 662, 1893
+  size: 171, 171
+  orig: 171, 171
+  offset: 0, 0
+  index: -1
+token_purple_glow
+  rotate: false
+  xy: 833, 1893
+  size: 170, 170
+  orig: 170, 170
+  offset: 0, 0
+  index: -1
+token_red _glow
+  rotate: false
+  xy: 1003, 1893
+  size: 172, 171
+  orig: 172, 171
+  offset: 0, 0
+  index: -1

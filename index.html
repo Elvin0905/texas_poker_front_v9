@@ -1,0 +1,127 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-visual" />
+    <meta name="theme-color" content="#071321" />
+    <title>遊戲測試中</title>
+    <link rel="preload" href="/assets/variants/main_style/images/login.webp" as="image" type="image/webp" />
+    <link rel="preload" href="/assets/variants/main_style/images/Loading.webp" as="image" type="image/webp" />
+    <link rel="stylesheet" href="/assets/styles/app.css" />
+    <style>
+@keyframes _prs { from{transform:translate(-50%,-50%) rotate(0deg)} to{transform:translate(-50%,-50%) rotate(360deg)} }
+      #preload-spinner { border-radius:50%; animation:_prs 0.8s linear infinite; }
+    </style>
+    <script>
+    (function(){
+      var bgEl=document.createElement('div');
+      bgEl.id='preload-bg';
+      window.__removePreloadBg=function(){bgEl.remove()};
+
+      var el=document.createElement('div');
+      el.id='preload-spinner';
+      var frame=0,size=0,spriteTimer=null;
+      function startSprite(){
+        el.style.animation='none';
+        el.style.borderRadius='0';
+        el.style.border='none';
+        el.style.transform='translate(-50%,-50%)';
+        el.style.overflow='hidden';
+        var bgSz=size*6;
+        var inner=document.createElement('div');
+        inner.style.cssText='position:absolute;left:0;top:0;width:'+bgSz+'px;height:'+bgSz+'px;'+
+          'background:url(/assets/variants/main_style/images/Loading.webp) 0 0/'+bgSz+'px '+bgSz+'px no-repeat;'+
+          'will-change:transform;';
+        el.appendChild(inner);
+        var frameDur=1000/30,lastTime=0;
+        function tick(now){
+          spriteTimer=requestAnimationFrame(tick);
+          if(now-lastTime<frameDur) return;
+          lastTime=Math.max(lastTime+frameDur,now-frameDur);
+          var c=frame%6,r=Math.floor(frame/6);
+          inner.style.transform='translate('+(-c*size)+'px,'+(-r*size)+'px)';
+          frame=(frame+1)%33;
+        }
+        spriteTimer=requestAnimationFrame(tick);
+      }
+      window.__removePreloadSpinner=function(){if(spriteTimer)cancelAnimationFrame(spriteTimer);el.remove();};
+
+      document.addEventListener('DOMContentLoaded',function(){
+        var vw=window.innerWidth,vh=window.innerHeight;
+        // For portrait (phone), use the physical screen height as the background
+        // height so the loading image covers the full display regardless of whether
+        // the mobile address bar is shown or hidden at DOMContentLoaded time.
+        // This prevents the loading background from shifting as the viewport settles.
+        var screenH=(window.screen&&window.screen.height)?Math.max(vh,window.screen.height):vh;
+        var sc=Math.min(vw/720,vh/1440);
+        var gameW=Math.round(720*sc),gameH=Math.round(1440*sc);
+        var gameLeft=Math.round((vw-gameW)/2),gameTop=Math.round((vh-gameH)/2);
+
+        // bg_loading frame: x=10,y=10, 750x1640 inside login.webp atlas (1679x1996)
+        // Portrait (vh>vw) = phone → full viewport; landscape = desktop → game area only
+        var fX=10,fY=10,fW=750,fH=1640,aW=1679,aH=1996;
+        var portrait=vh>vw;
+        var bgLeft=portrait?0:gameLeft-1;
+        var bgTop=portrait?0:gameTop-1;
+        var bgW=portrait?vw:gameW+2;
+        var bgH=portrait?screenH:gameH+2;
+        var cvr=Math.max(bgW/fW,bgH/fH);
+        var posX=Math.round(-(fX*cvr+(fW*cvr-bgW)/2));
+        var posY=Math.round(-(fY*cvr+(fH*cvr-bgH)/2));
+        if(posX>0)posX=0; if(posY>0)posY=0;
+        bgEl.style.cssText='position:fixed;overflow:hidden;pointer-events:none;z-index:1;'+
+          'left:'+bgLeft+'px;top:'+bgTop+'px;width:'+bgW+'px;height:'+bgH+'px;'+
+          'background:url(/assets/variants/main_style/images/login.webp) '+
+          posX+'px '+posY+'px/'+Math.round(aW*cvr)+'px '+Math.round(aH*cvr)+'px no-repeat;';
+        document.body.appendChild(bgEl);
+
+        // Spinner — fixed pixel position so mobile URL-bar changes don't move it
+        size=Math.round(300*sc);
+        var oy=Math.round(-100*sc);
+        var bw=Math.max(3,Math.round(6*sc));
+        el.style.cssText='position:fixed;left:'+Math.round(vw/2)+'px;top:'+Math.round(vh/2+oy)+'px;'+
+          'width:'+size+'px;height:'+size+'px;'+
+          'border:'+bw+'px solid rgba(236,213,181,0.25);border-top-color:#ecd5b5;'+
+          'z-index:100;pointer-events:none;';
+        document.body.appendChild(el);
+        startSprite();
+
+        // Progress bar + text (above preload-bg, z-index 102)
+        var barCY=Math.round(vh/2+200*sc+oy);
+        var barW=Math.round(275*sc),barH=Math.max(2,Math.round(7*sc));
+        var tp=4,trackW=barW+tp*2,trackH=barH+tp*2;
+        var fsPx=Math.round(35*sc);
+        var pctEl=document.createElement('div');
+        // top = center - half font height so text is vertically centered at the intended position
+        pctEl.style.cssText='position:fixed;left:'+Math.round(vw/2)+'px;top:'+Math.round(vh/2+148*sc-fsPx/2+oy)+'px;'+
+          'transform:translateX(-50%);color:#ecd5b5;white-space:nowrap;pointer-events:none;z-index:102;'+
+          'font-family:"Noto Sans TC","Segoe UI",sans-serif;font-size:'+fsPx+'px;font-weight:700;'+
+          'text-shadow:0 1px 4px rgba(0,0,0,0.85);';
+        pctEl.textContent='載入中 0%';
+        var trackEl=document.createElement('div');
+        trackEl.style.cssText='position:fixed;left:'+Math.round(vw/2-trackW/2)+'px;top:'+Math.round(barCY-trackH/2)+'px;'+
+          'width:'+trackW+'px;height:'+trackH+'px;border-radius:'+Math.round(trackH/2)+'px;'+
+          'background:rgba(0,0,0,0.3);z-index:102;pointer-events:none;overflow:hidden;';
+        var fillEl=document.createElement('div');
+        fillEl.style.cssText='position:absolute;left:0;top:0;'+
+          'width:0;height:100%;background:rgba(236,213,181,0.88);';
+        trackEl.appendChild(fillEl);
+        document.body.appendChild(pctEl);
+        document.body.appendChild(trackEl);
+        window.__updateLoadingPct=function(v){
+          var pct=Math.floor(v*100);
+          pctEl.textContent=(pct>=100?'載入完成':'載入中')+' '+pct+'%';
+          fillEl.style.width=Math.round(trackW*v)+'px';
+        };
+        window.__removeLoadingBar=function(){pctEl.remove();trackEl.remove();};
+      });
+    })();
+    </script>
+  </head>
+  <body>
+    <div id="phaser-root"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+    <script type="module" src="/src/shared/core/main.js"></script>
+  </body>
+</html>
