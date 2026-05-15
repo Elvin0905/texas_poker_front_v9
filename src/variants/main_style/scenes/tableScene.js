@@ -67,7 +67,7 @@ const REPLAY_SPEED_BUTTON_HEIGHT = 48;
 // 公牌區（5 張）
 const COMMUNITY_SLOT_COUNT = 5;
 const COMMUNITY_CARD_SCALE = 0.464;
-const COMMUNITY_CARD_Y = 700;
+const COMMUNITY_CARD_Y = 620;
 const COMMUNITY_CARD_X_LIST = [260, 310, 360, 410, 460];
 const COMMUNITY_CARD_DEPTH = 8;
 const COMMUNITY_DEAL_FLY_CARD_DEPTH = 30;
@@ -420,7 +420,7 @@ const HERO_ACTION_BADGE_Y_OFFSET = -132;
 // 座位順序對應 SEAT_POSITIONS_6：0下方、1右下、2右上、3上方、4左上、5左下
 // 可手動微調：x/y 是下注金額文字座標
 const SEAT_BET_AMOUNT_POSITIONS_6 = [
-  { x: 250, y: 1060 }, // 座位 0
+  { x: 250, y: 980 }, // 座位 0
   { x: 545, y: 595 },  // 座位 1
   { x: 510, y: 335 },  // 座位 2
   { x: 340, y: 330 },  // 座位 3
@@ -430,7 +430,7 @@ const SEAT_BET_AMOUNT_POSITIONS_6 = [
 
 // 6 人桌座位座標（畫面座標；自己在下方）
 const SEAT_POSITIONS_6 = [
-  { x: 120, y: 1040 }, // 玩家本人座位（下方）
+  { x: 120, y: 960 }, // 玩家本人座位（下方）
   { x: 640, y: 660 },
   { x: 605, y: 390 },
   { x: 430, y: 230 },
@@ -1679,7 +1679,7 @@ export class TableScene extends Phaser.Scene {
     this.heroWaitPromptOkLabel?.setPosition(CENTER_X, CENTER_Y + 90 + dy);
 
     // 5. Hero seat (slot 0): 螢幕較短時跟著 bottomDy 上移，維持與 action 按鈕的固定間距
-    // 上移量最多 -130：英雄座位已上移至 y=1040，最多再上移 130 保留與公牌底部(742)約 85px 緩衝
+    // 上移量最多 -130：英雄座位已上移至 y=960，最多再上移 130 保留與公牌底部(662)約 168px 緩衝
     const heroSeatDy = Math.max(Math.min(0, newBottomDy), -130);
     const heroSeatDelta = heroSeatDy - (this._heroSeatDy ?? 0);
     this._heroSeatDy = heroSeatDy;
