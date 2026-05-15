@@ -66,7 +66,7 @@ const REPLAY_SPEED_BUTTON_HEIGHT = 48;
 
 // 公牌區（5 張）
 const COMMUNITY_SLOT_COUNT = 5;
-const COMMUNITY_CARD_SCALE = 0.464;
+const COMMUNITY_CARD_SCALE = 0.44;
 const COMMUNITY_CARD_Y = 620;
 const COMMUNITY_CARD_X_LIST = [260, 310, 360, 410, 460];
 const COMMUNITY_CARD_DEPTH = 8;
@@ -97,8 +97,8 @@ const ROUND_BET_COLLECT_STAGGER_MS = 65;
 // 底池文字（顯示在 coin 圖示正下方）
 const POT_TEXT_GAP_Y = 4;
 
-// 桌面中央底池標籤（coin stack 頂部上方，DEAL_CARD_FROM_Y=500 − 18 − 18 − 34 = 430）
-const CENTER_POT_Y = 395;
+// 桌面中央底池標籤（coin stack 頂部上方）
+const CENTER_POT_Y = 330;
 const CENTER_POT_BADGE_H = 50;
 const CENTER_POT_BADGE_R = 25;
 const CENTER_POT_DEPTH = POT_COIN_DEPTH + 2;
@@ -320,7 +320,7 @@ const TURN_AVATAR_HIGHLIGHT_TINT = 0xfff1a8;
 
 // 發牌動畫參數（起點、落點偏移、角度、速度、音效）
 const DEAL_CARD_FROM_X = 360;
-const DEAL_CARD_FROM_Y = 430;
+const DEAL_CARD_FROM_Y = 365;
 const DEAL_CARD_ATLAS_KEY = "game_table";
 const DEAL_CARD_FRAME = "card_back";
 const DEAL_CARD_NORMAL_SCALE = 0.36;
@@ -423,7 +423,7 @@ const SEAT_BET_AMOUNT_POSITIONS_6 = [
   { x: 250, y: 980 }, // 座位 0
   { x: 545, y: 595 },  // 座位 1
   { x: 510, y: 335 },  // 座位 2
-  { x: 340, y: 330 },  // 座位 3
+  { x: 340, y: 300 },  // 座位 3
   { x: 190, y: 375 },  // 座位 4
   { x: 170, y: 530 },  // 座位 5
 ];
@@ -433,7 +433,7 @@ const SEAT_POSITIONS_6 = [
   { x: 120, y: 960 }, // 玩家本人座位（下方）
   { x: 640, y: 660 },
   { x: 605, y: 390 },
-  { x: 430, y: 230 },
+  { x: 430, y: 200 },
   { x: 115, y: 280 },
   { x: 80, y: 590 },
 ];

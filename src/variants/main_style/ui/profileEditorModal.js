@@ -67,6 +67,13 @@ export class ProfileEditorModal {
     this._currentVerifyField = null;
     this._avatarScrollOffset = 35;
     this._baseAvatarYs = [];
+    this._avatarScrollListener = null;
+    this._avatarDragDown = null;
+    this._avatarDragMove = null;
+    this._avatarDragUp = null;
+    this._avatarDragStartY = null;
+    this._avatarDragStartOffset = 0;
+    this._avatarWasDragged = false;
     this._kbOffset = 0;
     this._initWindowH = window.innerHeight;
     this._onWindowResize = () => {
@@ -472,6 +479,7 @@ export class ProfileEditorModal {
         .setDepth(this.depth + 3)
         .setVisible(false);
       const select = () => {
+        if (this._avatarWasDragged) { this._avatarWasDragged = false; return; }
         this.selectedAvatar = frame;
         this.render();
         this._saveAvatar(frame);
@@ -576,6 +584,15 @@ export class ProfileEditorModal {
       this.scene.input.off("wheel", this._avatarScrollListener);
       this._avatarScrollListener = null;
     }
+    if (this._avatarDragDown) {
+      this.scene.input.off("pointerdown", this._avatarDragDown);
+      this.scene.input.off("pointermove", this._avatarDragMove);
+      this.scene.input.off("pointerup", this._avatarDragUp);
+      this._avatarDragDown = null;
+      this._avatarDragMove = null;
+      this._avatarDragUp = null;
+    }
+    this._avatarDragStartY = null;
     this._resetEditModes();
     this.setVisible(false);
   }
@@ -669,16 +686,51 @@ export class ProfileEditorModal {
   }
 
   _setupAvatarScroll() {
+    // Cleanup previous listeners
     if (this._avatarScrollListener) {
       this.scene.input.off("wheel", this._avatarScrollListener);
     }
+    if (this._avatarDragDown) {
+      this.scene.input.off("pointerdown", this._avatarDragDown);
+      this.scene.input.off("pointermove", this._avatarDragMove);
+      this.scene.input.off("pointerup", this._avatarDragUp);
+    }
+
+    const MIN_SCROLL = -50, MAX_SCROLL = 50;
+    const GRID_LEFT = 50, GRID_RIGHT = 670, GRID_TOP = 630, GRID_BOTTOM = 1110;
+    const DRAG_THRESHOLD = 5;
+
+    // Mouse wheel
     this._avatarScrollListener = (pointer, gameObjects, deltaX, deltaY) => {
-      const minScroll = -50;
-      const maxScroll = 50;
-      this._avatarScrollOffset = Math.max(minScroll, Math.min(maxScroll, this._avatarScrollOffset + deltaY * 0.5));
+      this._avatarScrollOffset = Math.max(MIN_SCROLL, Math.min(MAX_SCROLL, this._avatarScrollOffset + deltaY * 0.5));
       this._updateAvatarPositions();
     };
     this.scene.input.on("wheel", this._avatarScrollListener);
+
+    // Touch / pointer drag
+    this._avatarDragDown = (ptr) => {
+      if (!this.visible) return;
+      const worldY = ptr.y - this.dy;
+      if (ptr.x >= GRID_LEFT && ptr.x <= GRID_RIGHT && worldY >= GRID_TOP && worldY <= GRID_BOTTOM) {
+        this._avatarDragStartY = ptr.y;
+        this._avatarDragStartOffset = this._avatarScrollOffset;
+        this._avatarWasDragged = false;
+      }
+    };
+    this._avatarDragMove = (ptr) => {
+      if (!this.visible || this._avatarDragStartY === null || !ptr.isDown) return;
+      const delta = ptr.y - this._avatarDragStartY;
+      if (Math.abs(delta) > DRAG_THRESHOLD) this._avatarWasDragged = true;
+      this._avatarScrollOffset = Math.max(MIN_SCROLL, Math.min(MAX_SCROLL, this._avatarDragStartOffset - delta));
+      this._updateAvatarPositions();
+    };
+    this._avatarDragUp = () => {
+      this._avatarDragStartY = null;
+    };
+
+    this.scene.input.on("pointerdown", this._avatarDragDown);
+    this.scene.input.on("pointermove", this._avatarDragMove);
+    this.scene.input.on("pointerup", this._avatarDragUp);
   }
 
   _applyAvatarMask() {

@@ -516,7 +516,7 @@ export class LobbyScene extends Phaser.Scene {
     this._applyRptLayout(this._computeRptG());
 
     this._pagePointerDown = (ptr) => {
-      if (this.handReportsModalVisible || this.settingsModalVisible) return;
+      if (this.handReportsModalVisible || this.settingsModalVisible || this.profileEditorModal?.visible) return;
       const py = ptr.y;
       if (py > layout.bottom - 138 - layout.safeAreaBottom) return;
       this._pageDragStartY = py;
@@ -569,7 +569,7 @@ export class LobbyScene extends Phaser.Scene {
     this._nativeScrollToWorld = 1;
     const _canvas = this.game.canvas;
     this._nativeTouchStart = (e) => {
-      if (this.handReportsModalVisible || this.settingsModalVisible) return;
+      if (this.handReportsModalVisible || this.settingsModalVisible || this.profileEditorModal?.visible) return;
       if (!e.touches.length) return;
       const cam = this.cameras.main;
       const rect = _canvas.getBoundingClientRect();
