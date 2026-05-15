@@ -67,7 +67,7 @@ const REPLAY_SPEED_BUTTON_HEIGHT = 48;
 // 公牌區（5 張）
 const COMMUNITY_SLOT_COUNT = 5;
 const COMMUNITY_CARD_SCALE = 0.44;
-const COMMUNITY_CARD_Y = 620;
+const COMMUNITY_CARD_Y = 635;
 const COMMUNITY_CARD_X_LIST = [260, 310, 360, 410, 460];
 const COMMUNITY_CARD_DEPTH = 8;
 const COMMUNITY_DEAL_FLY_CARD_DEPTH = 30;
@@ -98,7 +98,7 @@ const ROUND_BET_COLLECT_STAGGER_MS = 65;
 const POT_TEXT_GAP_Y = 4;
 
 // 桌面中央底池標籤（coin stack 頂部上方）
-const CENTER_POT_Y = 330;
+const CENTER_POT_Y = 345;
 const CENTER_POT_BADGE_H = 50;
 const CENTER_POT_BADGE_R = 25;
 const CENTER_POT_DEPTH = POT_COIN_DEPTH + 2;
@@ -230,9 +230,9 @@ const HAND_RESULT_PANEL_WIDTH = 660;
 const HAND_RESULT_PANEL_HEIGHT = 980;
 const HAND_RESULT_PANEL_CORNER_RADIUS = 20;
 const HAND_RESULT_PANEL_BORDER_COLOR = 0xb87830;
-const HAND_RESULT_TITLE_Y = 300;
-const HAND_RESULT_DIVIDER_Y = 346;
-const HAND_RESULT_LIST_START_Y = 435;
+const HAND_RESULT_TITLE_Y = 250;
+const HAND_RESULT_DIVIDER_Y = 296;
+const HAND_RESULT_LIST_START_Y = 385;
 const HAND_RESULT_ROW_GAP = 130;
 const HAND_RESULT_ROW_WIDTH = 600;
 const HAND_RESULT_ROW_HEIGHT = 124;
@@ -251,7 +251,7 @@ const HAND_RESULT_FOLD_COLOR = "#b8c1cc";
 const HAND_RESULT_TITLE_FONT_SIZE = "42px";
 const HAND_RESULT_ROW_FONT_SIZE = "26px";
 const HAND_RESULT_HINT_FONT_SIZE = "24px";
-const HAND_RESULT_HINT_Y = 1185;
+const HAND_RESULT_HINT_Y = 1135;
 const HAND_RESULT_AUTO_CLOSE_SECONDS = 6;
 const HAND_RESULT_TITLE_OUTLINE_STYLE = { stroke: "#3a1a00", strokeThickness: 2 };
 const HAND_RESULT_NAME_X_OFFSET = -286;
@@ -261,7 +261,7 @@ const HAND_RESULT_NET_X_OFFSET = 220;
 const HAND_RESULT_RANK_X_OFFSET = -286;
 const HAND_RESULT_CARDS_START_X_OFFSET = 18;
 const HAND_RESULT_HEADER_FONT_SIZE = "22px";
-const HAND_RESULT_HEADER_Y = 358;
+const HAND_RESULT_HEADER_Y = 308;
 const HAND_RESULT_NAME_Y_OFFSET = -28;
 const HAND_RESULT_RANK_Y_OFFSET = 24;
 const HAND_RESULT_CARDS_Y_OFFSET = 24;
@@ -320,7 +320,7 @@ const TURN_AVATAR_HIGHLIGHT_TINT = 0xfff1a8;
 
 // 發牌動畫參數（起點、落點偏移、角度、速度、音效）
 const DEAL_CARD_FROM_X = 360;
-const DEAL_CARD_FROM_Y = 365;
+const DEAL_CARD_FROM_Y = 380;
 const DEAL_CARD_ATLAS_KEY = "game_table";
 const DEAL_CARD_FRAME = "card_back";
 const DEAL_CARD_NORMAL_SCALE = 0.36;
@@ -420,22 +420,22 @@ const HERO_ACTION_BADGE_Y_OFFSET = -132;
 // 座位順序對應 SEAT_POSITIONS_6：0下方、1右下、2右上、3上方、4左上、5左下
 // 可手動微調：x/y 是下注金額文字座標
 const SEAT_BET_AMOUNT_POSITIONS_6 = [
-  { x: 250, y: 980 }, // 座位 0
-  { x: 545, y: 595 },  // 座位 1
-  { x: 510, y: 335 },  // 座位 2
-  { x: 340, y: 300 },  // 座位 3
-  { x: 190, y: 375 },  // 座位 4
-  { x: 170, y: 530 },  // 座位 5
+  { x: 250, y: 995 }, // 座位 0
+  { x: 545, y: 610 },  // 座位 1
+  { x: 510, y: 350 },  // 座位 2
+  { x: 340, y: 315 },  // 座位 3
+  { x: 190, y: 390 },  // 座位 4
+  { x: 170, y: 545 },  // 座位 5
 ];
 
 // 6 人桌座位座標（畫面座標；自己在下方）
 const SEAT_POSITIONS_6 = [
-  { x: 120, y: 960 }, // 玩家本人座位（下方）
-  { x: 640, y: 660 },
-  { x: 605, y: 390 },
-  { x: 430, y: 200 },
-  { x: 115, y: 280 },
-  { x: 80, y: 590 },
+  { x: 120, y: 975 }, // 玩家本人座位（下方）
+  { x: 640, y: 675 },
+  { x: 605, y: 405 },
+  { x: 430, y: 215 },
+  { x: 115, y: 295 },
+  { x: 80, y: 605 },
 ];
 
 function seatPositionsByCount() {
@@ -938,7 +938,7 @@ export class TableScene extends Phaser.Scene {
       .setOrigin(0.5).setDepth(CENTER_POT_DEPTH + 0.6).setVisible(false);
 
     this.tableHintText = this.add
-      .text(CENTER_X, 495, "", {
+      .text(CENTER_X, 520, "", {
         fontSize: "34px",
         color: "#f4deba",
         fontStyle: "bold",
@@ -1679,7 +1679,7 @@ export class TableScene extends Phaser.Scene {
     this.heroWaitPromptOkLabel?.setPosition(CENTER_X, CENTER_Y + 90 + dy);
 
     // 5. Hero seat (slot 0): 螢幕較短時跟著 bottomDy 上移，維持與 action 按鈕的固定間距
-    // 上移量最多 -130：英雄座位已上移至 y=960，最多再上移 130 保留與公牌底部(662)約 168px 緩衝
+    // 上移量最多 -130：英雄座位已上移至 y=910，最多再上移 130 保留與公牌底部(612)約 168px 緩衝
     const heroSeatDy = Math.max(Math.min(0, newBottomDy), -130);
     const heroSeatDelta = heroSeatDy - (this._heroSeatDy ?? 0);
     this._heroSeatDy = heroSeatDy;
@@ -3653,7 +3653,7 @@ export class TableScene extends Phaser.Scene {
       : (seatView?.avatarFlipX ? DEAL_CARD_MIRROR_TARGET_OFFSET_X_RIGHT : DEAL_CARD_TARGET_OFFSET_X_RIGHT);
     const baseOffsetX = useRight ? targetOffsetRight : targetOffsetLeft;
     const offsetX = isHeroSeat ? baseOffsetX : (seatView?.avatarFlipX ? -baseOffsetX : baseOffsetX);
-    const heroUpShift = (isHeroSeat && layout.height < 1440) ? -50 : 0;
+    const heroUpShift = 0;
     const offsetY = (isHeroSeat ? HERO_DEAL_CARD_TARGET_OFFSET_Y : DEAL_CARD_TARGET_OFFSET_Y) + heroUpShift;
     const slotXAdjust = (!isHeroSeat && seatView?.slotIndex === 1) ? 20 : 0;
     return {
