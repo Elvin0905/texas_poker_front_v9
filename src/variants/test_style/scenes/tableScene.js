@@ -2576,7 +2576,7 @@ export class TableScene extends Phaser.Scene {
       const targetCardRaw = community[index];
       const targetCard = targetCardRaw === null || targetCardRaw === undefined || targetCardRaw === "" ? null : String(targetCardRaw);
       if (!targetCard) {
-        if (slot.shownCard !== null || slot.pendingCard !== null) {
+        if (slot.shownCard !== null || (slot.pendingCard !== null && !animateNewCards)) {
           this.setCommunityCardImmediate(index, null);
         }
         continue;

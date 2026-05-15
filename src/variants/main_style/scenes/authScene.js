@@ -374,26 +374,36 @@ export class AuthScene extends Phaser.Scene {
 
     this.bgImage?.setPosition(cx, cy).setDisplaySize(layout.width, layout.height);
 
-    const logoY = Math.max(Math.round((cy - 515) / 2) * 2, layout.safeAreaTop + 160);
+    // Spacing scale: compress gaps proportionally when the viewport is short so
+    // nothing overlaps. Only kicks in below ~1150 logical units of usable height.
+    // Interactive elements keep their physical size; only vertical spacing shrinks.
+    const usableH = layout.height - layout.safeAreaTop - layout.safeAreaBottom;
+    const ss = Math.min(1, usableH / 1150);
+
+    const s = (v) => Math.round(v * ss);
+
+    const titleY = cy - s(338);
+    const logoY = Math.max(layout.safeAreaTop + 20, titleY - s(176));
+    const logoSize = Math.round(Math.max(120, 568 * ss));
+    this.logoSprite?.setDisplaySize(logoSize, Math.round(logoSize * 264 / 568));
     this.logoSprite?.setPosition(Math.round(cx / 2) * 2, logoY);
 
-    const titleY = logoY + 176;
     this.titleText?.setPosition(cx, titleY);
     this.titleBorderLeft?.setPosition(cx - 200, titleY);
     this.titleBorderRight?.setPosition(cx + 200, titleY);
 
-    const emailLabelY = cy - 271;
+    const emailLabelY = cy - s(271);
     this.emailLabel?.setPosition(cx - 268, emailLabelY);
 
-    const emailBoxY = cy - 202;
+    const emailBoxY = cy - s(202);
     this._emailBoxY = emailBoxY;
     this._drawBox(this.emailBoxGfx, cx, emailBoxY);
     this.mailIcon?.setPosition(cx + ICON_X, emailBoxY);
 
-    const pwLabelY = cy - 105;
+    const pwLabelY = cy - s(105);
     this.passwordLabel?.setPosition(cx - 268, pwLabelY);
 
-    const pwBoxY = cy - 38;
+    const pwBoxY = cy - s(38);
     this._pwBoxY = pwBoxY;
     this._drawBox(this.passwordBoxGfx, cx, pwBoxY);
     this.lockIcon?.setPosition(cx + ICON_X, pwBoxY);
@@ -404,9 +414,9 @@ export class AuthScene extends Phaser.Scene {
     this.pwIndicator?.setPosition(cx + 185, pwBoxY);
     this.pwHintText?.setPosition(cx - 268, pwBoxY + 56);
 
-    this.forgotText?.setPosition(cx + 268, cy + 51);
+    this.forgotText?.setPosition(cx + 268, cy + s(51));
 
-    const remY = cy + 51, remCX = cx - 268;
+    const remY = cy + s(51), remCX = cx - 268;
     this.rememberZone?.setPosition(remCX, remY);
     this.rememberText?.setPosition(remCX + 22, remY);
     if (this.rememberGfx) {
@@ -421,10 +431,10 @@ export class AuthScene extends Phaser.Scene {
       }
     }
 
-    this.loginBtn?.setPosition(cx - 160, cy + 138);
-    this.visitorBtn?.setPosition(cx + 160, cy + 138);
+    this.loginBtn?.setPosition(cx - 160, cy + s(138));
+    this.visitorBtn?.setPosition(cx + 160, cy + s(138));
 
-    const otherY = cy + 258;
+    const otherY = cy + s(258);
     this.otherLabel?.setPosition(cx, otherY);
     if (this.otherGfx) {
       this.otherGfx.clear();
@@ -433,12 +443,12 @@ export class AuthScene extends Phaser.Scene {
       this.otherGfx.lineBetween(cx + 110, otherY, cx + 235, otherY);
     }
 
-    const socialY = cy + 344;
+    const socialY = cy + s(344);
     this.fbBtn?.setPosition(cx - 120, socialY);
     this.googleBtn?.setPosition(cx, socialY);
     this.lineBtn?.setPosition(cx + 120, socialY);
 
-    const agreeY = cy + 434;
+    const agreeY = cy + s(434);
     const circleX = cx - 210;
     this.agreeZone?.setPosition(circleX, agreeY);
     const textStartX = circleX + 28;

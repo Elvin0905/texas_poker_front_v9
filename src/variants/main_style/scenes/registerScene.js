@@ -384,19 +384,28 @@ export class RegisterScene extends Phaser.Scene {
 
     this.bgImage?.setPosition(cx, cy).setDisplaySize(layout.width, layout.height);
 
-    const logoY = Math.round((cy - 515) / 2) * 2;
+    // Spacing scale: compress gaps when the viewport is short so nothing overlaps.
+    // Register has more rows than auth so the threshold is a bit higher (1200).
+    const usableH = layout.height - layout.safeAreaTop - layout.safeAreaBottom;
+    const ss = Math.min(1, usableH / 1200);
+
+    const s = (v) => Math.round(v * ss);
+
+    const titleY = cy - s(338);
+    const logoY = Math.max(layout.safeAreaTop + 20, titleY - s(176));
+    const logoSize = Math.round(Math.max(100, 568 * ss));
+    this.logoSprite?.setDisplaySize(logoSize, Math.round(logoSize * 264 / 568));
     this.logoSprite?.setPosition(Math.round(cx / 2) * 2, logoY);
 
-    const titleY = cy - 338;
     this.titleText?.setPosition(cx, titleY);
     this.titleBorderLeft?.setPosition(cx - 200, titleY);
     this.titleBorderRight?.setPosition(cx + 200, titleY);
 
     // Email row
-    const emailLabelY = cy - 271;
+    const emailLabelY = cy - s(271);
     this.emailLabel?.setPosition(cx - 268, emailLabelY);
     this.emailAst?.setPosition(cx - 268 + (this.emailLabel?.width ?? 0) + 4, emailLabelY).setVisible(true);
-    const emailBoxY = cy - 202;
+    const emailBoxY = cy - s(202);
     this._emailBoxY = emailBoxY;
     this._drawBox(this.emailBoxGfx, cx, emailBoxY);
     this.mailIcon?.setPosition(cx + ICON_X, emailBoxY);
@@ -414,12 +423,12 @@ export class RegisterScene extends Phaser.Scene {
     }
 
     // Nickname + Gender row
-    const nickLabelY = cy - 105;
+    const nickLabelY = cy - s(105);
     this.nickLabel?.setPosition(cx - 268, nickLabelY);
     this.nickAst?.setPosition(cx - 268 + (this.nickLabel?.width ?? 0) + 4, nickLabelY).setVisible(true);
     this.genderLabel?.setPosition(cx + 100, nickLabelY);
     this.genderAst?.setPosition(cx + 100 + (this.genderLabel?.width ?? 0) + 4, nickLabelY).setVisible(true);
-    const nickBoxY = cy - 38;
+    const nickBoxY = cy - s(38);
     this._nickBoxY = nickBoxY;
     this._drawBox(this.nickBoxGfx, cx - 97, nickBoxY, 370);
     this.userIcon?.setPosition(cx + ICON_X, nickBoxY);
@@ -432,10 +441,10 @@ export class RegisterScene extends Phaser.Scene {
     this.genderHintText?.setPosition(cx + 88, nickBoxY + 56);
 
     // Password row
-    const pwLabelY = cy + 61;
+    const pwLabelY = cy + s(61);
     this.passwordLabel?.setPosition(cx - 268, pwLabelY);
     this.pwAst?.setPosition(cx - 268 + (this.passwordLabel?.width ?? 0) + 4, pwLabelY).setVisible(true);
-    const pwBoxY = cy + 130;
+    const pwBoxY = cy + s(130);
     this._pwBoxY = pwBoxY;
     this._drawBox(this.passwordBoxGfx, cx, pwBoxY);
     this.lockIcon?.setPosition(cx + ICON_X, pwBoxY);
@@ -444,10 +453,10 @@ export class RegisterScene extends Phaser.Scene {
     this.pwHintText?.setPosition(cx - 268, pwBoxY + 56);
 
     // Confirm Password row
-    const confirmPwLabelY = cy + 225;
+    const confirmPwLabelY = cy + s(225);
     this.confirmPwLabel?.setPosition(cx - 268, confirmPwLabelY);
     this.confirmPwAst?.setPosition(cx - 268 + (this.confirmPwLabel?.width ?? 0) + 4, confirmPwLabelY).setVisible(true);
-    const confirmPwBoxY = cy + 293;
+    const confirmPwBoxY = cy + s(293);
     this._confirmPwBoxY = confirmPwBoxY;
     this._drawBox(this.confirmPwBoxGfx, cx, confirmPwBoxY);
     this.confirmLockIcon?.setPosition(cx + ICON_X, confirmPwBoxY);
@@ -455,7 +464,7 @@ export class RegisterScene extends Phaser.Scene {
     this.confirmPwMatchText?.setPosition(cx + 168, confirmPwBoxY);
     this.confirmPwHintText?.setPosition(cx - 268, confirmPwBoxY + 56);
 
-    this.submitBtn?.setPosition(cx, cy + 425);
+    this.submitBtn?.setPosition(cx, cy + s(425));
 
     const botY = layout.bottom - 80;
     this.hasAccountText?.setPosition(cx - 175, botY);
