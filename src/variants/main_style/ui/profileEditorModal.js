@@ -686,7 +686,7 @@ export class ProfileEditorModal {
     this._cleanupAvatarNativeTouch();
 
     const AVATAR_MIN = -180, AVATAR_MAX = 40;
-    const GRID_LEFT = 50, GRID_RIGHT = 670, GRID_TOP = 630, GRID_BOTTOM = 1110;
+    const GRID_LEFT = 40, GRID_RIGHT = 680, GRID_TOP = 600, GRID_BOTTOM = 1140;
     const DRAG_THRESHOLD = 5;
     const canvas = this.scene.game.canvas;
 
@@ -757,7 +757,8 @@ export class ProfileEditorModal {
         this._avatarWasDragged = false;
         avatarLastClientY = t.clientY;
         avatarLastTime = performance.now();
-      } else {
+      } else if (this._kbOffset > 0) {
+        // Modal repositioning only active while keyboard is pushing the view up
         const panelL = PANEL_X - PANEL_WIDTH / 2;
         const panelR = PANEL_X + PANEL_WIDTH / 2;
         if (pos.x >= panelL && pos.x <= panelR && localY >= PANEL_TOP && localY <= PANEL_TOP + PANEL_HEIGHT) {
