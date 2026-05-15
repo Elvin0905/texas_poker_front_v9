@@ -938,7 +938,7 @@ export class TableScene extends Phaser.Scene {
       .setOrigin(0.5).setDepth(CENTER_POT_DEPTH + 0.6).setVisible(false);
 
     this.tableHintText = this.add
-      .text(CENTER_X, 575, "", {
+      .text(CENTER_X, 495, "", {
         fontSize: "34px",
         color: "#f4deba",
         fontStyle: "bold",
