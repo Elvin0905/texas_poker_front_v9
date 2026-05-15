@@ -262,7 +262,7 @@ export class RegisterScene extends Phaser.Scene {
     };
 
     // Email / Phone row
-    this.emailLabel = this.add.text(0, 0, "邮箱/电话号码", labelStyle).setOrigin(0, 0.5);
+    this.emailLabel = this.add.text(0, 0, "信箱/電話號碼", labelStyle).setOrigin(0, 0.5);
     this.emailBoxGfx = this.add.graphics();
     this.mailIcon = this.add.image(0, 0, "login", "user").setDisplaySize(50, 55);
     this.verifyEmailBtn = createGradientButton(this, {
@@ -494,7 +494,7 @@ export class RegisterScene extends Phaser.Scene {
   _buildHtmlInputs() {
     this._phoneCodeEl = this._makePhoneCodeEl();
 
-    this._emailEl = this._makeEl("reg-email", "text", "请输入邮箱或电话号码", "username");
+    this._emailEl = this._makeEl("reg-email", "text", "請輸入信箱或電話號碼", "username");
     this._emailEl.addEventListener("input", () => {
       this.usernameValue = this._emailEl.value;
       if (this._emailVerified) {
@@ -659,13 +659,13 @@ export class RegisterScene extends Phaser.Scene {
       this._posEl(this._emailEl, inputLeft, this._emailBoxY - 29, inputW, 58, scale, ox, oy);
     } else {
       this._phoneCodeEl?.style.setProperty("display", "none", "important");
-      const textStartX = layout.centerX - 182;
-      this._posEl(this._emailEl, textStartX, this._emailBoxY - 29, 318, 58, scale, ox, oy);
+      const textStartX = layout.centerX - 162;
+      this._posEl(this._emailEl, textStartX, this._emailBoxY - 29, 298, 58, scale, ox, oy);
     }
-    const nickStartX = layout.centerX - 182;
-    this._posEl(this._nickEl,      nickStartX, this._nickBoxY      - 29, 256, 58, scale, ox, oy);
-    this._posEl(this._pwEl,        nickStartX, this._pwBoxY        - 29, 330, 58, scale, ox, oy);
-    this._posEl(this._confirmPwEl, nickStartX, this._confirmPwBoxY - 29, 330, 58, scale, ox, oy);
+    const nickStartX = layout.centerX - 162;
+    this._posEl(this._nickEl,      nickStartX, this._nickBoxY      - 29, 236, 58, scale, ox, oy);
+    this._posEl(this._pwEl,        nickStartX, this._pwBoxY        - 29, 310, 58, scale, ox, oy);
+    this._posEl(this._confirmPwEl, nickStartX, this._confirmPwBoxY - 29, 310, 58, scale, ox, oy);
     if (this._eyeHitEl)        this._posEl(this._eyeHitEl,        layout.centerX + 203, this._pwBoxY        - 32, 76, 64, scale, ox, oy);
     if (this._confirmEyeHitEl) this._posEl(this._confirmEyeHitEl, layout.centerX + 203, this._confirmPwBoxY - 32, 76, 64, scale, ox, oy);
     if (this._verifyCodeEl) {

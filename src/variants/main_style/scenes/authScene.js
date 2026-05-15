@@ -261,7 +261,7 @@ export class AuthScene extends Phaser.Scene {
       fontSize: "28px", fontStyle: "bold", color: "#f5e6c0",
       stroke: "#000", strokeThickness: 1,
     };
-    this.emailLabel = this.add.text(0, 0, "邮箱/电话号码", labelStyle).setOrigin(0, 0.5);
+    this.emailLabel = this.add.text(0, 0, "信箱/電話號碼", labelStyle).setOrigin(0, 0.5);
     this.emailBoxGfx = this.add.graphics();
     this.mailIcon = this.add.image(0, 0, "login", "user").setDisplaySize(50, 55);
 
@@ -502,7 +502,7 @@ export class AuthScene extends Phaser.Scene {
   _buildHtmlInputs() {
     this._phoneCodeEl = this._makePhoneCodeEl();
 
-    this._emailEl = this._makeEl("auth-email", "text", "请输入邮箱或电话号码", "username");
+    this._emailEl = this._makeEl("auth-email", "text", "請輸入信箱或電話號碼", "username");
     this._emailEl.value = this.usernameValue;
     this._emailEl.addEventListener("input", () => {
       this.usernameValue = this._emailEl.value;
@@ -641,10 +641,10 @@ export class AuthScene extends Phaser.Scene {
       this._posEl(this._emailEl, inputLeft, this._emailBoxY - 29, inputW, 58, scale, ox, oy);
     } else {
       this._phoneCodeEl?.style.setProperty("display", "none", "important");
-      const textStartX = layout.centerX - 182;
-      this._posEl(this._emailEl, textStartX, this._emailBoxY - 29, 385, 58, scale, ox, oy);
+      const textStartX = layout.centerX - 162;
+      this._posEl(this._emailEl, textStartX, this._emailBoxY - 29, 365, 58, scale, ox, oy);
     }
-    this._posEl(this._pwEl, layout.centerX - 182, this._pwBoxY - 29, 330, 58, scale, ox, oy);
+    this._posEl(this._pwEl, layout.centerX - 162, this._pwBoxY - 29, 310, 58, scale, ox, oy);
     if (this._eyeHitEl)    this._posEl(this._eyeHitEl,    layout.centerX + 203, this._pwBoxY - 32,    76, 64, scale, ox, oy);
     if (this._forgotHitEl) this._posEl(this._forgotHitEl, layout.centerX + 140, layout.centerY + 27, 142, 50, scale, ox, oy);
   }
@@ -686,9 +686,9 @@ export class AuthScene extends Phaser.Scene {
     this.emailIndicator?.setVisible(false);
     if (val.length > 0) {
       if (mode === "phone" && !/^\d{7,14}$/.test(val.trim())) {
-        this.emailHintText?.setText("* 请输入正确电话号码").setVisible(true);
+        this.emailHintText?.setText("* 請輸入正確電話號碼").setVisible(true);
       } else if (mode !== "phone" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-        this.emailHintText?.setText("* 请输入正确邮箱格式").setVisible(true);
+        this.emailHintText?.setText("* 請輸入正確信箱格式").setVisible(true);
       } else {
         this.emailHintText?.setVisible(false);
       }
@@ -882,7 +882,7 @@ export class AuthScene extends Phaser.Scene {
     const mode = this._detectInputMode(raw);
     if (mode === "phone") {
       if (!/^\d{7,14}$/.test(raw)) {
-        this.emailHintText?.setText("* 请输入正确电话号码").setVisible(true);
+        this.emailHintText?.setText("* 請輸入正確電話號碼").setVisible(true);
         return;
       }
       try {
@@ -893,7 +893,7 @@ export class AuthScene extends Phaser.Scene {
       this.app.sendPacket("login", { username, password });
     } else {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
-        this.emailHintText?.setText("* 请输入正确邮箱格式").setVisible(true);
+        this.emailHintText?.setText("* 請輸入正確信箱格式").setVisible(true);
         return;
       }
       try {
