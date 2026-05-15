@@ -384,12 +384,19 @@ export class RegisterScene extends Phaser.Scene {
 
     this.bgImage?.setPosition(cx, cy).setDisplaySize(layout.width, layout.height);
 
-    // Spacing scale: compress gaps when the viewport is short so nothing overlaps.
-    // Register has more rows than auth so the threshold is a bit higher (1200).
     const usableH = layout.height - layout.safeAreaTop - layout.safeAreaBottom;
-    const ss = Math.min(1, usableH / 1200);
+    const ss = Math.min(1, usableH / 1380);
 
     const s = (v) => Math.round(v * ss);
+
+    // Scale font sizes proportionally so text doesn't overflow on short viewports
+    this.titleText?.setFontSize(Math.round(40 * ss) + 'px');
+    this.emailLabel?.setFontSize(Math.round(28 * ss) + 'px');
+    this.nickLabel?.setFontSize(Math.round(28 * ss) + 'px');
+    this.genderLabel?.setFontSize(Math.round(28 * ss) + 'px');
+    this.passwordLabel?.setFontSize(Math.round(28 * ss) + 'px');
+    this.confirmPwLabel?.setFontSize(Math.round(28 * ss) + 'px');
+    this.hasAccountText?.setFontSize(Math.round(28 * ss) + 'px');
 
     const titleY = cy - s(338);
     const logoY = Math.max(layout.safeAreaTop + 20, titleY - s(176));
@@ -466,7 +473,7 @@ export class RegisterScene extends Phaser.Scene {
 
     this.submitBtn?.setPosition(cx, cy + s(425));
 
-    const botY = layout.bottom - 80;
+    const botY = layout.bottom - Math.max(80, layout.safeAreaBottom + 50);
     this.hasAccountText?.setPosition(cx - 175, botY);
     this.loginBtn?.setPosition(cx + 80, botY);
 

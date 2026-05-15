@@ -378,9 +378,21 @@ export class AuthScene extends Phaser.Scene {
     // nothing overlaps. Only kicks in below ~1150 logical units of usable height.
     // Interactive elements keep their physical size; only vertical spacing shrinks.
     const usableH = layout.height - layout.safeAreaTop - layout.safeAreaBottom;
-    const ss = Math.min(1, usableH / 1150);
+    const ss = Math.min(1, usableH / 1380);
 
     const s = (v) => Math.round(v * ss);
+
+    // Scale font sizes proportionally so text doesn't overflow on short viewports
+    this.titleText?.setFontSize(Math.round(40 * ss) + 'px');
+    this.emailLabel?.setFontSize(Math.round(28 * ss) + 'px');
+    this.passwordLabel?.setFontSize(Math.round(28 * ss) + 'px');
+    this.forgotText?.setFontSize(Math.round(26 * ss) + 'px');
+    this.rememberText?.setFontSize(Math.round(26 * ss) + 'px');
+    this.otherLabel?.setFontSize(Math.round(26 * ss) + 'px');
+    this.agreeStaticText?.setFontSize(Math.round(22 * ss) + 'px');
+    this.agreeLink1?.setFontSize(Math.round(22 * ss) + 'px');
+    this.agreeLink2?.setFontSize(Math.round(22 * ss) + 'px');
+    this.noAccountText?.setFontSize(Math.round(28 * ss) + 'px');
 
     const titleY = cy - s(338);
     const logoY = Math.max(layout.safeAreaTop + 20, titleY - s(176));
@@ -471,7 +483,7 @@ export class AuthScene extends Phaser.Scene {
 
     this.agreeHintText?.setPosition(cx, agreeY + 32);
 
-    const botY = layout.bottom - 80;
+    const botY = layout.bottom - Math.max(80, layout.safeAreaBottom + 50);
     this.noAccountText?.setPosition(cx - 175, botY);
     this.registerBtn?.setPosition(cx + 80, botY);
 
