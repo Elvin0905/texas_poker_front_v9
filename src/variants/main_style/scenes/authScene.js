@@ -763,7 +763,8 @@ export class AuthScene extends Phaser.Scene {
     if (this._fpOverlay?.visible) {
       const errMsg = String(state?.lastError?.message ?? "操作失敗，請重試");
       const cx = layout.centerX, cy = layout.centerY;
-      this._fpErrText?.setText(`* ${errMsg}`).setPosition(cx, cy + 68).setVisible(true);
+      // boxY = cy+20, box half-height = 40, so box bottom = cy+60; put text 22px below
+      this._fpErrText?.setText(`* ${errMsg}`).setPosition(cx, cy + 82).setVisible(true);
       return;
     }
 
@@ -1192,9 +1193,9 @@ export class AuthScene extends Phaser.Scene {
       fontSize: "22px", color: "#e8d5b0", align: "center", lineSpacing: 8,
     }).setOrigin(0.5).setDepth(D + 2).setVisible(false);
 
-    // Step 1 — email
+    // Step 1 — email/phone
     this._fpBox1Gfx = this.add.graphics().setDepth(D + 2).setVisible(false);
-    this._fpMailIcon = this.add.image(0, 0, "login", "mail").setDisplaySize(48, 38).setDepth(D + 2).setVisible(false);
+    this._fpMailIcon = this.add.image(0, 0, "login", "user").setDisplaySize(50, 55).setDepth(D + 2).setVisible(false);
 
     // Step 2 — verification code
     this._fpBox2Gfx = this.add.graphics().setDepth(D + 2).setVisible(false);
@@ -1230,6 +1231,9 @@ export class AuthScene extends Phaser.Scene {
     this._fpStep = 1;
     this._fpStoredEmail = "";
     this._fpStoredCode = "";
+    this._fpPhoneMode = false;
+    this._fpPhoneCode = "+886";
+    this._fpPhoneCodeEl = null;
   }
 
   _showForgotModal() {
@@ -1277,13 +1281,14 @@ export class AuthScene extends Phaser.Scene {
       .forEach(o => o?.setVisible(false));
 
     // Remove all step HTML inputs
-    ["fp-email", "fp-code", "fp-newpw", "fp-confirmpw"].forEach(id => document.getElementById(id)?.remove());
+    ["fp-email", "fp-phone-code", "fp-code", "fp-newpw", "fp-confirmpw"].forEach(id => document.getElementById(id)?.remove());
     this._fpEl = null; this._fpCodeEl = null; this._fpNewPwEl = null; this._fpConfirmPwEl = null;
+    this._fpPhoneCodeEl = null; this._fpPhoneMode = false;
 
     if (step === 1) {
       this._fpTitle.setText("忘記密碼");
       applyGoldTitleGradient(this._fpTitle);
-      this._fpDescText.setText("請輸入您的註冊信箱\n我們將發送驗證碼至您的信箱");
+      this._fpDescText.setText("請輸入您的註冊信箱或電話號碼\n我們將發送驗證碼");
       this._fpPrimaryBtn.setLabel?.("發送");
 
       const boxY = cy + 20;
@@ -1291,14 +1296,19 @@ export class AuthScene extends Phaser.Scene {
       this._fpBox1Gfx.setVisible(true);
       this._fpMailIcon.setPosition(cx - 190, boxY).setVisible(true);
 
-      this._fpEl = this._makeFpHtmlInput("fp-email", "email", "點擊輸入郵箱", "email");
+      this._fpPhoneMode = false;
+      this._fpEl = this._makeFpHtmlInput("fp-email", "text", "請輸入信箱或電話號碼", "username");
       this._fpEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); this._fpOnPrimary(); } });
-      this._posInBox(this._fpEl, cx, boxY);
+      this._fpEl.addEventListener("input", () => {
+        const isPhone = /^\d/.test(this._fpEl.value.trim()) && this._fpEl.value.trim().length > 0;
+        if (isPhone !== this._fpPhoneMode) { this._fpPhoneMode = isPhone; this._fpSyncStep1Input(); }
+      });
+      this._fpSyncStep1Input();
 
     } else if (step === 2) {
       this._fpTitle.setText("忘記密碼");
       applyGoldTitleGradient(this._fpTitle);
-      this._fpDescText.setText("驗證碼已發送至您的信箱\n請輸入6位數驗證碼");
+      this._fpDescText.setText("驗證碼已發送\n請輸入6位數驗證碼");
       this._fpPrimaryBtn.setLabel?.("驗證");
 
       const boxY = cy + 20;
@@ -1345,13 +1355,13 @@ export class AuthScene extends Phaser.Scene {
   _fpOnPrimary() {
     this._fpErrText?.setVisible(false);
     if (this._fpStep === 1) {
-      const email = this._fpEl?.value?.trim() ?? "";
-      if (!email) return;
-      this._fpStoredEmail = email;
+      const raw = this._fpEl?.value?.trim() ?? "";
+      if (!raw) return;
+      this._fpStoredEmail = this._fpPhoneMode ? (this._fpPhoneCode + raw) : raw;
       const s = this.store?.getState?.() ?? {};
       this._lastSeenFpEventVersion = Number(s.fpEventVersion ?? 0);
       this._lastSeenAuthErrorVersion = Number(s.errorVersion ?? 0);
-      this.app.sendPacket("forgot_password", { username: email });
+      this.app.sendPacket("forgot_password", { username: this._fpStoredEmail });
     } else if (this._fpStep === 2) {
       const code = this._fpCodeEl?.value?.trim() ?? "";
       if (!code) return;
@@ -1398,6 +1408,58 @@ export class AuthScene extends Phaser.Scene {
     return el;
   }
 
+  _makeFpPhoneCodeEl() {
+    document.getElementById("fp-phone-code")?.remove();
+    const sel = document.createElement("select");
+    sel.id = "fp-phone-code";
+    sel.className = "phone-code-sel";
+    PHONE_CODES.forEach(({ value }) => {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = value;
+      sel.appendChild(opt);
+    });
+    sel.value = this._fpPhoneCode || "+886";
+    const showLabels = () => PHONE_CODES.forEach(({ label }, i) => { sel.options[i].textContent = label; });
+    const showCodes  = () => PHONE_CODES.forEach(({ value }, i) => { sel.options[i].textContent = value; });
+    sel.addEventListener("mousedown",  showLabels);
+    sel.addEventListener("touchstart", showLabels, { passive: true });
+    sel.addEventListener("focus",      showLabels);
+    sel.addEventListener("blur",       showCodes);
+    sel.addEventListener("change", () => { this._fpPhoneCode = sel.value; showCodes(); });
+    Object.assign(sel.style, {
+      position: "fixed", display: "none", zIndex: "200",
+      boxSizing: "border-box", padding: "0 4px",
+      fontFamily: '"Noto Sans TC", "Segoe UI", sans-serif', colorScheme: "dark",
+      fontSize: "20px",
+    });
+    document.body.appendChild(sel);
+    return sel;
+  }
+
+  _fpSyncStep1Input() {
+    if (!this._fpEl) return;
+    const cx = layout.centerX, cy = layout.centerY;
+    const boxY = cy + 20;
+    const canvas = this.sys.game.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const scale = Math.min(rect.width / layout.width, rect.height / layout.height);
+    const ox = rect.left + (rect.width - layout.width * scale) / 2;
+    const oy = rect.top;
+    const fs = Math.max(13, Math.round(21 * scale)) + "px";
+    if (this._fpPhoneMode) {
+      if (!this._fpPhoneCodeEl) this._fpPhoneCodeEl = this._makeFpPhoneCodeEl();
+      this._posEl(this._fpPhoneCodeEl, cx - 150, boxY - 29, 112, 58, scale, ox, oy);
+      this._fpPhoneCodeEl.style.fontSize = fs;
+      this._fpPhoneCodeEl.style.removeProperty("display");
+      this._posEl(this._fpEl, cx - 33, boxY - 29, 232, 58, scale, ox, oy);
+    } else {
+      if (this._fpPhoneCodeEl) this._fpPhoneCodeEl.style.setProperty("display", "none", "important");
+      this._posEl(this._fpEl, cx - 155, boxY - 29, 360, 58, scale, ox, oy);
+    }
+    this._fpEl.style.fontSize = fs;
+  }
+
   _posInBox(el, cx, boxY) {
     const canvas = this.sys.game.canvas;
     const rect = canvas.getBoundingClientRect();
@@ -1405,11 +1467,13 @@ export class AuthScene extends Phaser.Scene {
     const ox = rect.left + (rect.width - layout.width * scale) / 2;
     const oy = rect.top;
     this._posEl(el, cx - 155, boxY - 29, 360, 58, scale, ox, oy);
+    el.style.fontSize = Math.max(13, Math.round(21 * scale)) + "px";
   }
 
   _hideForgotModal() {
-    ["fp-email", "fp-code", "fp-newpw", "fp-confirmpw"].forEach(id => document.getElementById(id)?.remove());
+    ["fp-email", "fp-phone-code", "fp-code", "fp-newpw", "fp-confirmpw"].forEach(id => document.getElementById(id)?.remove());
     this._fpEl = null; this._fpCodeEl = null; this._fpNewPwEl = null; this._fpConfirmPwEl = null;
+    this._fpPhoneCodeEl = null; this._fpPhoneMode = false;
     const _d = Math.max(0, parseInt(document.body.dataset.modalDepth || 0) - 1);
     document.body.dataset.modalDepth = _d;
     if (_d === 0) document.body.classList.remove("modal-open");
@@ -1435,8 +1499,9 @@ export class AuthScene extends Phaser.Scene {
     this._phoneCodeEl?.remove(); this._phoneCodeEl = null;
     this._eyeHitEl?.remove(); this._eyeHitEl = null;
     this._forgotHitEl?.remove(); this._forgotHitEl = null;
-    ["fp-email", "fp-code", "fp-newpw", "fp-confirmpw"].forEach(id => document.getElementById(id)?.remove());
+    ["fp-email", "fp-phone-code", "fp-code", "fp-newpw", "fp-confirmpw"].forEach(id => document.getElementById(id)?.remove());
     this._fpEl = null; this._fpCodeEl = null; this._fpNewPwEl = null; this._fpConfirmPwEl = null;
+    this._fpPhoneCodeEl = null;
     this._styleEl?.remove(); this._styleEl = null;
     if (this._syncBound) {
       window.removeEventListener("resize", this._syncBound);

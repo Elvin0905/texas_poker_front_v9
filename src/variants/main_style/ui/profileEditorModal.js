@@ -74,6 +74,7 @@ export class ProfileEditorModal {
     this._avatarDragStartY = null;
     this._avatarDragStartOffset = 0;
     this._avatarWasDragged = false;
+    this._avatarInertiaId = null;
     this._kbOffset = 0;
     this._initWindowH = window.innerHeight;
     this._onWindowResize = () => {
@@ -684,7 +685,7 @@ export class ProfileEditorModal {
     }
     this._cleanupAvatarNativeTouch();
 
-    const MIN_SCROLL = -50, MAX_SCROLL = 50;
+    const AVATAR_MIN = -180, AVATAR_MAX = 40;
     const GRID_LEFT = 50, GRID_RIGHT = 670, GRID_TOP = 630, GRID_BOTTOM = 1110;
     const DRAG_THRESHOLD = 5;
     const canvas = this.scene.game.canvas;
@@ -703,39 +704,109 @@ export class ProfileEditorModal {
         y: cam.scrollY + (clientY - rect.top) * tw,
       };
     };
+    const getPhysTranslate = () => {
+      const root = document.getElementById('phaser-root');
+      if (!root) return 0;
+      const m = root.style.transform?.match(/translateY\((-?[\d.]+)px\)/);
+      return m ? parseFloat(m[1]) : 0;
+    };
 
-    // Mouse wheel (desktop)
+    // Mouse wheel (desktop) — only when pointer is over the avatar grid
     this._avatarScrollListener = (pointer, gameObjects, deltaX, deltaY) => {
       if (!this.visible) return;
-      this._avatarScrollOffset = Math.max(MIN_SCROLL, Math.min(MAX_SCROLL, this._avatarScrollOffset + deltaY * 0.5));
+      const localY = pointer.worldY - this.dy;
+      if (pointer.worldX < GRID_LEFT || pointer.worldX > GRID_RIGHT || localY < GRID_TOP || localY > GRID_BOTTOM) return;
+      if (this._avatarInertiaId) { cancelAnimationFrame(this._avatarInertiaId); this._avatarInertiaId = null; }
+      this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarScrollOffset - deltaY * 0.5));
       this._updateAvatarPositions();
     };
     this.scene.input.on("wheel", this._avatarScrollListener);
 
-    // Native touch (mobile) — zero latency, blocks browser scroll inside grid
+    // Inertia loop for smooth deceleration after touch
+    let avatarVelocity = 0;
+    let avatarLastClientY = 0;
+    let avatarLastTime = 0;
+    const applyAvatarInertia = () => {
+      if (!this.visible || Math.abs(avatarVelocity) < 0.3) {
+        avatarVelocity = 0; this._avatarInertiaId = null; return;
+      }
+      avatarVelocity *= 0.90;
+      this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarScrollOffset + avatarVelocity * getToWorld()));
+      this._updateAvatarPositions();
+      this._avatarInertiaId = requestAnimationFrame(applyAvatarInertia);
+    };
+
+    // Modal drag state (for repositioning whole panel when keyboard is up)
+    let modalDragStartClientY = null;
+    let modalDragStartTranslate = 0;
+    // 'avatar' | 'modal' | null
+    let dragMode = null;
+
     this._avatarNativeTouchStart = (e) => {
       if (!this.visible || !e.touches.length) return;
       const t = e.touches[0];
       const pos = clientToWorld(t.clientX, t.clientY);
       const localY = pos.y - this.dy;
+
       if (pos.x >= GRID_LEFT && pos.x <= GRID_RIGHT && localY >= GRID_TOP && localY <= GRID_BOTTOM) {
+        dragMode = 'avatar';
+        if (this._avatarInertiaId) { cancelAnimationFrame(this._avatarInertiaId); this._avatarInertiaId = null; }
+        avatarVelocity = 0;
         this._avatarDragStartY = t.clientY;
         this._avatarDragStartOffset = this._avatarScrollOffset;
         this._avatarWasDragged = false;
+        avatarLastClientY = t.clientY;
+        avatarLastTime = performance.now();
+      } else {
+        const panelL = PANEL_X - PANEL_WIDTH / 2;
+        const panelR = PANEL_X + PANEL_WIDTH / 2;
+        if (pos.x >= panelL && pos.x <= panelR && localY >= PANEL_TOP && localY <= PANEL_TOP + PANEL_HEIGHT) {
+          dragMode = 'modal';
+          modalDragStartClientY = t.clientY;
+          modalDragStartTranslate = getPhysTranslate();
+        }
       }
     };
+
     this._avatarNativeTouchMove = (e) => {
-      if (!this.visible || this._avatarDragStartY === null || !e.touches.length) return;
+      if (!this.visible || !e.touches.length || dragMode === null) return;
       const t = e.touches[0];
-      const delta = t.clientY - this._avatarDragStartY;
-      if (Math.abs(delta) > DRAG_THRESHOLD) this._avatarWasDragged = true;
-      e.preventDefault();
-      const designDelta = delta * getToWorld();
-      this._avatarScrollOffset = Math.max(MIN_SCROLL, Math.min(MAX_SCROLL, this._avatarDragStartOffset - designDelta));
-      this._updateAvatarPositions();
+
+      if (dragMode === 'avatar' && this._avatarDragStartY !== null) {
+        const now = performance.now();
+        const dt = now - avatarLastTime;
+        if (dt > 0) avatarVelocity = (t.clientY - avatarLastClientY) / dt * 16;
+        avatarLastClientY = t.clientY;
+        avatarLastTime = now;
+        const delta = t.clientY - this._avatarDragStartY;
+        if (Math.abs(delta) > DRAG_THRESHOLD) this._avatarWasDragged = true;
+        e.preventDefault();
+        this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarDragStartOffset + delta * getToWorld()));
+        this._updateAvatarPositions();
+      } else if (dragMode === 'modal' && modalDragStartClientY !== null) {
+        const delta = t.clientY - modalDragStartClientY;
+        if (Math.abs(delta) > DRAG_THRESHOLD) {
+          e.preventDefault();
+          const root = document.getElementById('phaser-root');
+          if (!root) return;
+          const newT = modalDragStartTranslate + delta;
+          const clamped = Math.min(50, Math.max(-window.innerHeight * 0.7, newT));
+          root.style.transform = clamped === 0 ? '' : `translateY(${clamped}px)`;
+          this._kbOffset = -clamped;
+        }
+      }
     };
+
     this._avatarNativeTouchEnd = () => {
-      this._avatarDragStartY = null;
+      if (dragMode === 'avatar') {
+        this._avatarDragStartY = null;
+        if (Math.abs(avatarVelocity) > 0.5) {
+          this._avatarInertiaId = requestAnimationFrame(applyAvatarInertia);
+        }
+      } else if (dragMode === 'modal') {
+        modalDragStartClientY = null;
+      }
+      dragMode = null;
     };
 
     canvas.addEventListener('touchstart', this._avatarNativeTouchStart, { passive: true });
@@ -745,6 +816,7 @@ export class ProfileEditorModal {
   }
 
   _cleanupAvatarNativeTouch() {
+    if (this._avatarInertiaId) { cancelAnimationFrame(this._avatarInertiaId); this._avatarInertiaId = null; }
     const canvas = this.scene.game.canvas;
     if (this._avatarNativeTouchStart) {
       canvas.removeEventListener('touchstart', this._avatarNativeTouchStart);
