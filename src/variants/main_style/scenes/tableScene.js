@@ -96,6 +96,7 @@ const ROUND_BET_COLLECT_STAGGER_MS = 65;
 
 // 底池文字（顯示在 coin 圖示正下方）
 const POT_TEXT_GAP_Y = 4;
+const TABLE_HINT_TEXT_Y = 520;
 
 // 桌面中央底池標籤（coin stack 頂部上方）
 const CENTER_POT_Y = 345;
@@ -925,20 +926,20 @@ export class TableScene extends Phaser.Scene {
 
     const _cdShadow = { offsetX: 0, offsetY: 2, color: "#000000", blur: 6, fill: true };
     this.nextHandCountdownLabel = this.add
-      .text(0, CENTER_POT_Y + 68, "下一局", {
+      .text(0, TABLE_HINT_TEXT_Y, "下一局", {
         fontSize: "28px", color: "#ffffff", fontStyle: "bold",
         fontFamily: UI_FONT_STACK, shadow: _cdShadow,
       })
       .setOrigin(0.5).setDepth(CENTER_POT_DEPTH + 0.6).setVisible(false);
     this.nextHandCountdownNum = this.add
-      .text(0, CENTER_POT_Y + 68, "", {
+      .text(0, TABLE_HINT_TEXT_Y, "", {
         fontSize: "28px", color: "#ffe050", fontStyle: "bold",
         fontFamily: UI_FONT_STACK, shadow: _cdShadow,
       })
       .setOrigin(0.5).setDepth(CENTER_POT_DEPTH + 0.6).setVisible(false);
 
     this.tableHintText = this.add
-      .text(CENTER_X, 520, "", {
+      .text(CENTER_X, TABLE_HINT_TEXT_Y, "", {
         fontSize: "34px",
         color: "#f4deba",
         fontStyle: "bold",
@@ -3419,7 +3420,7 @@ export class TableScene extends Phaser.Scene {
     if (!endAt || this.isHandResultModalOpen) { hide(); return; }
     const secsLeft = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
     if (secsLeft <= 0) { hide(); return; }
-    const _y = CENTER_POT_Y + 68;
+    const _y = TABLE_HINT_TEXT_Y;
     const gap = 8;
     this.nextHandCountdownLabel?.setText("下一局").setVisible(true).setDepth(CENTER_POT_DEPTH + 0.6);
     this.nextHandCountdownNum?.setText(`${secsLeft} 秒`).setVisible(true).setDepth(CENTER_POT_DEPTH + 0.6);

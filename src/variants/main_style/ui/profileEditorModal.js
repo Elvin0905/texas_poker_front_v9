@@ -68,9 +68,9 @@ export class ProfileEditorModal {
     this._avatarScrollOffset = 35;
     this._baseAvatarYs = [];
     this._avatarScrollListener = null;
-    this._avatarDragDown = null;
-    this._avatarDragMove = null;
-    this._avatarDragUp = null;
+    this._avatarNativeTouchStart = null;
+    this._avatarNativeTouchMove = null;
+    this._avatarNativeTouchEnd = null;
     this._avatarDragStartY = null;
     this._avatarDragStartOffset = 0;
     this._avatarWasDragged = false;
@@ -584,15 +584,7 @@ export class ProfileEditorModal {
       this.scene.input.off("wheel", this._avatarScrollListener);
       this._avatarScrollListener = null;
     }
-    if (this._avatarDragDown) {
-      this.scene.input.off("pointerdown", this._avatarDragDown);
-      this.scene.input.off("pointermove", this._avatarDragMove);
-      this.scene.input.off("pointerup", this._avatarDragUp);
-      this._avatarDragDown = null;
-      this._avatarDragMove = null;
-      this._avatarDragUp = null;
-    }
-    this._avatarDragStartY = null;
+    this._cleanupAvatarNativeTouch();
     this._resetEditModes();
     this.setVisible(false);
   }
@@ -686,51 +678,84 @@ export class ProfileEditorModal {
   }
 
   _setupAvatarScroll() {
-    // Cleanup previous listeners
     if (this._avatarScrollListener) {
       this.scene.input.off("wheel", this._avatarScrollListener);
+      this._avatarScrollListener = null;
     }
-    if (this._avatarDragDown) {
-      this.scene.input.off("pointerdown", this._avatarDragDown);
-      this.scene.input.off("pointermove", this._avatarDragMove);
-      this.scene.input.off("pointerup", this._avatarDragUp);
-    }
+    this._cleanupAvatarNativeTouch();
 
     const MIN_SCROLL = -50, MAX_SCROLL = 50;
     const GRID_LEFT = 50, GRID_RIGHT = 670, GRID_TOP = 630, GRID_BOTTOM = 1110;
     const DRAG_THRESHOLD = 5;
+    const canvas = this.scene.game.canvas;
 
-    // Mouse wheel
+    const getToWorld = () => {
+      const rect = canvas.getBoundingClientRect();
+      const cam = this.scene.cameras.main;
+      return (canvas.height / rect.height) / cam.zoom;
+    };
+    const clientToWorld = (clientX, clientY) => {
+      const rect = canvas.getBoundingClientRect();
+      const tw = getToWorld();
+      const cam = this.scene.cameras.main;
+      return {
+        x: cam.scrollX + (clientX - rect.left) * (canvas.width / rect.width) / cam.zoom,
+        y: cam.scrollY + (clientY - rect.top) * tw,
+      };
+    };
+
+    // Mouse wheel (desktop)
     this._avatarScrollListener = (pointer, gameObjects, deltaX, deltaY) => {
+      if (!this.visible) return;
       this._avatarScrollOffset = Math.max(MIN_SCROLL, Math.min(MAX_SCROLL, this._avatarScrollOffset + deltaY * 0.5));
       this._updateAvatarPositions();
     };
     this.scene.input.on("wheel", this._avatarScrollListener);
 
-    // Touch / pointer drag
-    this._avatarDragDown = (ptr) => {
-      if (!this.visible) return;
-      const worldY = ptr.y - this.dy;
-      if (ptr.x >= GRID_LEFT && ptr.x <= GRID_RIGHT && worldY >= GRID_TOP && worldY <= GRID_BOTTOM) {
-        this._avatarDragStartY = ptr.y;
+    // Native touch (mobile) — zero latency, blocks browser scroll inside grid
+    this._avatarNativeTouchStart = (e) => {
+      if (!this.visible || !e.touches.length) return;
+      const t = e.touches[0];
+      const pos = clientToWorld(t.clientX, t.clientY);
+      const localY = pos.y - this.dy;
+      if (pos.x >= GRID_LEFT && pos.x <= GRID_RIGHT && localY >= GRID_TOP && localY <= GRID_BOTTOM) {
+        this._avatarDragStartY = t.clientY;
         this._avatarDragStartOffset = this._avatarScrollOffset;
         this._avatarWasDragged = false;
       }
     };
-    this._avatarDragMove = (ptr) => {
-      if (!this.visible || this._avatarDragStartY === null || !ptr.isDown) return;
-      const delta = ptr.y - this._avatarDragStartY;
+    this._avatarNativeTouchMove = (e) => {
+      if (!this.visible || this._avatarDragStartY === null || !e.touches.length) return;
+      const t = e.touches[0];
+      const delta = t.clientY - this._avatarDragStartY;
       if (Math.abs(delta) > DRAG_THRESHOLD) this._avatarWasDragged = true;
-      this._avatarScrollOffset = Math.max(MIN_SCROLL, Math.min(MAX_SCROLL, this._avatarDragStartOffset - delta));
+      e.preventDefault();
+      const designDelta = delta * getToWorld();
+      this._avatarScrollOffset = Math.max(MIN_SCROLL, Math.min(MAX_SCROLL, this._avatarDragStartOffset - designDelta));
       this._updateAvatarPositions();
     };
-    this._avatarDragUp = () => {
+    this._avatarNativeTouchEnd = () => {
       this._avatarDragStartY = null;
     };
 
-    this.scene.input.on("pointerdown", this._avatarDragDown);
-    this.scene.input.on("pointermove", this._avatarDragMove);
-    this.scene.input.on("pointerup", this._avatarDragUp);
+    canvas.addEventListener('touchstart', this._avatarNativeTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', this._avatarNativeTouchMove, { passive: false });
+    canvas.addEventListener('touchend', this._avatarNativeTouchEnd, { passive: true });
+    canvas.addEventListener('touchcancel', this._avatarNativeTouchEnd, { passive: true });
+  }
+
+  _cleanupAvatarNativeTouch() {
+    const canvas = this.scene.game.canvas;
+    if (this._avatarNativeTouchStart) {
+      canvas.removeEventListener('touchstart', this._avatarNativeTouchStart);
+      canvas.removeEventListener('touchmove', this._avatarNativeTouchMove);
+      canvas.removeEventListener('touchend', this._avatarNativeTouchEnd);
+      canvas.removeEventListener('touchcancel', this._avatarNativeTouchEnd);
+      this._avatarNativeTouchStart = null;
+      this._avatarNativeTouchMove = null;
+      this._avatarNativeTouchEnd = null;
+    }
+    this._avatarDragStartY = null;
   }
 
   _applyAvatarMask() {
