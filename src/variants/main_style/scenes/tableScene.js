@@ -385,8 +385,8 @@ const SEAT_PROFILE_BG_DEPTH = 18;
 const SEAT_HOLE_CARD_DEPTH = 25;
 const SEAT_TEXT_DEPTH = 23;
 const SEAT_ROLE_BADGE_DEPTH = 23.5;
-const SEAT_BET_COIN_DEPTH = 24;
-const SEAT_BET_TEXT_DEPTH = 24.1;
+const SEAT_BET_COIN_DEPTH = 28;
+const SEAT_BET_TEXT_DEPTH = 28.1;
 const SEAT_ACTION_BADGE_DEPTH = 35;
 const SEAT_FX_DEPTH = 17;
 const SEAT_COUNTDOWN_DEPTH = 28;
@@ -3118,7 +3118,7 @@ export class TableScene extends Phaser.Scene {
           ...SEAT_CHIPS_OUTLINE_STYLE,
           shadow: { offsetX: 1, offsetY: 2, color: "#000000", blur: 4, fill: true },
         })
-        .setDepth(SEAT_HOLE_CARD_DEPTH + 1)
+        .setDepth(SEAT_HOLE_CARD_DEPTH + 3)
         .setOrigin(0.5, 0)
         .setVisible(false);
       const actionBadge = this.add
@@ -3656,7 +3656,9 @@ export class TableScene extends Phaser.Scene {
     const offsetX = isHeroSeat ? baseOffsetX : (seatView?.avatarFlipX ? -baseOffsetX : baseOffsetX);
     const heroUpShift = 0;
     const offsetY = (isHeroSeat ? HERO_DEAL_CARD_TARGET_OFFSET_Y : DEAL_CARD_TARGET_OFFSET_Y) + heroUpShift;
-    const slotXAdjust = (!isHeroSeat && seatView?.slotIndex === 1) ? 20 : 0;
+    const slotXAdjust = !isHeroSeat
+      ? (seatView?.slotIndex === 1 ? 20 : seatView?.slotIndex === 2 ? 20 : 0)
+      : 0;
     return {
       x: seatView.posX + offsetX + slotXAdjust,
       y: seatView.posY + offsetY,
@@ -4786,6 +4788,11 @@ export class TableScene extends Phaser.Scene {
         && currentHintHandId !== this.lastHintHandId;
       if (isNewHandStarted) {
         this.lastHintHandId = currentHintHandId;
+        this.clearShowdownFlipTimers();
+        this.showdownAnimatedSet = new Set();
+        this.seatViews.forEach((sv) => {
+          sv.holeCards?.forEach((hc) => { hc.pendingShowdownFlip = false; });
+        });
         if (this.newRoundHintTimer) {
           this.newRoundHintTimer.remove();
           this.newRoundHintTimer = null;
