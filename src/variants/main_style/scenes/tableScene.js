@@ -45,7 +45,7 @@ const MAIN_TEXT_FONT_SIZE = "22px";
 const REBUY_TEXT_FONT_SIZE = "22px";
 const REBUY_NUMBER_FONT_SIZE = "54px";
 const SEAT_NAME_FONT_SIZE = "28px";
-const SEAT_INFO_FONT_SIZE = "24px";
+const SEAT_INFO_FONT_SIZE = "30px";
 
 const AUDIO_TOGGLE_X = 80;
 const AUDIO_TOGGLE_Y = 72;
@@ -67,7 +67,7 @@ const REPLAY_SPEED_BUTTON_HEIGHT = 48;
 // 公牌區（5 張）
 const COMMUNITY_SLOT_COUNT = 5;
 const COMMUNITY_CARD_SCALE = 0.44;
-const COMMUNITY_CARD_Y = 635;
+const COMMUNITY_CARD_Y = 625;
 const COMMUNITY_CARD_X_LIST = [260, 310, 360, 410, 460];
 const COMMUNITY_CARD_DEPTH = 8;
 const COMMUNITY_DEAL_FLY_CARD_DEPTH = 30;
@@ -96,7 +96,7 @@ const ROUND_BET_COLLECT_STAGGER_MS = 65;
 
 // 底池文字（顯示在 coin 圖示正下方）
 const POT_TEXT_GAP_Y = 4;
-const TABLE_HINT_TEXT_Y = 520;
+const TABLE_HINT_TEXT_Y = 510;
 
 // 桌面中央底池標籤（coin stack 頂部上方）
 const CENTER_POT_Y = 345;
@@ -324,23 +324,23 @@ const DEAL_CARD_FROM_X = 360;
 const DEAL_CARD_FROM_Y = 380;
 const DEAL_CARD_ATLAS_KEY = "game_table";
 const DEAL_CARD_FRAME = "card_back";
-const DEAL_CARD_NORMAL_SCALE = 0.36;
-const DEAL_CARD_HERO_SCALE = 0.88;
+const DEAL_CARD_NORMAL_SCALE = 0.47;
+const DEAL_CARD_HERO_SCALE = 1.06;
 const DEAL_CARD_START_ANGLE = -18;
 const DEAL_CARD_FLY_DURATION = 280;
 const DEAL_CARD_POP_DURATION = 80;
 const DEAL_CARD_DEPTH = 27;
-const DEAL_CARD_TARGET_OFFSET_X_LEFT =  56;
-const DEAL_CARD_TARGET_OFFSET_X_RIGHT = 84;
+const DEAL_CARD_TARGET_OFFSET_X_LEFT =  41;
+const DEAL_CARD_TARGET_OFFSET_X_RIGHT = 78;
 // 右側三個翻轉座位手牌 X 偏移（同樣分 left/right）
 const DEAL_CARD_MIRROR_TARGET_OFFSET_X_LEFT = 94;
-const DEAL_CARD_MIRROR_TARGET_OFFSET_X_RIGHT = 66;
+const DEAL_CARD_MIRROR_TARGET_OFFSET_X_RIGHT = 57;
 const DEAL_CARD_TARGET_OFFSET_Y = 17;
 // 主玩家（hero）手牌位置獨立微調
 const HERO_DEAL_CARD_TARGET_OFFSET_X_LEFT = 230;        // 手機版：靠右
-const HERO_DEAL_CARD_TARGET_OFFSET_X_RIGHT = 310;       // 手機版：靠右
+const HERO_DEAL_CARD_TARGET_OFFSET_X_RIGHT = 325;       // 手機版：靠右
 const HERO_DEAL_CARD_TARGET_OFFSET_X_LEFT_DESKTOP = 230;  // 桌機版：完全靠右
-const HERO_DEAL_CARD_TARGET_OFFSET_X_RIGHT_DESKTOP = 310; // 桌機版：完全靠右
+const HERO_DEAL_CARD_TARGET_OFFSET_X_RIGHT_DESKTOP = 325; // 桌機版：完全靠右
 const HERO_DEAL_CARD_TARGET_OFFSET_Y = 17;
 
 // 觸控裝置偵測（與 layout.js 相同邏輯）
@@ -421,12 +421,12 @@ const HERO_ACTION_BADGE_Y_OFFSET = -132;
 // 座位順序對應 SEAT_POSITIONS_6：0下方、1右下、2右上、3上方、4左上、5左下
 // 可手動微調：x/y 是下注金額文字座標
 const SEAT_BET_AMOUNT_POSITIONS_6 = [
-  { x: 250, y: 995 }, // 座位 0
-  { x: 545, y: 610 },  // 座位 1
-  { x: 510, y: 350 },  // 座位 2
+  { x: 230, y: 995 }, // 座位 0
+  { x: 550, y: 590 },  // 座位 1
+  { x: 510, y: 330 },  // 座位 2
   { x: 340, y: 315 },  // 座位 3
   { x: 190, y: 390 },  // 座位 4
-  { x: 170, y: 515 },  // 座位 5
+  { x: 170, y: 485 },  // 座位 5
 ];
 
 // 6 人桌座位座標（畫面座標；自己在下方）
@@ -3026,7 +3026,7 @@ export class TableScene extends Phaser.Scene {
         .setVisible(false);
       const betCoinStack = Array.from({ length: 3 }, (_, ti) =>
         this.add.image(pos.x, pos.y, DEAL_CARD_ATLAS_KEY, "token_red")
-          .setDisplaySize(32, 32)
+          .setDisplaySize(36, 36)
           .setDepth(SEAT_BET_COIN_DEPTH + ti * 0.01)
           .setVisible(false)
       );
@@ -3118,7 +3118,7 @@ export class TableScene extends Phaser.Scene {
           ...SEAT_CHIPS_OUTLINE_STYLE,
           shadow: { offsetX: 1, offsetY: 2, color: "#000000", blur: 4, fill: true },
         })
-        .setDepth(SEAT_TEXT_DEPTH)
+        .setDepth(SEAT_HOLE_CARD_DEPTH + 1)
         .setOrigin(0.5, 0)
         .setVisible(false);
       const actionBadge = this.add
@@ -3256,7 +3256,7 @@ export class TableScene extends Phaser.Scene {
       .setPosition(seatView.posX, nameTagCenterY)
       .setOrigin(0.5, 0.5);
     seatView.name.setFontSize(`${nameFontSize}px`).setPosition(seatView.posX, nameTagCenterY).setOrigin(0.5, 0.5);
-    const chipsFontSize = isHero ? "28px" : SEAT_INFO_FONT_SIZE;
+    const chipsFontSize = isHero ? "35px" : SEAT_INFO_FONT_SIZE;
     const chipsYGap = isHero ? -14 : -10;
     seatView.chips.setFontSize(chipsFontSize).setPosition(seatView.posX, nameTagCenterY + nametagHalfH + chipsYGap).setOrigin(0.5, 0);
     seatView.actionBadge.setPosition(seatView.posX, seatView.posY + actionBadgeYOffset).setOrigin(0.5);
@@ -3289,7 +3289,7 @@ export class TableScene extends Phaser.Scene {
     const amountX = Number(perSeat?.x ?? seatView.posX + 56);
     let amountY = Number(perSeat?.y ?? seatView.posY + 84);
     if (slotIndex === 0) amountY += this._heroSeatDy || 0;
-    seatView.betCoinStack?.forEach((img, ti) => img.setPosition(amountX, amountY - ti * 8));
+    seatView.betCoinStack?.forEach((img, ti) => img.setPosition(amountX, amountY - ti * 9));
     seatView.betAmount.setPosition(amountX, amountY);
   }
 

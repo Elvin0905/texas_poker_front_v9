@@ -11,6 +11,7 @@ import { layout, updateLayout } from "./layout.js";
 const params = new URLSearchParams(window.location.search);
 const ENDPOINT = params.get("ws") || "wss://texaswss.test336.net";
 const useMock = params.get("mock") === "1";
+const showTestDebugUi = params.get("test") === "abc";
 const selectedVariant = getGameVariant(
   params.get("variant") || params.get("style") || import.meta.env?.VITE_GAME_VARIANT,
 );
@@ -273,6 +274,9 @@ function clearTokenFromUrl() {
 }
 
 function ensureWsQualityBadge() {
+  if (!showTestDebugUi) {
+    return;
+  }
   if (wsQualityBadge) {
     return;
   }
@@ -486,6 +490,17 @@ function resolveWsQualityView() {
 }
 
 function updateWsQualityBadge() {
+  if (!showTestDebugUi) {
+    wsQualityDetailOpen = false;
+    if (wsQualityBadge) {
+      wsQualityBadge.style.display = "none";
+    }
+    if (wsQualityDetailPanel) {
+      wsQualityDetailPanel.classList.remove("is-open");
+      wsQualityDetailPanel.style.display = "none";
+    }
+    return;
+  }
   ensureWsQualityBadge();
   if (!wsQualityBadge) {
     return;
@@ -1735,11 +1750,13 @@ function updateDebugButtonVisibility() {
   if (!debugExportButton) {
     return;
   }
-  // 需求調整：手機版也要可用，所有裝置都顯示除錯下載按鈕
-  debugExportButton.style.display = "block";
+  debugExportButton.style.display = showTestDebugUi ? "block" : "none";
 }
 
 function ensureDebugExportButton() {
+  if (!showTestDebugUi) {
+    return;
+  }
   if (debugExportButton) {
     return;
   }
