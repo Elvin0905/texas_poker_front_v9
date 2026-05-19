@@ -702,6 +702,7 @@ export class TableScene extends Phaser.Scene {
     this.rebuyModel = null;
     this._rebuyDeclined = false;
     this._pendingLeaveAfterHandResult = false;
+    this._actionSentPending = false;
     this.raiseActionModel = null;
     this.raiseActionType = null;
     this.raiseSelectedValue = 0;
@@ -2844,9 +2845,14 @@ export class TableScene extends Phaser.Scene {
     if (!this.state?.actionRequest || !this.raiseActionType || !this.raiseActionModel) {
       return;
     }
+    if (this._actionSentPending) {
+      return;
+    }
     const raiseTo = this.normalizeRaisePanelSelected(this.raiseSelectedValue, this.raiseActionModel);
     const action = this.raiseActionType;
     this.closeRaiseActionPanel();
+    this._actionSentPending = true;
+    this.layoutActionButtons([]);
     this.app.sendPacket("player_action", { action, raise_to: raiseTo });
   }
 
@@ -4885,6 +4891,7 @@ export class TableScene extends Phaser.Scene {
       const reqKey = `${actionRequest?.hand_id ?? ""}_${actionRequest?.seat ?? ""}`;
       if (reqKey !== this.lastSeenActionRequestKey) {
         this.lastSeenActionRequestKey = reqKey;
+        this._actionSentPending = false;
         const heroSeat = parseSeat(this.state?.heroSeat);
         const reqSeat = parseSeat(actionRequest?.seat);
         if (heroSeat !== null && reqSeat !== null && heroSeat === reqSeat) {
@@ -4893,12 +4900,16 @@ export class TableScene extends Phaser.Scene {
       }
     } else {
       this.lastSeenActionRequestKey = "";
+      this._actionSentPending = false;
     }
-    this.layoutActionButtons(allowed);
+    this.layoutActionButtons(this._actionSentPending ? [] : allowed);
 
-    this.renderRebuyModal(this.state.rebuyOffer);
     const handResultVersion = Number(this.state.handResultVersion ?? 0);
-    if (handResultVersion > this.lastSeenHandResultVersion) {
+    const hasPendingHandResult = handResultVersion > this.lastSeenHandResultVersion;
+    const suppressRebuy = this.isHandResultModalOpen || hasPendingHandResult || this.winGifIsPlaying;
+    this.renderRebuyModal(suppressRebuy ? null : this.state.rebuyOffer);
+
+    if (hasPendingHandResult) {
       this.lastSeenHandResultVersion = handResultVersion;
       if (this.winGifIsPlaying) {
         this.pendingHandResult = this.state.handResult;
@@ -5111,6 +5122,9 @@ export class TableScene extends Phaser.Scene {
     if (!this.state.actionRequest) {
       return;
     }
+    if (this._actionSentPending) {
+      return;
+    }
     const allowedActions = (this.state.actionRequest?.allowed ?? []).map((a) => String(a).toLowerCase());
     if (!allowedActions.includes(String(action).toLowerCase())) {
       return;
@@ -5120,6 +5134,8 @@ export class TableScene extends Phaser.Scene {
       return;
     }
     this.closeRaiseActionPanel();
+    this._actionSentPending = true;
+    this.layoutActionButtons([]);
     this.app.sendPacket("player_action", { action });
   }
 

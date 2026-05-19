@@ -548,6 +548,9 @@ export class Store extends EventTarget {
         this.state.nextHandCountdownSeconds = 0;
         this.state.handResult = null;
         this.state.handResultEventKey = "";
+        // New hand means hero is no longer "waiting to join" — clear the flag so
+        // folding later in this hand doesn't accidentally show the waiting badge.
+        this.state.heroJoinedWaiting = false;
         const currentTableId = String(this.state.table?.table_id ?? "");
         const nextTableId = String(data.table?.table_id ?? data.table_id ?? currentTableId);
         const nextHandId = Number(data.hand_id ?? data.table?.hand_id);

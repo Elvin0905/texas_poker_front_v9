@@ -178,6 +178,7 @@ export class RegisterScene extends Phaser.Scene {
     this._kbOverlay.addEventListener('touchend', this._kbTouchEnd, { passive: true });
 
     onLayoutResize(this, () => this.applyLayout());
+    this.time.delayedCall(0, () => this.applyLayout());
 
     this._setupBgm();
 
@@ -378,7 +379,29 @@ export class RegisterScene extends Phaser.Scene {
     this.applyLayout();
   }
 
+  _applyCamera() {
+    const cam = this.cameras?.main;
+    const canvas = this.sys?.game?.canvas;
+    if (!cam || !canvas?.width || !canvas?.height) return;
+    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
+    const designZoom = window.innerHeight / layout.height;
+    if (!Number.isFinite(designZoom) || designZoom <= 0) return;
+    const zoom = designZoom * dpr;
+    if (!Number.isFinite(zoom) || zoom <= 0) return;
+    const stripW = Math.round(layout.width * zoom);
+    const stripX = Math.max(0, Math.round(canvas.width / 2 - stripW / 2));
+    if (stripX > 0) {
+      cam.setViewport(stripX, 0, Math.min(stripW, canvas.width - stripX), canvas.height);
+    } else {
+      cam.setViewport(0, 0, canvas.width, canvas.height);
+    }
+    cam.setZoom(zoom);
+    cam.centerOn(layout.centerX, layout.centerY);
+  }
+
   applyLayout() {
+    this._applyCamera();
+
     const cx = layout.centerX;
     const cy = layout.centerY;
 
@@ -545,8 +568,7 @@ export class RegisterScene extends Phaser.Scene {
     this._syncInputPositions();
     this.time.delayedCall(80, () => this._syncInputPositions());
 
-    // Reveal inputs only after Phaser has painted its first frame to the canvas.
-    this.game.events.once('postrender', () => {
+    this.time.delayedCall(120, () => {
       [this._emailEl, this._nickEl, this._pwEl, this._confirmPwEl,
        this._eyeHitEl, this._confirmEyeHitEl].forEach(el => {
         if (el) el.style.visibility = '';

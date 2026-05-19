@@ -201,6 +201,11 @@ export class AuthScene extends Phaser.Scene {
 
     onLayoutResize(this, () => this.applyLayout());
 
+    // Defensive: re-apply layout on the next tick so any camera/viewport changes
+    // that fire synchronously during scene startup (scale resize, CREATE event
+    // handlers in main.js) are reflected before the first render is visible.
+    this.time.delayedCall(0, () => this.applyLayout());
+
     this._setupBgm();
 
     this.soundSettingsPanel = new SoundSettingsPanel(this, {
@@ -368,7 +373,29 @@ export class AuthScene extends Phaser.Scene {
     this.applyLayout();
   }
 
+  _applyCamera() {
+    const cam = this.cameras?.main;
+    const canvas = this.sys?.game?.canvas;
+    if (!cam || !canvas?.width || !canvas?.height) return;
+    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
+    const designZoom = window.innerHeight / layout.height;
+    if (!Number.isFinite(designZoom) || designZoom <= 0) return;
+    const zoom = designZoom * dpr;
+    if (!Number.isFinite(zoom) || zoom <= 0) return;
+    const stripW = Math.round(layout.width * zoom);
+    const stripX = Math.max(0, Math.round(canvas.width / 2 - stripW / 2));
+    if (stripX > 0) {
+      cam.setViewport(stripX, 0, Math.min(stripW, canvas.width - stripX), canvas.height);
+    } else {
+      cam.setViewport(0, 0, canvas.width, canvas.height);
+    }
+    cam.setZoom(zoom);
+    cam.centerOn(layout.centerX, layout.centerY);
+  }
+
   applyLayout() {
+    this._applyCamera();
+
     const cx = layout.centerX;
     const cy = layout.centerY;
 
@@ -549,10 +576,12 @@ export class AuthScene extends Phaser.Scene {
     this._syncInputPositions();
     this.time.delayedCall(80, () => this._syncInputPositions());
 
-    // Reveal inputs only after Phaser has painted its first frame to the canvas.
-    // 'postrender' fires after WebGL/Canvas draw — guarantees the login panel is
-    // already on-screen so inputs never appear floating over an empty canvas.
-    this.game.events.once('postrender', () => {
+    // Reveal inputs after a short delay so the camera and layout have time to settle.
+    // Using a timer instead of 'postrender' avoids a race where postrender fires
+    // (from another always-active scene) before the auth scene has rendered its
+    // first frame with the correct camera/layout, which would show inputs floating
+    // over an invisible Phaser panel.
+    this.time.delayedCall(120, () => {
       if (this._emailEl) this._emailEl.style.visibility = '';
       if (this._pwEl)    this._pwEl.style.visibility = '';
     });

@@ -1107,7 +1107,13 @@ function finishReplayPlayback() {
   clearReplayTimers();
   const replay = replaySessionState.replay;
   store.pushLog(`[replay] finish hand ${String(replay?.hand_id ?? "-")}`);
-  store.openDailySettlementAfterReplay();
+  const hasHandResult = Boolean(store.getState?.()?.handResult);
+  if (hasHandResult) {
+    // Wait for the hand result modal (6s countdown) to finish before switching to lobby
+    window.setTimeout(() => store.openDailySettlementAfterReplay(), 6500);
+  } else {
+    store.openDailySettlementAfterReplay();
+  }
 }
 
 function scheduleReplayStep(stepIndex, replayId) {
@@ -2253,11 +2259,21 @@ const game = new Phaser.Game({
   },
   callbacks: {
     postBoot: (g) => {
-      g.scene.scenes.forEach((scene) => {
+      // Phaser calls scene.events.shutdown() when a scene stops, which removes ALL
+      // event listeners — including these CREATE/WAKE listeners. Re-register them
+      // after each shutdown so they survive stop→restart cycles.
+      function setupSceneListeners(scene) {
         scene.layout = layout;
         scene.events.on(Phaser.Scenes.Events.CREATE, () => applySceneCamera(scene));
         scene.events.on(Phaser.Scenes.Events.WAKE, () => applySceneCamera(scene));
-      });
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+          // After shutdown clears all listeners, re-add them on next tick
+          // (setTimeout fires before the next rAF/game-tick so CREATE is ready
+          //  by the time game.scene.start() processes the scene again)
+          setTimeout(() => setupSceneListeners(scene), 0);
+        });
+      }
+      g.scene.scenes.forEach(setupSceneListeners);
     },
   },
   scene: selectedVariant.scenes,
@@ -2350,6 +2366,10 @@ function applySceneCamera(scene) {
     const zoom = currentDesignZoom * DPR;
     const canvasW = game.canvas.width;
     const canvasH = game.canvas.height;
+    // Guard: skip if dimensions or zoom are invalid — will be called again on next layout update
+    if (!canvasW || !canvasH || !Number.isFinite(zoom) || zoom <= 0) {
+      return;
+    }
     const stripW = Math.round(layout.width * zoom);
     const stripX = Math.max(0, Math.round(canvasW / 2 - stripW / 2));
     if (stripX > 0) {
@@ -2362,8 +2382,11 @@ function applySceneCamera(scene) {
     cam.centerOn(layout.centerX, layout.centerY);
     return;
   }
-  cam.setZoom(currentLegacyZoom * DPR);
-  cam.centerOn(BASE_WIDTH / 2, BASE_HEIGHT / 2);
+  const legacyZoom = currentLegacyZoom * DPR;
+  if (Number.isFinite(legacyZoom) && legacyZoom > 0) {
+    cam.setZoom(legacyZoom);
+    cam.centerOn(BASE_WIDTH / 2, BASE_HEIGHT / 2);
+  }
 }
 
 function applyViewportCanvasLayout() {
