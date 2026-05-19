@@ -2351,11 +2351,15 @@ window.addEventListener("pagehide", () => {
 const BASE_WIDTH = 720;
 const BASE_HEIGHT = 1440;
 let layoutRaf = 0;
-let currentDesignZoom = 1;
-let currentLegacyZoom = 1;
 const UA = navigator.userAgent || "";
 const IS_IN_APP_BROWSER = /Line|Telegram/i.test(UA);
 const IS_COARSE_POINTER = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+// Pre-compute correct zoom at module load so applySceneCamera works correctly
+// the moment the first scene's CREATE event fires (before the first rAF cycle).
+const _initW = Math.max(1, window.innerWidth || 1);
+const _initH = Math.max(1, window.innerHeight || 1);
+let currentDesignZoom = updateLayout(_initW, _initH, 0, 0);
+let currentLegacyZoom = Math.min(_initW / BASE_WIDTH, _initH / BASE_HEIGHT);
 
 function applySceneCamera(scene) {
   const cam = scene?.cameras?.main;
@@ -2396,7 +2400,11 @@ function applyViewportCanvasLayout() {
     return;
   }
 
-  const viewportWidth = Math.max(1, Math.floor(window.visualViewport?.width || window.innerWidth));
+  // Use innerWidth for the horizontal dimension: it is always an integer that
+  // exactly matches the CSS viewport width.  On iOS Safari, visualViewport.width
+  // can be a non-integer (sub-pixel) value that Math.floor rounds down, leaving
+  // a thin strip of HTML background visible on the right edge of the canvas.
+  const viewportWidth = Math.max(1, window.innerWidth || Math.floor(window.visualViewport?.width || 1));
   const rawVisualH = Math.max(1, Math.floor(window.visualViewport?.height || window.innerHeight));
   const innerH = Math.max(1, Math.floor(window.innerHeight));
 
