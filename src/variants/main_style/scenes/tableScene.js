@@ -989,6 +989,8 @@ export class TableScene extends Phaser.Scene {
           const result = this.pendingHandResult;
           this.pendingHandResult = null;
           this.openHandResultModal(result);
+        } else if (!this.isHandResultModalOpen) {
+          this.renderRebuyModal(this._rebuyDeclined ? null : (this.state?.rebuyOffer ?? null));
         }
       });
     });
@@ -1868,6 +1870,10 @@ export class TableScene extends Phaser.Scene {
       this.app.sendPacket("leave_room", {});
       const _gameId = this.store.getState?.()?.table?.game_id || "texas_holdem";
       this.app.sendPacket("enter_game", { game_id: _gameId });
+    }
+
+    if (!this.winGifIsPlaying) {
+      this.renderRebuyModal(this._rebuyDeclined ? null : (this.state?.rebuyOffer ?? null));
     }
   }
 
