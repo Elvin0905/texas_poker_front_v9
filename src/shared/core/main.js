@@ -2167,6 +2167,7 @@ function handlePacket(packet) {
   }
 
   if (packetType === "logout_ok") {
+    setSessionToken("");
     window.location.reload();
     return true;
   }
