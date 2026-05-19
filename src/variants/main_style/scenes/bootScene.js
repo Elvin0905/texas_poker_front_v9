@@ -81,6 +81,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    window.__removePreloadBg?.();
     window.__removeLoadingBar?.();
     window.__removePreloadSpinner?.();
     const app = window.__APP__;
