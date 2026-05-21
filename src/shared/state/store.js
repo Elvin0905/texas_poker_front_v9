@@ -114,6 +114,7 @@ export class Store extends EventTarget {
       tableId: null, // 當前牌桌 ID（避免跨桌殘留）
       isLeavingTable: false, // 是否正在離桌流程（忽略舊桌延遲封包）
       leavingTableId: null, // 離桌中的 table_id（用來過濾封包）
+      lastLeftTableId: null, // 最近一次主動離開的 table_id（防止延遲 table_state 把 page 拉回 "table"）
       heroSeat: null, // 我方座位號
       heroJoinedWaiting: false, // 英雄以等待狀態加入（換桌中途加入）
       heroSwitchPending: false, // 換桌流程進行中（等待舊局結束才能入座）
@@ -194,9 +195,26 @@ export class Store extends EventTarget {
     const tableId = String(tableIdRaw ?? this.state.table?.table_id ?? "");
     this.state.isLeavingTable = true;
     this.state.leavingTableId = tableId || null;
+    this.state.lastLeftTableId = tableId || null;
     this.state.page = "gameLobby";
+    this.state.table = null;
+    this.state.tableUpdateSource = "";
+    this.state.tableId = null;
+    this.state.heroSeat = null;
+    this.state.heroJoinedWaiting = false;
+    this.state.heroSwitchPending = false;
+    this.state.handId = null;
+    this.state.handContribBySeat = {};
+    this.state.holeCardsBySeat = {};
+    this.state.showdownRevealsBySeat = {};
     this.state.actionRequest = null;
     this.state.rebuyOffer = null;
+    this.state.rebuyResult = null;
+    this.state.lastDealCard = null;
+    this.state.dealCardVersion = 0;
+    this.state.handResult = null;
+    this.state.handResultEventKey = "";
+    this.state.nextHandCountdownSeconds = 0;
     this.emit();
   }
 
@@ -389,6 +407,8 @@ export class Store extends EventTarget {
   }
 
   forceBackToGameLobby() {
+    const tableId = String(this.state.table?.table_id ?? "");
+    if (tableId) this.state.lastLeftTableId = tableId;
     this.endLeaveTableFlow();
     this.state.page = "gameLobby";
     this.state.table = null;
@@ -517,6 +537,7 @@ export class Store extends EventTarget {
       case "table_joined":
         this.endLeaveTableFlow();
         this.state.page = "table";
+        this.state.lastLeftTableId = null;
         this.state.handResult = null;
         this.state.handResultEventKey = "";
         this.state.actionRequest = null;
@@ -548,6 +569,12 @@ export class Store extends EventTarget {
         this.state.nextHandCountdownSeconds = 0;
         this.state.handResult = null;
         this.state.handResultEventKey = "";
+        // 新一手開始，清除上一手的 sessionStorage 手牌快取
+        try {
+          sessionStorage.removeItem("ngame_hole_cards");
+          sessionStorage.removeItem("ngame_hole_cards_hand_id");
+          sessionStorage.removeItem("ngame_hole_cards_seat");
+        } catch (_) {}
         // New hand means hero is no longer "waiting to join" — clear the flag so
         // folding later in this hand doesn't accidentally show the waiting badge.
         this.state.heroJoinedWaiting = false;
@@ -608,6 +635,14 @@ export class Store extends EventTarget {
 
       // 牌桌完整狀態同步
       case "table_state": {
+        // 防止「主動離桌後延遲封包把 page 拉回 table」的競態問題：
+        // 若玩家已主動離開（page = gameLobby），且此封包的 table_id 與離開的桌一致，忽略此次 page 切換。
+        const _tsTableId = String(data?.table?.table_id ?? "");
+        const _lastLeft = String(this.state.lastLeftTableId ?? "");
+        const _isStaleAfterLeave = this.state.page === "gameLobby"
+          && _lastLeft
+          && _tsTableId
+          && _tsTableId === _lastLeft;
         this.endLeaveTableFlow();
         const hasHeroSeatField = Object.prototype.hasOwnProperty.call(data, "hero_seat");
         const nextHeroSeat = Number(data.hero_seat);
@@ -642,7 +677,9 @@ export class Store extends EventTarget {
           break;
         }
 
-        this.state.page = "table";
+        if (!_isStaleAfterLeave) {
+          this.state.page = "table";
+        }
         if (hasValidHeroSeat) {
           this.state.heroSeat = nextHeroSeat;
         } else if (derivedHeroSeat !== null) {
@@ -659,7 +696,28 @@ export class Store extends EventTarget {
               this.seedHandContribByBets(data.table.bets);
             }
           }
-          this.state.table = data.table;
+          if (!_isStaleAfterLeave) {
+            this.state.table = data.table;
+          }
+          // 重連時，若 holeCardsBySeat 為空，嘗試從 sessionStorage 恢復英雄手牌
+          const _heroSeatNum = Number(this.state.heroSeat);
+          if (!_isStaleAfterLeave && Number.isInteger(_heroSeatNum)) {
+            const _hsKey = String(_heroSeatNum);
+            if (!this.state.holeCardsBySeat[_hsKey]?.length) {
+              try {
+                const _storedHandId = sessionStorage.getItem("ngame_hole_cards_hand_id");
+                const _storedSeat = Number(sessionStorage.getItem("ngame_hole_cards_seat") ?? "");
+                const _curHandId = String(data.table?.hand_id ?? "");
+                if (_storedHandId && _storedHandId === _curHandId && _storedSeat === _heroSeatNum) {
+                  const _storedCards = JSON.parse(sessionStorage.getItem("ngame_hole_cards") || "[]");
+                  const _cards = toCardArray(_storedCards).slice(0, 2);
+                  if (_cards.length > 0) {
+                    this.state.holeCardsBySeat[_hsKey] = _cards;
+                  }
+                }
+              } catch (_) {}
+            }
+          }
         }
         break;
       }
@@ -913,6 +971,13 @@ export class Store extends EventTarget {
         if (player) {
           player.hole_count = Math.max(Number(player.hole_count ?? 0), cards.length);
         }
+        // 存入 sessionStorage，供刷新後重建
+        try {
+          const _handId = String(data.hand_id ?? this.state.table?.hand_id ?? "");
+          sessionStorage.setItem("ngame_hole_cards", JSON.stringify(cards));
+          sessionStorage.setItem("ngame_hole_cards_hand_id", _handId);
+          sessionStorage.setItem("ngame_hole_cards_seat", String(heroSeat));
+        } catch (_) {}
         break;
       }
 
@@ -1020,10 +1085,19 @@ export class Store extends EventTarget {
         break;
 
       // 錯誤訊息
-      case "error":
+      case "error": {
+        // Suppress "not at table" errors while already at gameLobby or actively leaving —
+        // these are expected rejections from a stale leave_room packet and confuse the user.
+        const _eCode = String(data?.code ?? "").toUpperCase();
+        const _eMsg = String(data?.message ?? "");
+        const _isNotAtTable = _eCode.includes("NOT_IN_ROOM") || _eCode.includes("NOT_IN_TABLE")
+          || _eCode.includes("NOT_AT_TABLE")
+          || _eMsg.includes("不在牌桌") || _eMsg.includes("not in room") || _eMsg.includes("not at table");
+        if (_isNotAtTable && (this.state.page === "gameLobby" || this.state.isLeavingTable)) break;
         this.state.lastError = data;
         this.state.errorVersion += 1;
         break;
+      }
 
       // 心跳回覆：目前不用改狀態
       case "pong":

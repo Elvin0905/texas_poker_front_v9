@@ -68,6 +68,7 @@ export class RegisterScene extends Phaser.Scene {
     this._waitingVerify = false;
     this._lastSeenVerifyVersion = 0;
     this._lastSeenErrVersionForVerify = 0;
+    this._verifyCode = "";
   }
 
   create() {
@@ -529,6 +530,7 @@ export class RegisterScene extends Phaser.Scene {
       this.usernameValue = this._emailEl.value;
       if (this._emailVerified) {
         this._emailVerified = false;
+        this._verifyCode = "";
         this.emailVerifiedCheck?.setVisible(false);
         this.verifyEmailBtn?.setPosition?.(layout.centerX + 213, this._emailBoxY);
         this.verifyEmailBtn?.setVisible(true);
@@ -790,14 +792,14 @@ export class RegisterScene extends Phaser.Scene {
         this.emailHintText?.setText("* 請輸入正確的電話號碼").setVisible(true);
         return;
       }
-      this.app.sendPacket("send_sms_verification", { username: this._phoneCode + val });
+      this.app.sendPacket("register_verification_request", { username: this._phoneCode + val });
       this._showVerifyModal("sms");
     } else {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
         this.emailHintText?.setText("* 請輸入正確的郵箱格式").setVisible(true);
         return;
       }
-      this.app.sendPacket("send_email_verification", { username: val });
+      this.app.sendPacket("register_verification_request", { username: val });
       this._showVerifyModal("email");
     }
   }
@@ -982,17 +984,15 @@ export class RegisterScene extends Phaser.Scene {
   _confirmEmailVerification() {
     const code = this._verifyCodeEl?.value?.trim() ?? "";
     if (!code) return;
-    const val = this.usernameValue.trim();
-    const s = this.store?.getState?.() ?? {};
-    this._lastSeenVerifyVersion = Number(s.verifyCodeVersion ?? 0);
-    this._lastSeenErrVersionForVerify = Number(s.errorVersion ?? 0);
-    this._waitingVerify = true;
-    if (this._vmType === "sms") {
-      this.app.sendPacket("verify_sms_code", { username: this._phoneCode + val, code });
-    } else {
-      this.app.sendPacket("verify_email_code", { username: val, code });
-    }
+    // Store the code to be sent together with the register packet.
+    this._verifyCode = code;
     this._hideVerifyModal();
+    // Mark as verified so the UI shows the checkmark and submit is allowed.
+    this._emailVerified = true;
+    this.verifyEmailBtn?.setVisible(false);
+    this.emailFormatText?.setVisible(false);
+    this.emailVerifiedCheck?.setPosition(layout.centerX + 255, this._emailBoxY).setVisible(true);
+    this.emailHintText?.setVisible(false);
   }
 
   _showResultModal(success) {
@@ -1145,7 +1145,7 @@ export class RegisterScene extends Phaser.Scene {
     const username = this._phoneMode ? (this._phoneCode + val) : val;
     const password = this.passwordValue;
     const displayName = this.displayNameValue.trim();
-    const packet = { username, password, display_name: displayName || username };
+    const packet = { username, password, display_name: displayName || username, code: this._verifyCode };
     if (this.genderValue) packet.gender = this.genderValue;
     this.app.sendPacket("register", packet);
   }

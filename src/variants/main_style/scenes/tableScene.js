@@ -370,6 +370,8 @@ const WIN_SPRITE_FRAME_FIRST = 25;
 const WIN_SPRITE_FRAME_LAST = 119;
 const WIN_SPRITE_FPS = 36;
 const WIN_SPRITE_SIZE_FACTOR = 0.65;
+const SEAT_WIN_LIGHT_DEPTH = 16;
+const WIN_LIGHT_DURATION_MS = 4500;
 const COUNTDOWN_TIMER_SFX_KEY = "countdown_timer";
 const COUNTDOWN_TIMER_SFX_VOLUME = 0.4;
 const DEAL_CARD_LEFT_ANGLE = -7;
@@ -700,6 +702,7 @@ export class TableScene extends Phaser.Scene {
     this.rebuyModel = null;
     this._rebuyDeclined = false;
     this._pendingLeaveAfterHandResult = false;
+    this._pendingSwitchAfterRebuy = false;
     this._actionSentPending = false;
     this.raiseActionModel = null;
     this.raiseActionType = null;
@@ -718,6 +721,9 @@ export class TableScene extends Phaser.Scene {
     const imageBase = `${window.__APP__?.assetBase || "assets/variants/main_style"}/images`;
     if (!this.textures.exists("win")) {
       this.load.atlas("win", `${imageBase}/win.webp`, `${imageBase}/win.json`);
+    }
+    if (!this.textures.exists("light")) {
+      this.load.image("light", `${imageBase}/light.webp`);
     }
   }
 
@@ -768,7 +774,7 @@ export class TableScene extends Phaser.Scene {
     syncBgmToggle();
 
     this.changeTableButton = this.add.image(CHANGE_TABLE_BUTTON_X, CHANGE_TABLE_BUTTON_Y, "game_table", "btn_change_table");
-    this.changeTableButton.setDisplaySize(190, 76);
+    this.changeTableButton.setDisplaySize(190, 76).setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
     bindImageButton(this, this.changeTableButton, {
       pressedScale: 0.96,
       onClick: () => {
@@ -784,6 +790,16 @@ export class TableScene extends Phaser.Scene {
             return;
           }
         }
+        const heroSeatSw = this.resolveHeroSeatForDisplay(this.state?.table);
+        const heroPlayerSw = heroSeatSw !== null && Array.isArray(this.state?.table?.players)
+          ? this.state.table.players.find(p => isSameSeat(p?.seat, heroSeatSw)) : null;
+        const heroChipsSw = Number(heroPlayerSw?.chips ?? 0);
+        const minBuyinSw = Number(this.state?.table?.min_buyin ?? 0);
+        if (minBuyinSw > 0 && heroChipsSw < minBuyinSw && this.state?.rebuyOffer && !this._rebuyDeclined) {
+          this._pendingSwitchAfterRebuy = true;
+          this.renderRebuyModal(this.state.rebuyOffer);
+          return;
+        }
         this.store.beginSwitchRoom?.();
         const buyin = this.resolveSwitchRoomBuyin();
         this.app.sendPacket("switch_room", { buyin });
@@ -794,10 +810,13 @@ export class TableScene extends Phaser.Scene {
     this.buildHeroWaitingJoinPrompt();
 
     this.exitTableButton = this.add.image(EXIT_TABLE_BUTTON_X, EXIT_TABLE_BUTTON_Y, "game_table", "btn_exit_table");
-    this.exitTableButton.setDisplaySize(190, 76);
+    this.exitTableButton.setDisplaySize(190, 76).setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
     bindImageButton(this, this.exitTableButton, {
       pressedScale: 0.96,
       onClick: () => {
+        console.log("[EXIT] btn clicked, page=", this.store.getState?.()?.page, "tableId=", this.store.getState?.()?.table?.table_id);
+        this.closeSwitchRoomConfirmDialog();
+        this.renderRebuyModal(null);
         const isHandActive = this.state?.table?.status === "playing";
         const heroSwitchPending = this.store.getState?.().heroSwitchPending;
         if (isHandActive && !heroSwitchPending) {
@@ -811,12 +830,17 @@ export class TableScene extends Phaser.Scene {
           }
         }
         const currentTableId = this.store.getState?.().table?.table_id ?? null;
+        const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
+        console.log("[EXIT] calling beginLeaveTable, tableId=", currentTableId, "gameId=", _gameId);
         this.store.beginLeaveTable?.(currentTableId);
+        console.log("[EXIT] after beginLeaveTable, page=", this.store.getState?.()?.page);
         this.app.sendPacket("leave_room", {});
-        const _gameId = this.store.getState?.()?.table?.game_id || "texas_holdem";
         this.app.sendPacket("enter_game", { game_id: _gameId });
       },
     });
+    // Override pixelPerfect with a plain rectangular hit area so the full display
+    // size is always clickable, regardless of transparent pixels in the texture.
+    this.exitTableButton.setInteractive({ useHandCursor: true });
 
     this.exitReplayButton = createGradientButton(this, {
       x: EXIT_REPLAY_BUTTON_X,
@@ -958,40 +982,21 @@ export class TableScene extends Phaser.Scene {
         .setActive(false)
     );
 
-    // Win animation sprite (Phaser atlas, replaces DOM win.gif)
+    // Win animation — sprite atlas disabled; replaced by light.webp glow effect.
     this.winGifIsPlaying = false;
     this.pendingHandResult = null;
+    this._winLightTimer = null;
+    this._winLightTween = null;
 
-    if (!this.anims.exists(WIN_SPRITE_ANIM_KEY)) {
-      const frames = [];
-      for (let i = WIN_SPRITE_FRAME_FIRST; i <= WIN_SPRITE_FRAME_LAST; i++) {
-        frames.push({ key: WIN_SPRITE_ATLAS, frame: `win_logo${i}` });
-      }
-      this.anims.create({
-        key: WIN_SPRITE_ANIM_KEY,
-        frames,
-        frameRate: WIN_SPRITE_FPS,
-        repeat: 0,
-      });
-    }
+    // Light image shown behind winning seat (rotates, depth below profile bg/frame).
+    this.winLightImage = this.add
+      .image(CENTER_X, CENTER_Y, "light")
+      .setDepth(SEAT_WIN_LIGHT_DEPTH)
+      .setVisible(false)
+      .setAlpha(0.88);
 
-    this.winSprite = this.add
-      .sprite(CENTER_X, CENTER_Y, WIN_SPRITE_ATLAS, `win_logo${WIN_SPRITE_FRAME_FIRST}`)
-      .setDepth(WIN_SPRITE_DEPTH)
-      .setVisible(false);
-    this.winSprite.on("animationcomplete", () => {
-      this.time.delayedCall(2000, () => {
-        this.winSprite?.setVisible(false);
-        this.winGifIsPlaying = false;
-        if (this.pendingHandResult !== null) {
-          const result = this.pendingHandResult;
-          this.pendingHandResult = null;
-          this.openHandResultModal(result);
-        } else if (!this.isHandResultModalOpen) {
-          this.renderRebuyModal(this._rebuyDeclined ? null : (this.state?.rebuyOffer ?? null));
-        }
-      });
-    });
+    // winSprite kept as a no-op placeholder so downstream references don't throw.
+    this.winSprite = { setVisible: () => {}, destroy: () => {} };
 
     this.seatViews = [];
     this.buildSeatViews(DEFAULT_SEAT_COUNT, DEFAULT_SEAT_START);
@@ -1561,7 +1566,9 @@ export class TableScene extends Phaser.Scene {
 
     this.events.once("shutdown", () => {
       this.unsubscribe?.();
-      if (this.winSprite) { this.winSprite.destroy(); this.winSprite = null; }
+      this._winLightTimer?.remove(); this._winLightTimer = null;
+      if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
+      if (this.winLightImage) { this.winLightImage.destroy(); this.winLightImage = null; }
       if (this.turnCountdownTicker) {
         this.turnCountdownTicker.remove();
         this.turnCountdownTicker = null;
@@ -1864,9 +1871,9 @@ export class TableScene extends Phaser.Scene {
     if (this._pendingLeaveAfterHandResult) {
       this._pendingLeaveAfterHandResult = false;
       const currentTableId = this.store.getState?.().table?.table_id ?? null;
+      const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
       this.store.beginLeaveTable?.(currentTableId);
       this.app.sendPacket("leave_room", {});
-      const _gameId = this.store.getState?.()?.table?.game_id || "texas_holdem";
       this.app.sendPacket("enter_game", { game_id: _gameId });
     }
 
@@ -2628,8 +2635,9 @@ export class TableScene extends Phaser.Scene {
     this.switchConfirmOverlay = this.add
       .rectangle(layout.centerX, layout.centerY, 4000, 4000, 0x000000, 0.6)
       .setDepth(SWITCH_CONFIRM_OVERLAY_DEPTH)
-      .setVisible(false)
-      .setInteractive();
+      .setVisible(false);
+    // Do NOT setInteractive() here — the overlay should only block input while visible.
+    // Enabled in openSwitchRoomConfirmDialog, disabled in closeSwitchRoomConfirmDialog.
 
     const panelH = 310;
     const cr = SWITCH_CONFIRM_CORNER_RADIUS;
@@ -2706,7 +2714,7 @@ export class TableScene extends Phaser.Scene {
   }
 
   openSwitchRoomConfirmDialog(onConfirm) {
-    this.switchConfirmOverlay?.setVisible(true);
+    this.switchConfirmOverlay?.setVisible(true).setInteractive();
     this.switchConfirmPanelGrad?.setVisible(true);
     this.switchConfirmPanel?.setVisible(true);
     this.switchConfirmTitleLabel?.setVisible(true);
@@ -2718,7 +2726,7 @@ export class TableScene extends Phaser.Scene {
   }
 
   closeSwitchRoomConfirmDialog() {
-    this.switchConfirmOverlay?.setVisible(false);
+    this.switchConfirmOverlay?.setVisible(false).disableInteractive();
     this.switchConfirmPanelGrad?.setVisible(false);
     this.switchConfirmPanel?.setVisible(false);
     this.switchConfirmTitleLabel?.setVisible(false);
@@ -2738,8 +2746,7 @@ export class TableScene extends Phaser.Scene {
     this.heroWaitPromptOverlay = this.add
       .rectangle(layout.centerX, layout.centerY, 4000, 4000, 0x000000, 0.6)
       .setDepth(SWITCH_CONFIRM_OVERLAY_DEPTH)
-      .setVisible(false)
-      .setInteractive();
+      .setVisible(false);
 
     this._heroWaitPromptMaskGfx = this.make.graphics({ add: false });
     this._heroWaitPromptMaskGfx.fillStyle(0xffffff);
@@ -2822,7 +2829,7 @@ export class TableScene extends Phaser.Scene {
     } else {
       this.heroWaitPromptOkGfx?.on("pointerdown", () => { playUiClick(this); this.closeHeroWaitingJoinPrompt(); });
     }
-    this.heroWaitPromptOverlay?.setVisible(true);
+    this.heroWaitPromptOverlay?.setVisible(true).setInteractive();
     this.heroWaitPromptGrad?.setVisible(true);
     this.heroWaitPromptBorder?.setVisible(true);
     this.heroWaitPromptTitleLabel?.setVisible(true);
@@ -2834,7 +2841,7 @@ export class TableScene extends Phaser.Scene {
   }
 
   closeHeroWaitingJoinPrompt() {
-    this.heroWaitPromptOverlay?.setVisible(false);
+    this.heroWaitPromptOverlay?.setVisible(false).disableInteractive();
     this.heroWaitPromptGrad?.setVisible(false);
     this.heroWaitPromptBorder?.setVisible(false);
     this.heroWaitPromptTitleLabel?.setVisible(false);
@@ -2856,6 +2863,9 @@ export class TableScene extends Phaser.Scene {
     const action = this.raiseActionType;
     this.closeRaiseActionPanel();
     this._actionSentPending = true;
+    const _raiseSentKey = `${this.state.actionRequest?.hand_id ?? ""}_${this.state.actionRequest?.seat ?? ""}`;
+    sessionStorage.setItem("ngame_sent_action_key", _raiseSentKey);
+    sessionStorage.setItem("ngame_sent_action_at", String(Date.now()));
     this.layoutActionButtons([]);
     this.app.sendPacket("player_action", { action, raise_to: raiseTo });
   }
@@ -4036,15 +4046,58 @@ export class TableScene extends Phaser.Scene {
   }
 
   showWinGif(worldX, worldY, worldWidth = 180 * WIN_SPRITE_SIZE_FACTOR) {
-    if (!this.winSprite) return;
-    const worldHeight = worldWidth * (800 / 900);
-    this.winSprite
+    // Win sprite animation is disabled; show rotating light.webp behind the winner instead.
+    this._showWinLight(worldX, worldY, worldWidth);
+  }
+
+  _showWinLight(worldX, worldY, refWidth) {
+    if (!this.winLightImage) return;
+
+    // Clear any previous light
+    this._winLightTimer?.remove();
+    this._winLightTimer = null;
+    if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
+
+    const size = refWidth * 2.0;
+    this.winLightImage
       .setPosition(worldX, worldY)
-      .setDisplaySize(worldWidth, worldHeight)
+      .setDisplaySize(size, size)
+      .setAngle(0)
+      .setAlpha(0.88)
       .setVisible(true);
-    this.winSprite.play(WIN_SPRITE_ANIM_KEY);
+
+    // Continuous slow rotation
+    this._winLightTween = this.tweens.add({
+      targets: this.winLightImage,
+      angle: 360,
+      duration: 3200,
+      repeat: -1,
+      ease: "Linear",
+    });
+
     this.winGifIsPlaying = true;
     this.playSfx(WIN_ANIMATION_SFX_KEY, WIN_ANIMATION_SFX_VOLUME);
+
+    // Fade out and finish after WIN_LIGHT_DURATION_MS
+    this._winLightTimer = this.time.delayedCall(WIN_LIGHT_DURATION_MS, () => {
+      this.tweens.add({
+        targets: this.winLightImage,
+        alpha: 0,
+        duration: 400,
+        onComplete: () => {
+          this.winLightImage?.setVisible(false).setAlpha(0.88);
+          if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
+          this.winGifIsPlaying = false;
+          if (this.pendingHandResult !== null) {
+            const result = this.pendingHandResult;
+            this.pendingHandResult = null;
+            this.openHandResultModal(result);
+          } else if (!this.isHandResultModalOpen) {
+            this.renderRebuyModal(this._rebuyDeclined ? null : (this.state?.rebuyOffer ?? null));
+          }
+        },
+      });
+    });
   }
 
   // Hook: play voice when award animation starts.
@@ -4411,10 +4464,9 @@ export class TableScene extends Phaser.Scene {
       ) {
         // Hero moved to a different table (e.g. via switch_room): clear stale
         // transient UI from the previous table before rendering the new one.
-        if (this.winSprite) {
-          this.winSprite.anims?.stop();
-          this.winSprite.setVisible(false);
-        }
+        this._winLightTimer?.remove(); this._winLightTimer = null;
+        if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
+        this.winLightImage?.setVisible(false).setAlpha(0.88);
         this.winGifIsPlaying = false;
         this.pendingHandResult = null;
         if (this.newRoundHintTimer) {
@@ -4900,22 +4952,33 @@ export class TableScene extends Phaser.Scene {
       const reqKey = `${actionRequest?.hand_id ?? ""}_${actionRequest?.seat ?? ""}`;
       if (reqKey !== this.lastSeenActionRequestKey) {
         this.lastSeenActionRequestKey = reqKey;
-        this._actionSentPending = false;
-        const heroSeat = parseSeat(this.state?.heroSeat);
-        const reqSeat = parseSeat(actionRequest?.seat);
-        if (heroSeat !== null && reqSeat !== null && heroSeat === reqSeat) {
-          this.app?.playVoiceByKey?.("voice_your_turn");
+        const storedKey = sessionStorage.getItem("ngame_sent_action_key");
+        const storedAt = Number(sessionStorage.getItem("ngame_sent_action_at") ?? 0);
+        const sentFresh = storedKey === reqKey && (Date.now() - storedAt) < 60000;
+        if (sentFresh) {
+          this._actionSentPending = true;
+        } else {
+          this._actionSentPending = false;
+          sessionStorage.removeItem("ngame_sent_action_key");
+          sessionStorage.removeItem("ngame_sent_action_at");
+          const heroSeat = parseSeat(this.state?.heroSeat);
+          const reqSeat = parseSeat(actionRequest?.seat);
+          if (heroSeat !== null && reqSeat !== null && heroSeat === reqSeat) {
+            this.app?.playVoiceByKey?.("voice_your_turn");
+          }
         }
       }
     } else {
       this.lastSeenActionRequestKey = "";
       this._actionSentPending = false;
+      sessionStorage.removeItem("ngame_sent_action_key");
+      sessionStorage.removeItem("ngame_sent_action_at");
     }
     this.layoutActionButtons(this._actionSentPending ? [] : allowed);
 
     const handResultVersion = Number(this.state.handResultVersion ?? 0);
     const hasPendingHandResult = handResultVersion > this.lastSeenHandResultVersion;
-    const suppressRebuy = this.isHandResultModalOpen || hasPendingHandResult || this.winGifIsPlaying;
+    const suppressRebuy = (this.state?.table?.status === "playing") || this.isHandResultModalOpen || hasPendingHandResult || this.winGifIsPlaying;
     this.renderRebuyModal(suppressRebuy ? null : this.state.rebuyOffer);
 
     if (hasPendingHandResult) {
@@ -5144,6 +5207,9 @@ export class TableScene extends Phaser.Scene {
     }
     this.closeRaiseActionPanel();
     this._actionSentPending = true;
+    const _sentKey = `${this.state.actionRequest?.hand_id ?? ""}_${this.state.actionRequest?.seat ?? ""}`;
+    sessionStorage.setItem("ngame_sent_action_key", _sentKey);
+    sessionStorage.setItem("ngame_sent_action_at", String(Date.now()));
     this.layoutActionButtons([]);
     this.app.sendPacket("player_action", { action });
   }
@@ -5178,11 +5244,25 @@ export class TableScene extends Phaser.Scene {
     this.app.sendPacket("rebuy_decision", {
       buyin,
     });
+    if (this._pendingSwitchAfterRebuy) {
+      this._pendingSwitchAfterRebuy = false;
+      this.store.beginSwitchRoom?.();
+      const switchBuyin = this.resolveSwitchRoomBuyin();
+      this.app.sendPacket("switch_room", { buyin: switchBuyin });
+    }
   }
 
   leaveTableByRebuy() {
     this._rebuyDeclined = true;
     this.renderRebuyModal(null);
+
+    if (this._pendingSwitchAfterRebuy) {
+      this._pendingSwitchAfterRebuy = false;
+      this.store.beginSwitchRoom?.();
+      const switchBuyin = this.resolveSwitchRoomBuyin();
+      this.app.sendPacket("switch_room", { buyin: switchBuyin });
+      return;
+    }
 
     if (this.isHandResultModalOpen) {
       this._pendingLeaveAfterHandResult = true;
@@ -5210,9 +5290,9 @@ export class TableScene extends Phaser.Scene {
       this.app.sendPacket("switch_room", { buyin, _heroWaiting: true });
     } else if (type === "leave") {
       const currentTableId = String(this.store.getState?.()?.table?.table_id ?? "");
+      const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
       this.app.setPendingTableExit?.("leave", currentTableId, 0);
       this.store.beginLeaveTable?.(currentTableId);
-      const _gameId = this.store.getState?.()?.table?.game_id || "texas_holdem";
       this.app.sendPacket?.("enter_game", { game_id: _gameId });
     }
   }

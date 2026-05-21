@@ -2494,20 +2494,35 @@ let activeScene = null;
 // 根據 page 切換 scene（同時關閉其他 scene）
 function switchSceneByPage(page) {
   const next = pageToScene(page);
+  console.log("[SWITCH] switchSceneByPage", page, "→", next, "activeScene=", activeScene, "isActive(table)=", game.scene.isActive("table"), "isActive(gameLobby)=", game.scene.isActive("gameLobby"));
   if (startupAuthGateActive && (next === "auth" || next === "register")) {
+    console.log("[SWITCH] blocked by startupAuthGate");
     return;
   }
   if (startupAuthGateActive) {
     releaseStartupAuthGate(`page:${next}`);
   }
   if (next === activeScene) {
+    // Even when activeScene matches, stop any stale other route scenes that snuck in.
+    SCENES.forEach((key) => {
+      if (key === next) return;
+      if (game.scene.isActive(key) || game.scene.isSleeping(key)) game.scene.stop(key);
+    });
+    console.log("[SWITCH] same scene, cleaned up stale scenes");
     return;
   }
   if (!game.scene.keys[next]) {
+    console.log("[SWITCH] scene key not found:", next);
     return;
   }
   if (game.scene.isActive(next)) {
+    // Target already active — still stop other scenes that should not be running.
+    SCENES.forEach((key) => {
+      if (key === next) return;
+      if (game.scene.isActive(key) || game.scene.isSleeping(key)) game.scene.stop(key);
+    });
     activeScene = next;
+    console.log("[SWITCH] target already active, stopped others");
     return;
   }
   SCENES.forEach((key) => {
@@ -2528,11 +2543,14 @@ function switchSceneByPage(page) {
     game.scene.stop("boot");
   }
   if (game.scene.isSleeping(next)) {
+    console.log("[SWITCH] waking scene:", next);
     game.scene.wake(next);
   } else {
+    console.log("[SWITCH] starting scene:", next);
     game.scene.start(next);
   }
   activeScene = next;
+  console.log("[SWITCH] done, activeScene=", activeScene);
 }
 
 let routerBound = false;

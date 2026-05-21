@@ -189,11 +189,30 @@ export class ErrorModalScene extends Phaser.Scene {
   }
 
   confirmAndClose() {
+    const errorCode = String(this.store?.getState?.()?.lastError?.code ?? "").toUpperCase();
+    const errorMsg = String(this.store?.getState?.()?.lastError?.message ?? this.currentMessage ?? "");
     this.hideModal();
     this.store?.clearLastError?.();
+
+    // If server says we're not at a table while we're on the table page, force back to lobby.
+    const page = this.store?.getState?.()?.page;
+    const isNotAtTableError =
+      errorCode.includes("NOT_IN_ROOM") ||
+      errorCode.includes("NOT_IN_TABLE") ||
+      errorCode.includes("NOT_AT_TABLE") ||
+      errorMsg.includes("不在牌桌") ||
+      errorMsg.includes("not in room") ||
+      errorMsg.includes("not at table");
+    if (isNotAtTableError && page === "table") {
+      const gameId = this.store?.getState?.()?.table?.game_id || this.store?.getState?.()?.gameLobby?.game_id || "texas_holdem";
+      this.store?.forceBackToGameLobby?.();
+      this.app?.sendPacket?.("enter_game", { game_id: gameId });
+    }
   }
 
   _disableOtherSceneInput() {
+    // Restore previously disabled scenes first to avoid losing the list on re-entrant calls.
+    this._restoreOtherSceneInput();
     this._inputDisabledScenes = [];
     try {
       this.scene.manager.getScenes(true).forEach((s) => {
