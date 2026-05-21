@@ -1,0 +1,90 @@
+<h2>玩家座位佈局對比</h2>
+<p class="subtitle">左邊：現在的佈局 ／ 右邊：建議修改後的佈局</p>
+
+<div class="split" style="gap:40px; align-items:flex-start;">
+
+  <!-- 現在 -->
+  <div class="mockup" style="flex:1">
+    <div class="mockup-header">現在</div>
+    <div class="mockup-body" style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;padding:24px">
+
+      <!-- 普通玩家（非主玩家）示意 -->
+      <div style="text-align:center">
+        <div style="font-size:11px;color:#aaa;margin-bottom:6px">對手玩家</div>
+        <div style="position:relative;display:inline-block;width:80px">
+          <!-- 頭像 -->
+          <div style="width:60px;height:60px;border-radius:50%;background:#4a6fa5;border:2px solid #7ba3d4;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:22px;">👤</div>
+          <!-- 牌（疊在頭像上面） -->
+          <div style="position:absolute;top:14px;left:2px;display:flex;gap:2px;">
+            <div style="width:18px;height:26px;background:#fff;border:1px solid #ccc;border-radius:2px;transform:rotate(-8deg);display:flex;align-items:center;justify-content:center;font-size:8px;color:#c00">🃏</div>
+            <div style="width:18px;height:26px;background:#fff;border:1px solid #ccc;border-radius:2px;transform:rotate(8deg);display:flex;align-items:center;justify-content:center;font-size:8px;">🃏</div>
+          </div>
+          <!-- 名字 + 點數 (下方) -->
+          <div style="margin-top:4px;font-size:11px;font-weight:bold;color:#4a2f1d">PlayerA</div>
+          <div style="font-size:10px;color:#c9a84c;font-weight:bold">1,250</div>
+          <!-- BB 標誌（右下） -->
+          <div style="position:absolute;bottom:-2px;right:-4px;background:#d4a017;color:#000;font-size:9px;font-weight:bold;padding:1px 4px;border-radius:3px;">BB</div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:#e88">牌壓在頭像上</div>
+        <div style="font-size:10px;color:#e88">名字在下面</div>
+        <div style="font-size:10px;color:#e88">BB 右下方</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 建議 -->
+  <div class="mockup" style="flex:1">
+    <div class="mockup-header">修改後</div>
+    <div class="mockup-body" style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;padding:24px">
+
+      <!-- 普通玩家 -->
+      <div style="text-align:center">
+        <div style="font-size:11px;color:#aaa;margin-bottom:6px">對手玩家</div>
+        <div style="position:relative;display:inline-block;width:100px">
+          <!-- 名字 + 點數（上方） -->
+          <div style="font-size:11px;font-weight:bold;color:#4a2f1d;margin-bottom:2px">PlayerA</div>
+          <div style="font-size:10px;color:#c9a84c;font-weight:bold;margin-bottom:4px">1,250</div>
+          <!-- 頭像 + BB 右邊 -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+            <div style="width:60px;height:60px;border-radius:50%;background:#4a6fa5;border:2px solid #7ba3d4;display:flex;align-items:center;justify-content:center;font-size:22px;">👤</div>
+            <!-- BB 右邊 -->
+            <div style="background:#d4a017;color:#000;font-size:10px;font-weight:bold;padding:3px 6px;border-radius:4px;white-space:nowrap">BB</div>
+          </div>
+          <!-- 牌（下方） -->
+          <div style="display:flex;justify-content:center;gap:4px;margin-top:5px">
+            <div style="width:22px;height:32px;background:#fff;border:1px solid #ccc;border-radius:2px;transform:rotate(-8deg);display:flex;align-items:center;justify-content:center;font-size:9px;color:#c00">🃏</div>
+            <div style="width:22px;height:32px;background:#fff;border:1px solid #ccc;border-radius:2px;transform:rotate(8deg);display:flex;align-items:center;justify-content:center;font-size:9px;">🃏</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:#8e8">牌在頭像下方</div>
+        <div style="font-size:10px;color:#8e8">名字在上方</div>
+        <div style="font-size:10px;color:#8e8">BB 在頭像右邊</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<hr style="margin:24px 0; border-color:#333">
+
+<h3>問題：主玩家（你自己）也要改嗎？</h3>
+<p class="subtitle">主玩家的牌目前顯示在畫面中下方（比較大張），如果也套用「牌在頭像下方」規則，牌會移到頭像正下方，位置會離行動按鈕很近。</p>
+
+<div class="options">
+  <div class="option" data-choice="all" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>全部座位都改</h3>
+      <p>包含主玩家，牌移到頭像正下方（可能與行動按鈕有點擁擠）</p>
+    </div>
+  </div>
+  <div class="option" data-choice="opponents-only" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>只改對手玩家（推薦）</h3>
+      <p>主玩家保持原本的大牌顯示位置，只把 5 個對手的牌移到頭像下方</p>
+    </div>
+  </div>
+</div>

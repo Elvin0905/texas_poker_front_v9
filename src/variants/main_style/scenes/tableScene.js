@@ -324,18 +324,18 @@ const DEAL_CARD_FROM_X = 360;
 const DEAL_CARD_FROM_Y = 380;
 const DEAL_CARD_ATLAS_KEY = "game_table";
 const DEAL_CARD_FRAME = "card_back";
-const DEAL_CARD_NORMAL_SCALE = 0.47;
+const DEAL_CARD_NORMAL_SCALE = 0.58;
 const DEAL_CARD_HERO_SCALE = 1.06;
 const DEAL_CARD_START_ANGLE = -18;
 const DEAL_CARD_FLY_DURATION = 280;
 const DEAL_CARD_POP_DURATION = 80;
 const DEAL_CARD_DEPTH = 27;
-const DEAL_CARD_TARGET_OFFSET_X_LEFT =  41;
-const DEAL_CARD_TARGET_OFFSET_X_RIGHT = 78;
+const DEAL_CARD_TARGET_OFFSET_X_LEFT = -28;
+const DEAL_CARD_TARGET_OFFSET_X_RIGHT = 28;
 // 右側三個翻轉座位手牌 X 偏移（同樣分 left/right）
-const DEAL_CARD_MIRROR_TARGET_OFFSET_X_LEFT = 94;
-const DEAL_CARD_MIRROR_TARGET_OFFSET_X_RIGHT = 57;
-const DEAL_CARD_TARGET_OFFSET_Y = 17;
+const DEAL_CARD_MIRROR_TARGET_OFFSET_X_LEFT = -28;
+const DEAL_CARD_MIRROR_TARGET_OFFSET_X_RIGHT = 28;
+const DEAL_CARD_TARGET_OFFSET_Y = -25;
 // 主玩家（hero）手牌位置獨立微調
 const HERO_DEAL_CARD_TARGET_OFFSET_X_LEFT = 230;        // 手機版：靠右
 const HERO_DEAL_CARD_TARGET_OFFSET_X_RIGHT = 325;       // 手機版：靠右
@@ -382,7 +382,7 @@ const HOLE_CARD_FLIP_POP_SCALE = 1.08;
 const SEAT_AVATAR_DEPTH = 21;
 const SEAT_PROFILE_FRAME_DEPTH = 19;
 const SEAT_PROFILE_BG_DEPTH = 18;
-const SEAT_HOLE_CARD_DEPTH = 25;
+const SEAT_HOLE_CARD_DEPTH = 21.5;
 const SEAT_TEXT_DEPTH = 23;
 const SEAT_ROLE_BADGE_DEPTH = 23.5;
 const SEAT_BET_COIN_DEPTH = 28;
@@ -467,12 +467,10 @@ function isSameSeat(a, b) {
   return sa === sb;
 }
 
-function dealCardAngleByIndex(cardIndexRaw) {
+function dealCardAngleByIndex(cardIndexRaw, flipX = false) {
   const cardIndex = Number(cardIndexRaw);
-  if (Number.isFinite(cardIndex) && cardIndex % 2 === 1) {
-    return DEAL_CARD_RIGHT_ANGLE;
-  }
-  return DEAL_CARD_LEFT_ANGLE;
+  const isCard1 = Number.isFinite(cardIndex) && cardIndex % 2 === 1;
+  return (flipX ? !isCard1 : isCard1) ? DEAL_CARD_RIGHT_ANGLE : DEAL_CARD_LEFT_ANGLE;
 }
 
 function normalizeCardFrameKey(cardRaw) {
@@ -3057,16 +3055,16 @@ export class TableScene extends Phaser.Scene {
         .setVisible(false);
       const holeCards = Array.from({ length: DEAL_CARD_MAX_HOLE_COUNT }, (_, cardIndex) => {
         const target = this.resolveDealTargetPosition({ posX: pos.x, posY: pos.y, avatarFlipX }, cardIndex);
-        const angle = dealCardAngleByIndex(cardIndex);
+        const angle = dealCardAngleByIndex(cardIndex, avatarFlipX);
         const sprite = this.add
           .image(target.x, target.y, DEAL_CARD_ATLAS_KEY, DEAL_CARD_FRAME)
           .setScale(DEAL_CARD_NORMAL_SCALE)
-          .setDepth(SEAT_HOLE_CARD_DEPTH + cardIndex * 2)
+          .setDepth(SEAT_HOLE_CARD_DEPTH + (avatarFlipX ? (1 - cardIndex) : cardIndex) * 0.1)
           .setAngle(angle)
           .setVisible(false);
         const cardMaskGfx = null;
         const cardShadow = this.add.graphics()
-          .setDepth(SEAT_HOLE_CARD_DEPTH + cardIndex * 2 - 0.5)
+          .setDepth(SEAT_HOLE_CARD_DEPTH + (avatarFlipX ? (1 - cardIndex) : cardIndex) * 0.1 - 0.5)
           .setVisible(false);
         cardShadow.fillStyle(0x000000, 0.15).fillRoundedRect(-65, -90, 130, 180, 4);
         return {
@@ -3278,6 +3276,12 @@ export class TableScene extends Phaser.Scene {
     const cdY = seatView.posY + AVATAR_Y_OFFSET + cdEdgeR;
     seatView.turnCountdownBg.setPosition(cdX, cdY);
     seatView.turnCountdown.setPosition(cdX, cdY);
+    const holeCardDepth = isHero ? 26 : SEAT_HOLE_CARD_DEPTH;
+    seatView.holeCards?.forEach((hc, i) => {
+      const flipStep = seatView.avatarFlipX ? (1 - i) : i;
+      hc.sprite.setDepth(holeCardDepth + flipStep * 0.1);
+      hc.cardShadow?.setDepth(holeCardDepth + flipStep * 0.1 - 0.5);
+    });
     this.updateSeatRoleBadgeLayout(seatView);
     this.updateSeatBetLayout(seatView);
     this.updateSeatHoleCardPositions(seatView);
@@ -3668,9 +3672,7 @@ export class TableScene extends Phaser.Scene {
     const offsetX = isHeroSeat ? baseOffsetX : (seatView?.avatarFlipX ? -baseOffsetX : baseOffsetX);
     const heroUpShift = 0;
     const offsetY = (isHeroSeat ? HERO_DEAL_CARD_TARGET_OFFSET_Y : DEAL_CARD_TARGET_OFFSET_Y) + heroUpShift;
-    const slotXAdjust = !isHeroSeat
-      ? (seatView?.slotIndex === 1 ? 20 : seatView?.slotIndex === 2 ? 20 : 0)
-      : 0;
+    const slotXAdjust = 0;
     return {
       x: seatView.posX + offsetX + slotXAdjust,
       y: seatView.posY + offsetY,
@@ -3816,7 +3818,7 @@ export class TableScene extends Phaser.Scene {
         if (!holeCard) return;
         this.showdownAnimatedSet.add(animKey);
         holeCard.pendingShowdownFlip = true;
-        const angle = dealCardAngleByIndex(cardIndex);
+        const angle = dealCardAngleByIndex(cardIndex, seatView.avatarFlipX);
         const timerId = setTimeout(() => {
           holeCard.pendingShowdownFlip = false;
           if (holeCard.sprite?.active) {
@@ -4113,7 +4115,7 @@ export class TableScene extends Phaser.Scene {
     }
     seatView.holeCards.forEach((holeCard, cardIndex) => {
       const target = this.resolveDealTargetPosition(seatView, cardIndex);
-      holeCard.sprite.setPosition(target.x, target.y).setAngle(dealCardAngleByIndex(cardIndex));
+      holeCard.sprite.setPosition(target.x, target.y).setAngle(dealCardAngleByIndex(cardIndex, seatView.avatarFlipX));
     });
   }
 
@@ -4126,7 +4128,7 @@ export class TableScene extends Phaser.Scene {
     const cardValues = Array.isArray(renderOptions?.cardValues) ? renderOptions.cardValues : [];
     seatView.holeCards.forEach((holeCard, cardIndex) => {
       const visible = cardIndex < holeCount;
-      const targetAngle = dealCardAngleByIndex(cardIndex);
+      const targetAngle = dealCardAngleByIndex(cardIndex, seatView.avatarFlipX);
       const targetFaceFrameKey = revealFace && visible
         ? this.resolveHoleFaceFrameKey(cardValues[cardIndex])
         : null;
@@ -4211,7 +4213,7 @@ export class TableScene extends Phaser.Scene {
     this.playSfx(DEAL_CARD_SFX_KEY, DEAL_CARD_SFX_VOLUME);
     const dealIndexRaw = Number(dealCard.card_index);
     const dealIndex = Number.isFinite(dealIndexRaw) ? Math.max(0, Math.min(DEAL_CARD_MAX_HOLE_COUNT - 1, Math.floor(dealIndexRaw))) : 0;
-    const targetAngle = dealCardAngleByIndex(dealIndex);
+    const targetAngle = dealCardAngleByIndex(dealIndex, seatView.avatarFlipX);
     const targetScale = this.getSeatHoleCardScale(seatView);
     const landingCard = seatView.holeCards?.[dealIndex] || null;
     if (landingCard) {
@@ -4804,6 +4806,7 @@ export class TableScene extends Phaser.Scene {
         this.showdownAnimatedSet = new Set();
         this.seatViews.forEach((sv) => {
           sv.holeCards?.forEach((hc) => { hc.pendingShowdownFlip = false; });
+          this.hideSeatHoleCards(sv);
         });
         if (this.newRoundHintTimer) {
           this.newRoundHintTimer.remove();

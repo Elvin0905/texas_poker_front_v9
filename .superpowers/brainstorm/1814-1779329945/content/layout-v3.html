@@ -1,0 +1,123 @@
+<h2>對手玩家佈局 — 接近截圖版本</h2>
+<p class="subtitle">請確認這個排列方式是否符合你的想法</p>
+
+<div style="display:flex;gap:48px;justify-content:center;align-items:flex-start;flex-wrap:wrap;padding:24px 0">
+
+  <!-- 現在 (for reference) -->
+  <div style="text-align:center">
+    <div style="font-size:12px;color:#aaa;margin-bottom:10px;font-weight:bold">現在</div>
+    <div style="background:#1a3a1a;border-radius:12px;padding:20px 24px;display:inline-flex;flex-direction:column;align-items:center;gap:0">
+      <!-- avatar -->
+      <div style="width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#6a8fc5,#2a4a7a);border:2px solid #5a7fb5;display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>
+      <!-- cards overlap avatar center -->
+      <div style="display:flex;gap:3px;margin-top:-18px;position:relative;z-index:2">
+        <div style="width:24px;height:34px;background:#f0f0f0;border:1px solid #999;border-radius:2px;transform:rotate(-8deg);display:flex;align-items:center;justify-content:center;font-size:10px;box-shadow:1px 1px 2px rgba(0,0,0,.4)">🂠</div>
+        <div style="width:24px;height:34px;background:#f0f0f0;border:1px solid #999;border-radius:2px;transform:rotate(8deg);display:flex;align-items:center;justify-content:center;font-size:10px;box-shadow:1px 1px 2px rgba(0,0,0,.4)">🂠</div>
+      </div>
+      <!-- nametag -->
+      <div style="background:#0d2040;border:1px solid #3a5a8f;border-radius:5px;padding:3px 10px;margin-top:6px;text-align:center;min-width:72px">
+        <div style="font-size:11px;color:#eee;font-weight:bold">PlayerA</div>
+        <div style="font-size:10px;color:#c9a84c">1,250</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改後 -->
+  <div style="text-align:center">
+    <div style="font-size:12px;color:#aaa;margin-bottom:10px;font-weight:bold">修改後（對手）</div>
+    <div style="background:#1a3a1a;border-radius:12px;padding:20px 24px;display:inline-flex;flex-direction:column;align-items:center;position:relative">
+
+      <!-- 頭像（底層，被牌蓋住大部分） -->
+      <div style="
+        width:64px;height:64px;border-radius:50%;
+        background:radial-gradient(circle at 35% 35%,#6a8fc5,#2a4a7a);
+        border:2px solid #5a7fb5;
+        display:flex;align-items:center;justify-content:center;
+        font-size:24px;
+        position:relative;z-index:1
+      ">👤</div>
+
+      <!-- 牌（中層，蓋在頭像前，但在 nametag 後） -->
+      <!-- 位置在頭像和 nametag 的重疊區 -->
+      <div style="display:flex;gap:5px;margin-top:-22px;position:relative;z-index:2;">
+        <!-- 左下注碼 -->
+        <div style="
+          position:absolute;bottom:-4px;left:-22px;
+          background:#1a1a1a;color:#f0c030;
+          font-size:9px;font-weight:bold;
+          padding:1px 5px;border-radius:10px;
+          border:1px solid #5a5a1a;
+          z-index:5
+        ">100</div>
+
+        <div style="width:34px;height:48px;background:linear-gradient(135deg,#fff,#eee);border:1px solid #bbb;border-radius:3px;transform:rotate(-8deg);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:2px 2px 4px rgba(0,0,0,.5);color:#c00">🂱</div>
+        <div style="width:34px;height:48px;background:linear-gradient(135deg,#fff,#eee);border:1px solid #bbb;border-radius:3px;transform:rotate(8deg);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:2px 2px 4px rgba(0,0,0,.5);color:#333">🂠</div>
+
+        <!-- 右側角色徽章 -->
+        <div style="
+          position:absolute;bottom:-4px;right:-22px;
+          background:#d4a017;color:#000;
+          font-size:8px;font-weight:bold;
+          width:18px;height:18px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          z-index:5
+        ">BB</div>
+      </div>
+
+      <!-- Nametag（最前層，蓋住牌的下部） -->
+      <div style="
+        background:#0d2040;border:1px solid #3a5a8f;
+        border-radius:5px;padding:4px 12px;
+        margin-top:6px;text-align:center;
+        min-width:80px;
+        position:relative;z-index:3;
+        box-shadow:0 2px 6px rgba(0,0,0,.6)
+      ">
+        <div style="font-size:12px;color:#eee;font-weight:bold">VCPrade</div>
+        <div style="font-size:11px;color:#c9a84c;font-weight:bold">7,091</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 參考截圖描述 -->
+  <div style="max-width:200px">
+    <h3>你的截圖解讀</h3>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px">
+      <li>牌較大（scale ≈ 0.55）</li>
+      <li>牌蓋在頭像上方</li>
+      <li>Nametag 在牌下方，蓋住牌底部</li>
+      <li><code>100</code> = 注碼 badge（左下）</li>
+      <li>角色徽章在牌右側</li>
+      <li>頭像只露頭頂或完全被蓋</li>
+    </ul>
+  </div>
+
+</div>
+
+<hr style="border-color:#333;margin:20px 0">
+<h3>請確認</h3>
+
+<div class="options">
+  <div class="option" data-choice="yes" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>對，就是這個感覺</h3>
+      <p>可以開始實作</p>
+    </div>
+  </div>
+  <div class="option" data-choice="scale" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>牌的大小要調整</h3>
+      <p>概念對，但牌太大或太小</p>
+    </div>
+  </div>
+  <div class="option" data-choice="no" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>還是不對</h3>
+      <p>需要再說明</p>
+    </div>
+  </div>
+</div>
