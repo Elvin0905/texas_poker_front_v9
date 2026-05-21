@@ -123,6 +123,7 @@ export class Store extends EventTarget {
       holeCardsBySeat: {}, // 已知手牌（seat -> [card1, card2]）
       showdownRevealsBySeat: {}, // 攤牌揭露手牌（seat -> [card1, card2]）
       actionRequest: null, // 目前輪到我可操作時的限制與資訊
+      handEndSeq: 0, // hand_end 事件序號（每次 +1，scene 用來即時偵測並清除殘留手牌）
       lastDealCard: null, // 最近一次 deal_card 事件
       dealCardVersion: 0, // deal_card 事件版本號（每次 +1）
       rebuyOffer: null, // 補碼提示
@@ -1015,9 +1016,20 @@ export class Store extends EventTarget {
         }
         if (type === "hand_end") {
           // hand_end 後，上一手的私牌/攤牌資訊要清空，避免畫面殘留
+          this.state.handEndSeq += 1;
           this.state.handContribBySeat = {};
           this.state.holeCardsBySeat = {};
           this.state.showdownRevealsBySeat = {};
+          // 同時清除 sessionStorage 快取，防止後續 table_state 的 hand_id 比對成功後把手牌還原回來
+          try {
+            sessionStorage.removeItem("ngame_hole_cards");
+            sessionStorage.removeItem("ngame_hole_cards_hand_id");
+            sessionStorage.removeItem("ngame_hole_cards_seat");
+          } catch (_) {}
+          // 清零所有玩家的 hole_count，防止渲染層因 fallbackVisibleCount > 0 重新顯示背牌
+          if (Array.isArray(this.state.table?.players)) {
+            this.state.table.players.forEach((p) => { p.hole_count = 0; });
+          }
           // 若後端已進入 waiting（或 hand_end 未附 table），強制把桌面視覺欄位重置
           const tableStatus = String(this.state.table?.status ?? "").toLowerCase();
           const tableRound = String(this.state.table?.round ?? "").toLowerCase();

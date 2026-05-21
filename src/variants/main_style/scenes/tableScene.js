@@ -667,6 +667,7 @@ export class TableScene extends Phaser.Scene {
     this.showdownFlipTimers = [];
     this.lastBetValueBySeat = {};
     this.lastHintHandId = null;
+    this.lastSeenHandEndSeq = 0;
     this.lastRenderedTableId = null;
     this.newRoundHintTimer = null;
 
@@ -3809,6 +3810,9 @@ export class TableScene extends Phaser.Scene {
   clearShowdownFlipTimers() {
     this.showdownFlipTimers?.forEach((id) => clearTimeout(id));
     this.showdownFlipTimers = [];
+    this.seatViews?.forEach((sv) => {
+      sv.holeCards?.forEach((hc) => { hc.pendingShowdownFlip = false; });
+    });
   }
 
   scheduleShowdownFlips() {
@@ -3831,7 +3835,11 @@ export class TableScene extends Phaser.Scene {
         const angle = dealCardAngleByIndex(cardIndex, seatView.avatarFlipX);
         const timerId = setTimeout(() => {
           holeCard.pendingShowdownFlip = false;
-          if (holeCard.sprite?.active && holeCard.sprite?.visible) {
+          // Guard: if showdown reveal for this seat was cleared (e.g. by hand_end arriving
+          // before the 220ms stagger delay), don't flip — the card belongs to a past hand.
+          const stillRevealed = Array.isArray(this.state?.showdownRevealsBySeat?.[seatKey])
+            && this.state.showdownRevealsBySeat[seatKey].length > 0;
+          if (stillRevealed && holeCard.sprite?.active && holeCard.sprite?.visible) {
             this.playHoleCardFlipToFace(holeCard, frameKey, angle);
           }
         }, delay);
@@ -3942,7 +3950,9 @@ export class TableScene extends Phaser.Scene {
     const revealCards = showdownCards.length > 0 ? showdownCards : knownCards;
     const revealFace = revealCards.length > 0;
     const fallbackVisibleCount = player?.in_hand === false ? 0 : Number(player?.hole_count ?? 0);
-    const visibleCount = revealFace ? revealCards.length : fallbackVisibleCount;
+    // Hero: only show cards when we actually know them (holeCardsBySeat populated).
+    // Opponent: use fallbackVisibleCount to show face-down back cards during a live hand.
+    const visibleCount = revealFace ? revealCards.length : (isHero ? 0 : fallbackVisibleCount);
     return {
       revealFace,
       cardValues: revealCards,
@@ -4196,6 +4206,9 @@ export class TableScene extends Phaser.Scene {
         // Keep the card alive while its showdown flip is still pending — hiding it here
         // would cause the flip to animate an invisible sprite (race with hand_end in replay).
         if (holeCard.pendingShowdownFlip) return;
+        // Don't interrupt an in-progress deal fly animation — the flyCard onComplete will
+        // land the sprite; clearing inFlight here would orphan the fly card.
+        if (holeCard.inFlight) return;
         holeCard.inFlight = false;
         holeCard.targetFaceFrameKey = null;
         this.stopHoleCardFlipAnimation(holeCard);
@@ -4305,6 +4318,7 @@ export class TableScene extends Phaser.Scene {
       onComplete: () => {
         if (landingCard) {
           if (!landingCard.inFlight) {
+            flyCard.destroy();
             return;
           }
           landingCard.sprite
@@ -4444,6 +4458,12 @@ export class TableScene extends Phaser.Scene {
   renderState() {
     if (!this.state) {
       return;
+    }
+    const currentHandEndSeq = Number(this.state.handEndSeq ?? 0);
+    if (currentHandEndSeq !== this.lastSeenHandEndSeq) {
+      this.lastSeenHandEndSeq = currentHandEndSeq;
+      this.clearShowdownFlipTimers();
+      this.seatViews?.forEach((sv) => this.hideSeatHoleCards(sv));
     }
     const isReplayActive = Boolean(this.app?.isHandReplayActive?.());
     const isReplayFast = Boolean(this.app?.isHandReplayFastMode?.());
@@ -4844,7 +4864,9 @@ export class TableScene extends Phaser.Scene {
         this.lastShowdownCollectHandId = currentHandId;
       }
       if (showdownRevealCount > 0) {
-        this.scheduleShowdownFlips();
+        if (!isReplayActive) {
+          this.scheduleShowdownFlips();
+        }
         this.seatViews.forEach((sv) => {
           if (sv.actionBadge?.visible) {
             sv.actionBadgeHideTimer?.remove();
