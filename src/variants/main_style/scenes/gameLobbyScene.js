@@ -797,6 +797,12 @@ export class GameLobbyScene extends Phaser.Scene {
     onLayoutResize(this, () => this.applyLayout());
 
     this.unsubscribe = this.store.subscribe((state) => this.renderState(state));
+
+    const _refreshGameLobby = () => {
+      const gameId = String(this.store.getState?.()?.gameLobby?.game_id || "texas_holdem");
+      this.app.sendPacket?.("enter_game", { game_id: gameId });
+    };
+
     this.events.on("wake", () => {
       this.applyLayout();
       const s = this.store.getState();
@@ -808,7 +814,11 @@ export class GameLobbyScene extends Phaser.Scene {
       } else {
         this.renderState(s);
       }
+      _refreshGameLobby();
     });
+
+    // Also refresh on fresh create so stakes are always up-to-date.
+    _refreshGameLobby();
 
     // Handle fresh create after replay exit (gameLobby was stopped, not sleeping)
     const _initPdv = this.store.getState?.()?.pendingOpenDailySettlement ?? 0;
