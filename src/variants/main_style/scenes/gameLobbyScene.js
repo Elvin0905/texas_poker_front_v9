@@ -1415,7 +1415,7 @@ export class GameLobbyScene extends Phaser.Scene {
     if (this.handReportsModalVisible) {
       this.reportsStatusText.setText("讀取中...");
     }
-    this.app.sendPacket("my_daily_settlement_14d", {
+    this.app.sendPacket("daily_settlement_14d", {
       game_code: "texas_holdem",
     });
   }
@@ -1451,7 +1451,7 @@ export class GameLobbyScene extends Phaser.Scene {
       this.reportsPrevButton?.setVisible(false);
       this.reportsNextButton?.setVisible(false);
     }
-    this.app.sendPacket("my_hand_reports", {
+    this.app.sendPacket("hand_reports", {
       report_date: this.selectedReportDate,
       game_code: "texas_holdem",
       limit: REPORTS_LIMIT,

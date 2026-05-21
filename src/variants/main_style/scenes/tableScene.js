@@ -3831,11 +3831,7 @@ export class TableScene extends Phaser.Scene {
         const angle = dealCardAngleByIndex(cardIndex, seatView.avatarFlipX);
         const timerId = setTimeout(() => {
           holeCard.pendingShowdownFlip = false;
-          if (holeCard.sprite?.active) {
-            const seatStillOccupied = this.state?.table?.players?.some(
-              p => isSameSeat(p?.seat, Number(seatKey))
-            );
-            if (!seatStillOccupied) return;
+          if (holeCard.sprite?.active && holeCard.sprite?.visible) {
             this.playHoleCardFlipToFace(holeCard, frameKey, angle);
           }
         }, delay);
@@ -4197,6 +4193,9 @@ export class TableScene extends Phaser.Scene {
       holeCard.targetFaceFrameKey = targetFaceFrameKey;
 
       if (!visible) {
+        // Keep the card alive while its showdown flip is still pending — hiding it here
+        // would cause the flip to animate an invisible sprite (race with hand_end in replay).
+        if (holeCard.pendingShowdownFlip) return;
         holeCard.inFlight = false;
         holeCard.targetFaceFrameKey = null;
         this.stopHoleCardFlipAnimation(holeCard);

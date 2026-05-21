@@ -130,9 +130,9 @@ export class Store extends EventTarget {
       handResult: null, // 本手結算資訊（只由 award 的 player_results 觸發 UI）
       handResultVersion: 0, // 結算事件版本號（每手首次結算事件 +1）
       handResultEventKey: "", // 已觸發過結算 UI 的手牌 key（table_id|hand_id）
-      myHandReports: null, // 我的手牌報表（my_hand_reports_ok）
+      myHandReports: null, // 我的手牌報表（hand_reports_ok）
       myHandReportsVersion: 0, // 我的手牌報表版本（每次成功回傳 +1）
-      myDailySettlement14d: null, // 最近 14 天日結（my_daily_settlement_14d_ok）
+      myDailySettlement14d: null, // 最近 14 天日結（daily_settlement_14d_ok）
       myDailySettlement14dVersion: 0, // 最近 14 天日結版本（每次成功回傳 +1）
       walletBalance: 0, // 錢包餘額（來自 wallet_state）
       tableChips: 0, // 牌桌籌碼（來自 wallet_state）
@@ -1047,13 +1047,13 @@ export class Store extends EventTarget {
         break;
 
       // 我的手牌報表（分頁查詢回應）
-      case "my_hand_reports_ok":
+      case "hand_reports_ok":
         this.state.myHandReports = clone(data);
         this.state.myHandReportsVersion += 1;
         break;
 
       // 最近 14 天日結（固定 14 筆）
-      case "my_daily_settlement_14d_ok":
+      case "daily_settlement_14d_ok":
         this.state.myDailySettlement14d = clone(data);
         this.state.myDailySettlement14dVersion += 1;
         break;
