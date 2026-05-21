@@ -2322,6 +2322,7 @@ document.addEventListener("visibilitychange", () => {
     return;
   }
   lastPageVisibleAt = Date.now();
+  game.sound.context?.resume();
   const token = getSessionToken();
   if (!token || useMock) {
     return;
