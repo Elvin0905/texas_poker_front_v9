@@ -748,7 +748,7 @@ export class TableScene extends Phaser.Scene {
         volume: 0.2,
       });
     }
-    const syncBgmToggle = () => {
+    this._syncBgm = () => {
       const outputVolume = Number(this.app.getBgmOutputVolume?.(1) ?? 0);
       if (this.bgm) {
         if (outputVolume > 0) {
@@ -768,10 +768,10 @@ export class TableScene extends Phaser.Scene {
       buttonX: AUDIO_TOGGLE_X,
       buttonY: AUDIO_TOGGLE_Y,
       onSettingsChanged: () => {
-        syncBgmToggle();
+        this._syncBgm();
       },
     });
-    syncBgmToggle();
+    this._syncBgm();
 
     this.changeTableButton = this.add.image(CHANGE_TABLE_BUTTON_X, CHANGE_TABLE_BUTTON_Y, "game_table", "btn_change_table");
     this.changeTableButton.setDisplaySize(190, 76).setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
@@ -4107,8 +4107,17 @@ export class TableScene extends Phaser.Scene {
     let worldY = layout.centerY;
     let worldWidth = 180 * WIN_SPRITE_SIZE_FACTOR;
     if (Array.isArray(playerResults) && playerResults.length > 0) {
-      const winner = playerResults.find((r) => Number(r.win_amount ?? 0) > 0 || Number(r.net_amount ?? 0) > 0);
-      if (winner) {
+      // Pick the player with the highest net_amount — same sort key as the result table.
+      const winner = playerResults.reduce((best, r) => {
+        const rNet = Number.isFinite(Number(r?.net_amount))
+          ? Number(r.net_amount)
+          : Number(r?.win_amount ?? 0) - Number(r?.contrib_amount ?? 0);
+        const bNet = best === null ? -Infinity : (Number.isFinite(Number(best?.net_amount))
+          ? Number(best.net_amount)
+          : Number(best?.win_amount ?? 0) - Number(best?.contrib_amount ?? 0));
+        return rNet > bNet ? r : best;
+      }, null);
+      if (winner && (Number(winner.net_amount ?? winner.win_amount ?? 0) > 0)) {
         const winnerSeatView = this.findSeatViewBySeatNo(parseSeat(winner.seat));
         if (winnerSeatView) {
           worldX = winnerSeatView.posX;
@@ -4856,9 +4865,29 @@ export class TableScene extends Phaser.Scene {
         this.lastHintHandId = currentHintHandId;
         this.clearShowdownFlipTimers();
         this.showdownAnimatedSet = new Set();
+        // Force-clear all community card slots (including any mid-animation pendingCards).
+        this.communitySlots?.forEach((slot, idx) => {
+          this.stopCommunitySlotAnimation(slot);
+          this.setCommunityCardImmediate(idx, null);
+        });
+        this.communityAnimationReady = false;
+        this.clearRoundBetCollectFx();
+        this.roundBetCollectHiddenSeats.clear();
+        this.lastBetValueBySeat = {};
+        // Stop win light if still running from previous hand.
+        this._winLightTimer?.remove(); this._winLightTimer = null;
+        if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
+        if (this.winLightImage) { this.winLightImage.setVisible(false).setAlpha(0.88); }
+        this.winGifIsPlaying = false;
         this.seatViews.forEach((sv) => {
           sv.holeCards?.forEach((hc) => { hc.pendingShowdownFlip = false; });
           this.hideSeatHoleCards(sv);
+          sv.actionBadgeHideTimer?.remove();
+          sv.actionBadgeHideTimer = null;
+          this.tweens.killTweensOf(sv.actionBadge);
+          sv.actionBadge?.setVisible(false).setAlpha(1).setScale(0.48);
+          this.hideSeatBetCoins(sv);
+          sv.betAmount?.setText("").setVisible(false);
         });
         if (this.newRoundHintTimer) {
           this.newRoundHintTimer.remove();

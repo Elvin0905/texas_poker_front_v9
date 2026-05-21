@@ -118,7 +118,7 @@ export class LobbyScene extends Phaser.Scene {
       });
     }
 
-    const syncBgmByState = () => {
+    this._syncBgm = () => {
       if (!this.bgm) {
         return;
       }
@@ -142,7 +142,7 @@ export class LobbyScene extends Phaser.Scene {
       buttonX: 462,
       buttonY: INFO_Y - 10,
       onSettingsChanged: () => {
-        syncBgmByState();
+        this._syncBgm();
       },
     });
     this.soundSettingsPanel.triggerButton.setDisplaySize(80, 80);
@@ -151,7 +151,7 @@ export class LobbyScene extends Phaser.Scene {
       fontFamily: "sans-serif", fontSize: "20px", color: "#ecd5b5", fontStyle: "bold",
     }).setOrigin(0.5);
     this.pageScrollContainer.add(_musicLabel);
-    syncBgmByState();
+    this._syncBgm();
 
     // Top info bar
     this.pageScrollContainer.add(this.add.image(251, INFO_Y, "Lobby", "info_label").setDisplaySize(365, 159).setCrop(2, 3, 697, 300));

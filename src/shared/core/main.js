@@ -2322,10 +2322,15 @@ document.addEventListener("visibilitychange", () => {
     return;
   }
   lastPageVisibleAt = Date.now();
+  const _resumeAudio = () => {
+    game.sound?.resumeAll?.();
+    game.scene?.getScenes?.(true)?.forEach?.((s) => s._syncBgm?.());
+  };
   if (game.sound?.context?.state === "suspended") {
-    game.sound.context.resume().catch(() => {});
+    game.sound.context.resume().then(_resumeAudio).catch(_resumeAudio);
+  } else {
+    _resumeAudio();
   }
-  game.sound?.resumeAll?.();
   const token = getSessionToken();
   if (!token || useMock) {
     return;
@@ -2350,6 +2355,19 @@ window.addEventListener("pagehide", () => {
   stopReplayPlayback("pagehide");
   clearVoiceCueQueue();
   stopActiveVoice();
+});
+// Desktop browsers fire "focus" when the window is un-minimized (does not trigger visibilitychange).
+window.addEventListener("focus", () => {
+  if (document.hidden) return;
+  const _resumeOnFocus = () => {
+    game.sound?.resumeAll?.();
+    game.scene?.getScenes?.(true)?.forEach?.((s) => s._syncBgm?.());
+  };
+  if (game.sound?.context?.state === "suspended") {
+    game.sound.context.resume().then(_resumeOnFocus).catch(_resumeOnFocus);
+  } else {
+    _resumeOnFocus();
+  }
 });
 
 const BASE_WIDTH = 720;
@@ -2470,6 +2488,14 @@ window.addEventListener("orientationchange", queueViewportCanvasLayout);
 window.visualViewport?.addEventListener("resize", queueViewportCanvasLayout);
 window.visualViewport?.addEventListener("scroll", queueViewportCanvasLayout);
 queueViewportCanvasLayout();
+
+// When the browser autoplay policy blocks audio on page load, Phaser suspends the
+// AudioContext and waits for the first user gesture to unlock it.  Once unlocked,
+// trigger _syncBgm() on every active scene so BGM starts immediately without
+// requiring an extra click on the mute/unmute button.
+game.sound?.once?.("unlocked", () => {
+  game.scene?.getScenes?.(true)?.forEach?.((s) => s._syncBgm?.());
+});
 
 let bootstrapLayoutFrames = 0;
 game.events.on(Phaser.Core.Events.POST_STEP, () => {

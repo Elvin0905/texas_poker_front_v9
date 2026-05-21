@@ -161,7 +161,7 @@ export class GameLobbyScene extends Phaser.Scene {
       });
     }
 
-    const syncBgmByState = () => {
+    this._syncBgm = () => {
       if (!this.bgm) {
         return;
       }
@@ -184,12 +184,12 @@ export class GameLobbyScene extends Phaser.Scene {
       buttonX: 652,
       buttonY: 98,
       onSettingsChanged: () => {
-        syncBgmByState();
+        this._syncBgm();
       },
     });
     this.soundSettingsPanel.triggerButton.setDisplaySize(85.5, 85.5);
     this.roomScrollContainer.add(this.soundSettingsPanel.triggerButton);
-    syncBgmByState();
+    this._syncBgm();
 
     // User info panel — info_label at natural 1404:612 ratio, frame+avatar at left
     // Panel center x=226 so left edge ≈ x=10, right edge ≈ x=442; buttons float outside at far right
