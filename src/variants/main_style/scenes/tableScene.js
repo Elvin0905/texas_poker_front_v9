@@ -862,10 +862,10 @@ export class TableScene extends Phaser.Scene {
         .setDepth(cardDepth)
         .setVisible(false);
       const commCardMaskGfx = this.make.graphics({ add: false });
-      commCardMaskGfx.fillStyle(0xffffff).fillRoundedRect(-140, -196, 280, 392, 25);
+      commCardMaskGfx.fillStyle(0xffffff).fillRoundedRect(-140, -210, 280, 420, 18);
       frontCard.setMask(commCardMaskGfx.createGeometryMask());
       const commCardShadow = this.add.graphics().setDepth(cardDepth - 0.1).setVisible(false);
-      commCardShadow.fillStyle(0x000000, 0.15).fillRoundedRect(-140, -196, 280, 392, 25);
+      commCardShadow.fillStyle(0x000000, 0.15).fillRoundedRect(-140, -210, 280, 420, 18);
       this.communitySlots.push({
         frontCard,
         commCardMaskGfx,

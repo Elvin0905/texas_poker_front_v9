@@ -2322,7 +2322,10 @@ document.addEventListener("visibilitychange", () => {
     return;
   }
   lastPageVisibleAt = Date.now();
-  game.sound.context?.resume();
+  if (game.sound?.context?.state === "suspended") {
+    game.sound.context.resume().catch(() => {});
+  }
+  game.sound?.resumeAll?.();
   const token = getSessionToken();
   if (!token || useMock) {
     return;
