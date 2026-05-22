@@ -687,6 +687,7 @@ export class TableScene extends Phaser.Scene {
     this.seatActionMapReady = false;
     this.actionRoundKey = "";
     this.actionRoundBaselineAtBySeat = {};
+    this.lastShownBadgeAtBySeat = {};
     this.prevHeroTableSfxSnapshot = null;
     this.lastPlayedHeroResultHandKey = "";
     this.lastResolvedHeroSeat = null;
@@ -1590,8 +1591,7 @@ export class TableScene extends Phaser.Scene {
       this.prevHeroTableSfxSnapshot = null;
       this.lastPlayedHeroResultHandKey = "";
       this.lastResolvedHeroSeat = null;
-      this.closeRaiseActionPanel();
-      this.closeHandResultModal();
+      this.isRaisePanelOpen = false;
       this.exitReplayButton?.destroy?.();
       this.replaySpeedButton?.destroy?.();
     });
@@ -4603,6 +4603,7 @@ export class TableScene extends Phaser.Scene {
         const hadActionRoundKey = Boolean(this.actionRoundKey);
         this.actionRoundKey = nextActionRoundKey;
         this.actionRoundBaselineAtBySeat = {};
+        this.lastShownBadgeAtBySeat = {};
         // 首次進桌維持現有動作；之後每次回合/手牌切換，才把當下 last_action_at 當作基準，避免沿用上一回合動作。
         if (hadActionRoundKey) {
           (this.seatViews || []).forEach((sv) => {
@@ -4762,25 +4763,32 @@ export class TableScene extends Phaser.Scene {
         seatView.sitPromptPlus.setVisible(false);
         seatView.sitPromptLabel.setVisible(false);
         if (actionBrandFrame) {
-          this.tweens.killTweensOf(seatView.actionBadge);
-          seatView.actionBadge.setFrame(actionBrandFrame).setScale(0).setAlpha(1).setVisible(true);
-          this.tweens.add({ targets: seatView.actionBadge, scaleX: 0.48, scaleY: 0.48, duration: 280, ease: "Back.Out" });
-          seatView.actionBadgeHideTimer?.remove();
-          seatView.actionBadgeHideTimer = this.time.delayedCall(1600, () => {
-            seatView.actionBadgeHideTimer = null;
-            this.tweens.add({
-              targets: seatView.actionBadge,
-              alpha: 0,
-              duration: 400,
-              ease: "Linear",
-              onComplete: () => {
-                if (seatView.actionBadge?.active) {
-                  seatView.actionBadge.setVisible(false).setAlpha(1).setScale(0.48);
-                }
-              },
+          const isNewBadge = actionAt !== this.lastShownBadgeAtBySeat?.[seatKey];
+          if (isNewBadge) {
+            this.lastShownBadgeAtBySeat[seatKey] = actionAt;
+            this.tweens.killTweensOf(seatView.actionBadge);
+            seatView.actionBadge.setFrame(actionBrandFrame).setScale(0).setAlpha(1).setVisible(true);
+            this.tweens.add({ targets: seatView.actionBadge, scaleX: 0.48, scaleY: 0.48, duration: 280, ease: "Back.Out" });
+            seatView.actionBadgeHideTimer?.remove();
+            seatView.actionBadgeHideTimer = this.time.delayedCall(1600, () => {
+              seatView.actionBadgeHideTimer = null;
+              this.tweens.add({
+                targets: seatView.actionBadge,
+                alpha: 0,
+                duration: 400,
+                ease: "Linear",
+                onComplete: () => {
+                  if (seatView.actionBadge?.active) {
+                    seatView.actionBadge.setVisible(false).setAlpha(1).setScale(0.48);
+                  }
+                },
+              });
             });
-          });
+          }
         } else {
+          if (this.lastShownBadgeAtBySeat?.[seatKey] !== undefined) {
+            delete this.lastShownBadgeAtBySeat[seatKey];
+          }
           this.tweens.killTweensOf(seatView.actionBadge);
           seatView.actionBadgeHideTimer?.remove();
           seatView.actionBadgeHideTimer = null;
@@ -4928,6 +4936,7 @@ export class TableScene extends Phaser.Scene {
       this.seatActionMapReady = false;
       this.actionRoundKey = "";
       this.actionRoundBaselineAtBySeat = {};
+      this.lastShownBadgeAtBySeat = {};
       this.prevHeroTableSfxSnapshot = null;
       this.lastPlayedHeroResultHandKey = "";
       this.renderCommunityCards([], false);

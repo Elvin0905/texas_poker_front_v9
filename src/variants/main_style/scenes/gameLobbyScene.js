@@ -826,6 +826,13 @@ export class GameLobbyScene extends Phaser.Scene {
       this._lastPendingDailySettlementVersion = _initPdv;
       this._reopenHandReportsModalAfterReplay();
       this.time.delayedCall(0, () => this.store.clearPendingDailySettlement?.());
+    } else {
+      // Restore reports modal if user had it open before a page reload / background discard.
+      let _hadModal = false;
+      try { _hadModal = sessionStorage.getItem("gameLobby_reportsModal") === "1"; } catch {}
+      if (_hadModal) {
+        this.time.delayedCall(0, () => this.openHandReportsModal());
+      }
     }
 
     this.events.once("shutdown", () => {
@@ -1355,6 +1362,7 @@ export class GameLobbyScene extends Phaser.Scene {
     this.setHandReportsModalVisible(true);
     this.reportsCloseButton?.setPosition?.(360, this._rptG?.closeY ?? 0);
     this.requestDailySettlement14d();
+    try { sessionStorage.setItem("gameLobby_reportsModal", "1"); } catch {}
   }
 
   _reopenHandReportsModalAfterReplay() {
@@ -1386,6 +1394,7 @@ export class GameLobbyScene extends Phaser.Scene {
     this.reportsListText?.setText("");
     this.reportsStatusText?.setText("");
     this.setHandReportsModalVisible(false);
+    try { sessionStorage.removeItem("gameLobby_reportsModal"); } catch {}
   }
 
   setHandReportsModalVisible(visible) {

@@ -167,6 +167,8 @@ const wsQualityState = {
 };
 const replaySessionState = {
   active: false,
+  finishing: false,
+  fromScene: null,
   id: 0,
   timers: [],
   fastMode: false,
@@ -786,8 +788,11 @@ function setReplayFastMode(enabled) {
 
 function stopReplayPlayback(reason = "") {
   const hadActiveReplay = replaySessionState.active || replaySessionState.timers.length > 0;
+  const fromScene = replaySessionState.fromScene;
   replaySessionState.id += 1;
   replaySessionState.active = false;
+  replaySessionState.finishing = false;
+  replaySessionState.fromScene = null;
   clearReplayTimers();
   replaySessionState.timeline = [];
   replaySessionState.replay = null;
@@ -801,7 +806,7 @@ function stopReplayPlayback(reason = "") {
     store.pushLog("[replay] stop");
   }
   if (reason === "manual_exit_button") {
-    store.openDailySettlementAfterReplay();
+    store.openDailySettlementAfterReplay(fromScene === "gameLobby" ? "gameLobby" : "lobby");
   } else {
     store.emit();
   }
@@ -1110,13 +1115,20 @@ function finishReplayPlayback() {
   replaySessionState.active = false;
   clearReplayTimers();
   const replay = replaySessionState.replay;
+  const returnPage = replaySessionState.fromScene === "gameLobby" ? "gameLobby" : "lobby";
   store.pushLog(`[replay] finish hand ${String(replay?.hand_id ?? "-")}`);
   const hasHandResult = Boolean(store.getState?.()?.handResult);
   if (hasHandResult) {
-    // Wait for the hand result modal (6s countdown) to finish before switching to lobby
-    window.setTimeout(() => store.openDailySettlementAfterReplay(), 6500);
+    replaySessionState.finishing = true;
+    // Wait for the hand result modal (6s countdown) to finish before switching to lobby/gameLobby
+    window.setTimeout(() => {
+      replaySessionState.finishing = false;
+      replaySessionState.fromScene = null;
+      store.openDailySettlementAfterReplay(returnPage);
+    }, 6500);
   } else {
-    store.openDailySettlementAfterReplay();
+    replaySessionState.fromScene = null;
+    store.openDailySettlementAfterReplay(returnPage);
   }
 }
 
@@ -1184,8 +1196,10 @@ function startReplayPlayback(packet) {
     return true;
   }
 
+  const _capturedFromScene = activeScene;
   stopReplayPlayback("restart");
   replaySessionState.active = true;
+  replaySessionState.fromScene = _capturedFromScene;
   replaySessionState.id += 1;
   replaySessionState.timeline = timeline;
   replaySessionState.replay = replay;
@@ -1980,7 +1994,7 @@ window.__APP__ = {
       : { type: "hand_replay_ok", data: payload?.data ?? payload };
     return startReplayPlayback(packet);
   },
-  isHandReplayActive: () => replaySessionState.active,
+  isHandReplayActive: () => replaySessionState.active || replaySessionState.finishing,
   isHandReplayFastMode: () => isReplayFastMode(),
   setHandReplayFastMode: (enabled) => {
     setReplayFastMode(enabled);
@@ -2561,8 +2575,8 @@ function switchSceneByPage(page) {
   SCENES.forEach((key) => {
     if (key === next) return;
     if (game.scene.isActive(key)) {
-      // Sleep lobby (not stop) when entering replay so it can be woken instantly on return
-      if (key === "lobby" && next === "table" && replaySessionState.active) {
+      // Sleep lobby/gameLobby (not stop) when entering replay so it can be woken instantly on return
+      if ((key === "lobby" || key === "gameLobby") && next === "table" && replaySessionState.active) {
         game.scene.sleep(key);
       } else {
         game.scene.stop(key);

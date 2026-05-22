@@ -296,9 +296,9 @@ export class Store extends EventTarget {
     this.emit();
   }
 
-  openDailySettlementAfterReplay() {
+  openDailySettlementAfterReplay(returnPage = "lobby") {
     this.endLeaveTableFlow();
-    this.state.page = "lobby";
+    this.state.page = returnPage;
     this.state.table = null;
     this.state.tableUpdateSource = "";
     this.state.tableId = null;
@@ -318,7 +318,7 @@ export class Store extends EventTarget {
     this.state.handResultEventKey = "";
     this.state.nextHandCountdownSeconds = 0;
     this.state.pendingOpenDailySettlement += 1;
-    // Show loading overlay during scene transition — hidden by lobbyScene once modal is ready
+    // Show loading overlay during scene transition — hidden by lobbyScene/gameLobbyScene once modal is ready
     (function showReplayExitLoading() {
       var ov = document.getElementById('replay-exit-loading');
       if (ov) { ov.style.display = 'block'; ov._startSprite && ov._startSprite(); ov._resetFill && ov._resetFill(); return; }
@@ -1231,6 +1231,9 @@ export class Store extends EventTarget {
       player.chips = Math.max(0, Number(player.chips ?? 0) - paid);
       player.last_action = data.action;
       player.last_action_at = Date.now();
+      if (String(data.action || "").toLowerCase().startsWith("fold")) {
+        player.in_hand = false;
+      }
     }
     if (paid > 0) {
       this.addHandContribForSeat(seat, paid);
