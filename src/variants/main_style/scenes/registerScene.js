@@ -932,6 +932,7 @@ export class RegisterScene extends Phaser.Scene {
 
     document.body.dataset.modalDepth = (parseInt(document.body.dataset.modalDepth || 0) + 1);
     document.body.classList.add("modal-open");
+    document.querySelectorAll(".lrn-input").forEach(el => el.style.setProperty("display", "none", "important"));
     this._syncInputPositions();
 
     document.getElementById("reg-verify-code")?.remove();
@@ -974,7 +975,10 @@ export class RegisterScene extends Phaser.Scene {
     this._verifyCodeEl = null;
     const _d = Math.max(0, parseInt(document.body.dataset.modalDepth || 0) - 1);
     document.body.dataset.modalDepth = _d;
-    if (_d === 0) document.body.classList.remove("modal-open");
+    if (_d === 0) {
+      document.body.classList.remove("modal-open");
+      document.querySelectorAll(".lrn-input").forEach(el => el.style.removeProperty("display"));
+    }
     [this._vmOverlay, this._vmBorder, this._vmPanel, this._vmTitleLabel, this._vmTitle,
      this._vmDescText, this._vmBoxGfx, this._vmCodeIcon, this._vmConfirmBtn, this._vmCancelBtn]
       .forEach(o => o?.setVisible(false));
@@ -1032,13 +1036,17 @@ export class RegisterScene extends Phaser.Scene {
 
     document.body.dataset.modalDepth = (parseInt(document.body.dataset.modalDepth || 0) + 1);
     document.body.classList.add("modal-open");
+    document.querySelectorAll(".lrn-input, .fp-input").forEach(el => el.style.setProperty("display", "none", "important"));
     this._syncInputPositions();
   }
 
   _closeResultModal() {
     const _d = Math.max(0, parseInt(document.body.dataset.modalDepth || 0) - 1);
     document.body.dataset.modalDepth = _d;
-    if (_d === 0) document.body.classList.remove("modal-open");
+    if (_d === 0) {
+      document.body.classList.remove("modal-open");
+      document.querySelectorAll(".lrn-input, .fp-input").forEach(el => el.style.removeProperty("display"));
+    }
     [this._rmOverlay, this._rmBorder, this._rmPanel, this._rmTitleLabel, this._rmTitle, this._rmText, this._rmBtn]
       .forEach(o => o?.setVisible(false));
     this._syncInputPositions();

@@ -1128,6 +1128,7 @@ export class AuthScene extends Phaser.Scene {
 
     document.body.dataset.modalDepth = (parseInt(document.body.dataset.modalDepth || 0) + 1);
     document.body.classList.add("modal-open");
+    document.querySelectorAll(".lrn-input, .fp-input").forEach(el => el.style.setProperty("display", "none", "important"));
     this._syncInputPositions();
     window.addEventListener("wheel", this._tmWheelBound, { passive: false });
   }
@@ -1175,7 +1176,10 @@ export class AuthScene extends Phaser.Scene {
     this._isDraggingTmScroll = false;
     const _d = Math.max(0, parseInt(document.body.dataset.modalDepth || 0) - 1);
     document.body.dataset.modalDepth = _d;
-    if (_d === 0) document.body.classList.remove("modal-open");
+    if (_d === 0) {
+      document.body.classList.remove("modal-open");
+      document.querySelectorAll(".lrn-input, .fp-input").forEach(el => el.style.removeProperty("display"));
+    }
     this._tmOverlay?.setVisible(false).disableInteractive();
     this._tmBorder?.setVisible(false);
     this._tmPanel?.setVisible(false);
@@ -1292,6 +1296,7 @@ export class AuthScene extends Phaser.Scene {
 
     document.body.dataset.modalDepth = (parseInt(document.body.dataset.modalDepth || 0) + 1);
     document.body.classList.add("modal-open");
+    document.querySelectorAll(".lrn-input").forEach(el => el.style.setProperty("display", "none", "important"));
     this._syncInputPositions();
     this._fpShowStep(1);
   }
@@ -1505,7 +1510,10 @@ export class AuthScene extends Phaser.Scene {
     this._fpPhoneCodeEl = null; this._fpPhoneMode = false;
     const _d = Math.max(0, parseInt(document.body.dataset.modalDepth || 0) - 1);
     document.body.dataset.modalDepth = _d;
-    if (_d === 0) document.body.classList.remove("modal-open");
+    if (_d === 0) {
+      document.body.classList.remove("modal-open");
+      document.querySelectorAll(".lrn-input").forEach(el => el.style.removeProperty("display"));
+    }
     [this._fpOverlay, this._fpBorder, this._fpPanel, this._fpTitleLabel, this._fpTitle, this._fpDescText,
      this._fpBox1Gfx, this._fpMailIcon, this._fpBox2Gfx, this._fpCodeIcon,
      this._fpBox3Gfx, this._fpBox4Gfx, this._fpLock1Icon, this._fpLock2Icon,

@@ -104,6 +104,16 @@ const CENTER_POT_BADGE_H = 50;
 const CENTER_POT_BADGE_R = 25;
 const CENTER_POT_DEPTH = POT_COIN_DEPTH + 2;
 
+// 手牌結束選單（進入下局 / 換桌 / 結束）
+const HAND_END_MENU_Y = 1330;
+const HAND_END_MENU_BTN_H = 80;
+const HAND_END_MENU_JOIN_W = 220;
+const HAND_END_MENU_ACT_W = 155;
+const HAND_END_MENU_JOIN_X = 195;
+const HAND_END_MENU_SWITCH_X = 393;
+const HAND_END_MENU_EXIT_X = 558;
+const HAND_END_MENU_DEPTH = 129;
+
 // 玩家操作列（棄牌/過牌/跟注/全下）
 const ACTION_ROW_Y = 1330;
 const ACTION_BUTTON_ORDER = ["bet", "raise", "check", "call", "allin", "fold"];
@@ -683,6 +693,11 @@ export class TableScene extends Phaser.Scene {
     this.handResultAutoCloseTimer = null;
     this.handResultAutoCloseEndAt = 0;
     this.nextHandCountdownEnd = 0;
+    this._handEndMenuSeq = 0;
+    this._handEndMenuEnd = 0;
+    this.handEndMenuJoinBtn = null;
+    this.handEndMenuSwitchBtn = null;
+    this.handEndMenuExitBtn = null;
     this.lastSeenActionRequestKey = "";
     this.seatLastActionMap = {};
     this.seatActionMapReady = false;
@@ -1053,6 +1068,7 @@ export class TableScene extends Phaser.Scene {
       callback: () => {
         this.refreshTurnCountdownOverlay();
         this.refreshNextHandCountdown();
+        this.refreshHandEndMenu();
       },
     });
     this.countdownSfxSound = this.cache.audio.exists(COUNTDOWN_TIMER_SFX_KEY)
@@ -1074,6 +1090,66 @@ export class TableScene extends Phaser.Scene {
         onClick: () => this.sendAction(action),
       });
       this.actionButtons[action] = image;
+    });
+
+    const _hemStyle = { fontSize: "26px", color: "#fff8e0", fontStyle: "bold", fontFamily: UI_FONT_STACK };
+    this.handEndMenuJoinBtn = createGradientButton(this, {
+      x: HAND_END_MENU_JOIN_X, y: HAND_END_MENU_Y,
+      width: HAND_END_MENU_JOIN_W, height: HAND_END_MENU_BTN_H, cornerRadius: 12,
+      topColor: 0x3db428, bottomColor: 0x145018, borderColor: 0x1aed30,
+      label: "進入下局", labelStyle: _hemStyle,
+      depth: HAND_END_MENU_DEPTH,
+      onClick: () => { this._handEndMenuEnd = 0; this.refreshHandEndMenu(); },
+      visible: false,
+    });
+    this.handEndMenuSwitchBtn = createGradientButton(this, {
+      x: HAND_END_MENU_SWITCH_X, y: HAND_END_MENU_Y,
+      width: HAND_END_MENU_ACT_W, height: HAND_END_MENU_BTN_H, cornerRadius: 12,
+      topColor: 0x1a5aaa, bottomColor: 0x0a2855, borderColor: 0x3d90f5,
+      label: "換桌", labelStyle: _hemStyle,
+      depth: HAND_END_MENU_DEPTH,
+      onClick: () => {
+        this._handEndMenuEnd = 0;
+        const heroSeat = this.resolveHeroSeatForDisplay(this.state?.table);
+        const heroPlayer = heroSeat !== null && Array.isArray(this.state?.table?.players)
+          ? this.state.table.players.find(p => isSameSeat(p?.seat, heroSeat)) : null;
+        const heroChips = Number(heroPlayer?.chips ?? 0);
+        const minBuyin = Number(this.state?.table?.min_buyin ?? 0);
+        if (minBuyin > 0 && heroChips < minBuyin) {
+          this._pendingSwitchAfterRebuy = true;
+          this._pendingSwitchMidHand = false;
+          this._rebuyDeclined = false;
+          const offer = this.state?.rebuyOffer || {
+            table_id: this.state?.table?.table_id,
+            current_chips: heroChips,
+            min_buyin: minBuyin,
+            max_buyin: Number(this.state?.table?.max_buyin ?? minBuyin),
+            default_buyin: minBuyin,
+          };
+          this.renderRebuyModal(offer);
+          return;
+        }
+        this.store.beginSwitchRoom?.();
+        const buyin = this.resolveSwitchRoomBuyin();
+        this.app.sendPacket("switch_room", { buyin });
+      },
+      visible: false,
+    });
+    this.handEndMenuExitBtn = createGradientButton(this, {
+      x: HAND_END_MENU_EXIT_X, y: HAND_END_MENU_Y,
+      width: HAND_END_MENU_ACT_W, height: HAND_END_MENU_BTN_H, cornerRadius: 12,
+      topColor: 0xc02828, bottomColor: 0x6a1010, borderColor: 0xd43535,
+      label: "結束", labelStyle: _hemStyle,
+      depth: HAND_END_MENU_DEPTH,
+      onClick: () => {
+        this._handEndMenuEnd = 0;
+        const currentTableId = this.store.getState?.().table?.table_id ?? null;
+        const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
+        this.store.beginLeaveTable?.(currentTableId);
+        this.app.sendPacket("leave_room", {});
+        this.app.sendPacket("enter_game", { game_id: _gameId });
+      },
+      visible: false,
     });
 
     this.raisePanelOverlay = this.add
@@ -1604,6 +1680,9 @@ export class TableScene extends Phaser.Scene {
       this.isRaisePanelOpen = false;
       this.exitReplayButton?.destroy?.();
       this.replaySpeedButton?.destroy?.();
+      this.handEndMenuJoinBtn?.destroy();
+      this.handEndMenuSwitchBtn?.destroy();
+      this.handEndMenuExitBtn?.destroy();
     });
   }
 
@@ -1623,6 +1702,11 @@ export class TableScene extends Phaser.Scene {
       const btn = this.actionButtons?.[action];
       if (btn) btn.y = newActionY;
     });
+
+    const newHandEndMenuY = HAND_END_MENU_Y + newBottomDy;
+    this.handEndMenuJoinBtn?.setPosition(HAND_END_MENU_JOIN_X, newHandEndMenuY);
+    this.handEndMenuSwitchBtn?.setPosition(HAND_END_MENU_SWITCH_X, newHandEndMenuY);
+    this.handEndMenuExitBtn?.setPosition(HAND_END_MENU_EXIT_X, newHandEndMenuY);
 
     // Raise panel：如果是開的，重新定位；否則初始位置會在下次 open 時自動套用 bottomDy
     if (this.isRaisePanelOpen) {
@@ -3429,6 +3513,38 @@ export class TableScene extends Phaser.Scene {
     return null;
   }
 
+  refreshHandEndMenu() {
+    const seq = this.state?.handEndSeq ?? 0;
+    const nextEventIn = this.state?.handEndNextEventIn ?? 0;
+
+    if (seq !== this._handEndMenuSeq && nextEventIn > 0) {
+      this._handEndMenuSeq = seq;
+      this._handEndMenuEnd = Date.now() + nextEventIn * 1000;
+    }
+
+    const endAt = this._handEndMenuEnd;
+    const secsLeft = endAt > 0 ? Math.max(0, Math.ceil((endAt - Date.now()) / 1000)) : 0;
+    const isPlaying = this.state?.table?.status === "playing";
+    const rebuyOpen = this.rebuyOverlay?.visible === true;
+    const show = secsLeft > 0 && !isPlaying && !rebuyOpen && !this.isHandResultModalOpen;
+
+    if (!show) {
+      this.handEndMenuJoinBtn?.setVisible(false);
+      this.handEndMenuSwitchBtn?.setVisible(false);
+      this.handEndMenuExitBtn?.setVisible(false);
+      return;
+    }
+
+    this.handEndMenuJoinBtn?.setLabel(`進入下局(${secsLeft})`);
+    this.handEndMenuJoinBtn?.setVisible(true);
+    this.handEndMenuSwitchBtn?.setVisible(true);
+    this.handEndMenuExitBtn?.setVisible(true);
+
+    // Hide the plain text countdown while menu is showing
+    this.nextHandCountdownLabel?.setVisible(false);
+    this.nextHandCountdownNum?.setVisible(false);
+  }
+
   getCurrentRemainSeconds() {
     const timeout = Number(this.currentTurnTimeout);
     if (!Number.isFinite(timeout) || timeout <= 0) {
@@ -4484,6 +4600,7 @@ export class TableScene extends Phaser.Scene {
         this.lastHintHandId = null;
         this.hadCountdownForCurrentTable = false;
         this.nextHandCountdownEnd = 0;
+        this._handEndMenuEnd = 0;
         this.lastRoundSnapshot = null;
       }
       if (currentRenderedTableId !== "") {
@@ -4850,6 +4967,7 @@ export class TableScene extends Phaser.Scene {
         seatView.profileBg.setAlpha(1);
         seatView.foldOverlay.setVisible(isDimmed);
         const holeRenderOptions = this.resolveSeatHoleRenderOptions(player, isHero);
+        if (isWaiting) holeRenderOptions.visibleCount = 0;
         this.setSeatHoleCardsVisibleCount(seatView, holeRenderOptions.visibleCount, holeRenderOptions);
       }
       this.seatLastActionMap = nextSeatActionMap;

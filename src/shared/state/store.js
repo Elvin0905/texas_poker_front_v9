@@ -124,6 +124,7 @@ export class Store extends EventTarget {
       showdownRevealsBySeat: {}, // 攤牌揭露手牌（seat -> [card1, card2]）
       actionRequest: null, // 目前輪到我可操作時的限制與資訊
       handEndSeq: 0, // hand_end 事件序號（每次 +1，scene 用來即時偵測並清除殘留手牌）
+      handEndNextEventIn: 0, // hand_end 的 next_event_in 秒數（0 = 無倒數）
       lastDealCard: null, // 最近一次 deal_card 事件
       dealCardVersion: 0, // deal_card 事件版本號（每次 +1）
       rebuyOffer: null, // 補碼提示
@@ -545,6 +546,11 @@ export class Store extends EventTarget {
         this.state.rebuyOffer = null;
         this.state.holeCardsBySeat = {};
         this.state.showdownRevealsBySeat = {};
+        try {
+          sessionStorage.removeItem("ngame_hole_cards");
+          sessionStorage.removeItem("ngame_hole_cards_hand_id");
+          sessionStorage.removeItem("ngame_hole_cards_seat");
+        } catch (_) {}
         this.state.heroJoinedWaiting = Boolean(data.waiting_this_hand);
         if (this.state.heroSwitchPending && !data.waiting_this_hand) {
           this.state.heroSwitchPending = false;
@@ -568,6 +574,7 @@ export class Store extends EventTarget {
       // 新一手開始：要在發私牌前就切換 hand context，避免後續 table_state 才清空造成牌面回背
       case "hand_start": {
         this.state.nextHandCountdownSeconds = 0;
+        this.state.handEndNextEventIn = 0;
         this.state.handResult = null;
         this.state.handResultEventKey = "";
         // 新一手開始，清除上一手的 sessionStorage 手牌快取
@@ -1015,6 +1022,7 @@ export class Store extends EventTarget {
           this.state.table = data.table;
         }
         if (type === "hand_end") {
+          this.state.handEndNextEventIn = Number(data.next_event_in ?? 0);
           // hand_end 後，上一手的私牌/攤牌資訊要清空，避免畫面殘留
           this.state.handEndSeq += 1;
           this.state.handContribBySeat = {};

@@ -483,7 +483,6 @@ export class ProfileEditorModal {
         if (this._avatarWasDragged) { this._avatarWasDragged = false; return; }
         this.selectedAvatar = frame;
         this.render();
-        this._saveAvatar(frame);
       };
       image.setInteractive({ useHandCursor: true });
       image.on("pointerup", select);

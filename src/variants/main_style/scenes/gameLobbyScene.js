@@ -1957,9 +1957,11 @@ export class GameLobbyScene extends Phaser.Scene {
     const rawName = String(user.nickname || user.display_name || user.username || "");
     const displayName = rawName.includes("@") ? rawName.split("@")[0] : rawName;
     this.nicknameText.setText(displayName);
-    const avatarFrame = String(user.avatar || "avatar_001");
+    const _raw = String(user.avatar || "");
+    const _m = _raw.match(/^avatar_0*(\d+)$/i);
+    const avatarFrame = _m ? `avatar_${Number(_m[1])}` : "avatar_1";
     const avatarAtlas = this.textures.get("avatar_element");
-    const resolvedAvatarFrame = avatarAtlas?.has(avatarFrame) ? avatarFrame : "avatar_001";
+    const resolvedAvatarFrame = avatarAtlas?.has(avatarFrame) ? avatarFrame : "avatar_1";
     this.avatarImage.setFrame(resolvedAvatarFrame);
     this.walletText.setText(this.formatAmount(state.walletBalance));
     if (this.addOnBtn) {

@@ -1414,7 +1414,9 @@ export class LobbyScene extends Phaser.Scene {
     const user = state?.user || {};
     const nickname = String(user.username || "");
     this.nicknameText.setText(nickname);
-    const avatarFrame = String(user.avatar || "avatar_1");
+    const _raw = String(user.avatar || "");
+    const _m = _raw.match(/^avatar_0*(\d+)$/i);
+    const avatarFrame = _m ? `avatar_${Number(_m[1])}` : "avatar_1";
     const avatarAtlas = this.textures.get("avatar_element");
     const resolvedAvatarFrame = avatarAtlas?.has(avatarFrame) ? avatarFrame : "avatar_1";
     this.avatarImage.setFrame(resolvedAvatarFrame);
