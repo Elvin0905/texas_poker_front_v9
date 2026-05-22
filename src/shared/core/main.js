@@ -633,6 +633,10 @@ function playVoiceByKey(key, volumeScale = 1, options = null) {
     stopActiveVoice();
     return;
   }
+  // Low-priority voices (e.g. player join) yield to any currently-playing voice.
+  if (options?.lowPriority && activeVoiceSound) {
+    return;
+  }
   if (!game?.cache?.audio?.exists?.(key)) {
     return;
   }

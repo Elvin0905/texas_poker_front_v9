@@ -3922,17 +3922,6 @@ export class TableScene extends Phaser.Scene {
               return;
             }
             holeCard.faceFrameKey = expectedFrameKey;
-            holeCard.flipPopTween = this.tweens.add({
-              targets: holeCard.sprite,
-              scaleX: faceScale.scaleX * HOLE_CARD_FLIP_POP_SCALE,
-              scaleY: faceScale.scaleY * HOLE_CARD_FLIP_POP_SCALE,
-              duration: HOLE_CARD_FLIP_POP_DURATION,
-              ease: "Quad.Out",
-              yoyo: true,
-              onComplete: () => {
-                holeCard.flipPopTween = null;
-              },
-            });
             if (holeCard.targetFaceFrameKey && holeCard.targetFaceFrameKey !== expectedFrameKey) {
               this.playHoleCardFlipToFace(holeCard, holeCard.targetFaceFrameKey, targetAngle);
             }
@@ -3950,9 +3939,7 @@ export class TableScene extends Phaser.Scene {
     const revealCards = showdownCards.length > 0 ? showdownCards : knownCards;
     const revealFace = revealCards.length > 0;
     const fallbackVisibleCount = player?.in_hand === false ? 0 : Number(player?.hole_count ?? 0);
-    // Hero: only show cards when we actually know them (holeCardsBySeat populated).
-    // Opponent: use fallbackVisibleCount to show face-down back cards during a live hand.
-    const visibleCount = revealFace ? revealCards.length : (isHero ? 0 : fallbackVisibleCount);
+    const visibleCount = revealFace ? revealCards.length : fallbackVisibleCount;
     return {
       revealFace,
       cardValues: revealCards,
@@ -4166,7 +4153,7 @@ export class TableScene extends Phaser.Scene {
     if (!this.voiceHooks.newPlayer) {
       return;
     }
-    this.app.playVoiceByKey?.(cue?.key);
+    this.app.playVoiceByKey?.(cue?.key, 1, { lowPriority: true });
   }
 
   // Hook: play voice when new-round animation starts.
@@ -4174,7 +4161,7 @@ export class TableScene extends Phaser.Scene {
     if (!this.voiceHooks.newRound) {
       return;
     }
-    this.app.playVoiceByKey?.(cue?.key);
+    this.app.playVoiceByKey?.(cue?.key, 1, { lowPriority: true });
   }
 
   updateSeatHoleCardPositions(seatView) {
@@ -4326,30 +4313,10 @@ export class TableScene extends Phaser.Scene {
             .setVisible(true)
             .setScale(landingCard.baseScaleX, landingCard.baseScaleY)
             .setAngle(targetAngle);
-          this.tweens.add({
-            targets: landingCard.sprite,
-            scaleX: landingCard.baseScaleX * 1.14,
-            scaleY: landingCard.baseScaleY * 1.14,
-            duration: DEAL_CARD_POP_DURATION,
-            ease: "Quad.Out",
-            yoyo: true,
-            onComplete: () => {
-              landingCard.inFlight = false;
-              this.refreshSeatHoleCardsFromState(seatView);
-            },
-          });
+          landingCard.inFlight = false;
+          this.refreshSeatHoleCardsFromState(seatView);
         }
-        this.tweens.add({
-          targets: flyCard,
-          scaleX: flyBaseScaleX * 1.14,
-          scaleY: flyBaseScaleY * 1.14,
-          duration: DEAL_CARD_POP_DURATION,
-          ease: "Quad.Out",
-          yoyo: true,
-          onComplete: () => {
-            flyCard.destroy();
-          },
-        });
+        flyCard.destroy();
       },
     });
   }

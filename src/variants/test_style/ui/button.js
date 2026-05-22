@@ -136,7 +136,9 @@ export function createRectButton(
       if (isEnabled) {
         bg.setInteractive({ useHandCursor: true });
       } else {
-        bg.disableInteractive();
+        if (bg.scene?.sys) {
+          bg.disableInteractive();
+        }
       }
       return api;
     },

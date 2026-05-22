@@ -87,7 +87,9 @@ export function createGradientButton(scene, {
         text.setAlpha(_enabled ? 1 : 0.45);
         gradGfx.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height), Phaser.Geom.Rectangle.Contains);
       } else {
-        gradGfx.disableInteractive();
+        if (gradGfx.scene?.sys) {
+          gradGfx.disableInteractive();
+        }
       }
     },
     setPosition(nx, ny) {
