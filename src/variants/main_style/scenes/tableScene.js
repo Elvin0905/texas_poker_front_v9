@@ -667,6 +667,7 @@ export class TableScene extends Phaser.Scene {
     this.showdownFlipTimers = [];
     this.lastBetValueBySeat = {};
     this.lastHintHandId = null;
+    this.hadCountdownForCurrentTable = false;
     this.lastSeenHandEndSeq = 0;
     this.lastRenderedTableId = null;
     this.newRoundHintTimer = null;
@@ -797,9 +798,17 @@ export class TableScene extends Phaser.Scene {
           ? this.state.table.players.find(p => isSameSeat(p?.seat, heroSeatSw)) : null;
         const heroChipsSw = Number(heroPlayerSw?.chips ?? 0);
         const minBuyinSw = Number(this.state?.table?.min_buyin ?? 0);
-        if (minBuyinSw > 0 && heroChipsSw < minBuyinSw && this.state?.rebuyOffer && !this._rebuyDeclined) {
+        if (minBuyinSw > 0 && heroChipsSw < minBuyinSw) {
           this._pendingSwitchAfterRebuy = true;
-          this.renderRebuyModal(this.state.rebuyOffer);
+          this._rebuyDeclined = false;
+          const offerForSwitch = this.state?.rebuyOffer || {
+            table_id: this.state?.table?.table_id,
+            current_chips: heroChipsSw,
+            min_buyin: minBuyinSw,
+            max_buyin: Number(this.state?.table?.max_buyin ?? minBuyinSw),
+            default_buyin: minBuyinSw,
+          };
+          this.renderRebuyModal(offerForSwitch);
           return;
         }
         this.store.beginSwitchRoom?.();
@@ -3438,6 +3447,7 @@ export class TableScene extends Phaser.Scene {
     const secs = this.state?.nextHandCountdownSeconds ?? 0;
     if (secs > 0 && this.nextHandCountdownEnd <= 0) {
       this.nextHandCountdownEnd = Date.now() + secs * 1000;
+      this.hadCountdownForCurrentTable = true;
     }
     const endAt = this.nextHandCountdownEnd;
     const hide = () => {
@@ -4471,9 +4481,13 @@ export class TableScene extends Phaser.Scene {
         this.tweens.killTweensOf(this.tableHintText);
         this.tableHintText.setText("").setVisible(false).setAlpha(0.88);
         this.lastHintHandId = null;
+        this.hadCountdownForCurrentTable = false;
+        this.nextHandCountdownEnd = 0;
         this.lastRoundSnapshot = null;
       }
-      this.lastRenderedTableId = currentRenderedTableId;
+      if (currentRenderedTableId !== "") {
+        this.lastRenderedTableId = currentRenderedTableId;
+      }
 
       const nextSeatCount = DEFAULT_SEAT_COUNT;
       const seatNumbers = Array.isArray(table.players)
@@ -4876,6 +4890,7 @@ export class TableScene extends Phaser.Scene {
         && currentHintHandId > 0
         && currentHintHandId !== this.lastHintHandId;
       if (isNewHandStarted) {
+        const _prevHintHandId = this.lastHintHandId;
         this.lastHintHandId = currentHintHandId;
         this.clearShowdownFlipTimers();
         this.showdownAnimatedSet = new Set();
@@ -4907,18 +4922,33 @@ export class TableScene extends Phaser.Scene {
           this.newRoundHintTimer.remove();
           this.newRoundHintTimer = null;
         }
-        this.tableHintText.setText("新局開始").setVisible(true).setAlpha(0.88);
-        this.newRoundHintTimer = this.time.delayedCall(2000, () => {
-          this.tweens.add({
-            targets: this.tableHintText,
-            alpha: 0,
-            duration: 400,
-            onComplete: () => {
-              this.tableHintText.setVisible(false).setAlpha(0.88);
-              this.newRoundHintTimer = null;
-            },
-          });
-        });
+        const _hadTableContext = _prevHintHandId !== null
+          || this.hadCountdownForCurrentTable;
+        if (_hadTableContext) {
+          const _doShowNewRoundHint = () => {
+            this.tableHintText.setText("新局開始").setVisible(true).setAlpha(0.88);
+            this.newRoundHintTimer = this.time.delayedCall(2000, () => {
+              this.tweens.add({
+                targets: this.tableHintText,
+                alpha: 0,
+                duration: 400,
+                onComplete: () => {
+                  this.tableHintText.setVisible(false).setAlpha(0.88);
+                  this.newRoundHintTimer = null;
+                },
+              });
+            });
+          };
+          // If the "下一局 X 秒" labels are still on screen, wait for the next
+          // refresh tick (~120 ms) to hide them before showing "新局開始".
+          const _cdVisible = this.nextHandCountdownLabel?.visible === true
+            || this.nextHandCountdownNum?.visible === true;
+          if (_cdVisible) {
+            this.newRoundHintTimer = this.time.delayedCall(200, _doShowNewRoundHint);
+          } else {
+            _doShowNewRoundHint();
+          }
+        }
       } else if (!this.newRoundHintTimer) {
         let hintLabel = "";
         if (showdownRevealCount > 0) {
@@ -4985,7 +5015,7 @@ export class TableScene extends Phaser.Scene {
       this.centerPotText?.setText("").setVisible(false);
       this.potCoinStack.forEach((img) => img.setVisible(false));
       this.updatePotTextPosition();
-      this.lastHintHandId = null;
+      this.lastHintHandId = 0;
       if (this.newRoundHintTimer) { this.newRoundHintTimer.remove(); this.newRoundHintTimer = null; }
       this.tableHintText.setText("等待開始").setVisible(true).setAlpha(0.88);
       this.closeRaiseActionPanel();
@@ -5043,6 +5073,7 @@ export class TableScene extends Phaser.Scene {
     if (countdownSecs > 0) {
       if (this.nextHandCountdownEnd <= 0) {
         this.nextHandCountdownEnd = Date.now() + countdownSecs * 1000;
+        this.hadCountdownForCurrentTable = true;
       }
     } else if (countdownSecs <= 0) {
       this.nextHandCountdownEnd = 0;
@@ -5277,22 +5308,24 @@ export class TableScene extends Phaser.Scene {
 
   submitRebuySelection() {
     const offer = this.state.rebuyOffer;
-    if (!offer) {
+    if (!offer && !this._pendingSwitchAfterRebuy) {
       return;
     }
-    const model = this.rebuyModel || this.buildRebuyModel(offer);
-    if (!model.canAffordMin) {
+    const model = this.rebuyModel || (offer ? this.buildRebuyModel(offer) : null);
+    if (!model || !model.canAffordMin) {
       return;
     }
     const buyin = this.normalizeRebuySelectedBuyin(this.rebuySelectedBuyin, model);
-    this.app.sendPacket("rebuy_decision", {
-      buyin,
-    });
+    if (offer) {
+      this.app.sendPacket("rebuy_decision", { buyin });
+    }
     if (this._pendingSwitchAfterRebuy) {
       this._pendingSwitchAfterRebuy = false;
+      if (!offer) {
+        this.renderRebuyModal(null);
+      }
       this.store.beginSwitchRoom?.();
-      const switchBuyin = this.resolveSwitchRoomBuyin();
-      this.app.sendPacket("switch_room", { buyin: switchBuyin });
+      this.app.sendPacket("switch_room", { buyin });
     }
   }
 
