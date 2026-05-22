@@ -4096,7 +4096,7 @@ export class TableScene extends Phaser.Scene {
             const result = this.pendingHandResult;
             this.pendingHandResult = null;
             this.openHandResultModal(result);
-          } else if (!this.isHandResultModalOpen) {
+          } else if (!this.isHandResultModalOpen && !this._pendingSwitchAfterRebuy) {
             this.renderRebuyModal(this._rebuyDeclined ? null : (this.state?.rebuyOffer ?? null));
           }
         },
@@ -5264,6 +5264,7 @@ export class TableScene extends Phaser.Scene {
 
     this.rebuyConfirm.setEnabled(model.canAffordMin);
     this.rebuyLeave.setEnabled(true);
+    this.rebuyLeave.setLabel(this._pendingSwitchMidHand ? "繼續牌局" : "離開牌局");
     this.setRebuySliderInteractive(model.isSliderMovable);
     this.updateRebuySliderVisual(model);
   }
@@ -5338,17 +5339,24 @@ export class TableScene extends Phaser.Scene {
 
   leaveTableByRebuy() {
     this._rebuyDeclined = true;
+    const isSwitchPending = this._pendingSwitchAfterRebuy;
+    const isMidHandSwitch = this._pendingSwitchMidHand;
+    this._pendingSwitchAfterRebuy = false;
+    this._pendingSwitchMidHand = false;
     this.renderRebuyModal(null);
 
-    if (this._pendingSwitchAfterRebuy) {
-      const isMidHand = this._pendingSwitchMidHand;
-      this._pendingSwitchAfterRebuy = false;
-      this._pendingSwitchMidHand = false;
-      this.store.beginSwitchRoom?.();
-      const switchBuyin = this.resolveSwitchRoomBuyin();
-      const switchPacket = { buyin: switchBuyin };
-      if (isMidHand) switchPacket._heroWaiting = true;
-      this.app.sendPacket("switch_room", switchPacket);
+    if (isSwitchPending) {
+      if (isMidHandSwitch) {
+        // User chose to continue the current hand — cancel the switch entirely
+        this._rebuyDeclined = false;
+        this.app.setHeroSwitchedMidHand?.(false);
+        this.app.setHeroOldTableId?.("");
+        this.app.setHeroOldSeatData?.(null);
+      } else {
+        this.store.beginSwitchRoom?.();
+        const switchBuyin = this.resolveSwitchRoomBuyin();
+        this.app.sendPacket("switch_room", { buyin: switchBuyin });
+      }
       return;
     }
 
