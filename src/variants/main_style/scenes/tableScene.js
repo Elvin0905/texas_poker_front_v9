@@ -4625,17 +4625,35 @@ export class TableScene extends Phaser.Scene {
       }
       const isHandPlaying = table.status === "playing";
 
+      // Clear stale hole cards BEFORE the seat render loop fires setSeatHoleCardsVisibleCount.
+      // Without this, a new hand would start a flip in the loop and then immediately cancel it
+      // in the isNewHandStarted block below, causing a visible flip flicker on every new hand.
+      const _preLoopHandId = Number(table.hand_id);
+      if (
+        isHandPlaying
+        && Number.isFinite(_preLoopHandId)
+        && _preLoopHandId > 0
+        && _preLoopHandId !== this.lastHintHandId
+      ) {
+        this.seatViews.forEach((sv) => {
+          sv.holeCards?.forEach((hc) => { hc.pendingShowdownFlip = false; });
+          this.hideSeatHoleCards(sv);
+        });
+      }
+
       const nextSeatActionMap = {};
       const isShowdownActive = Object.keys(this.state?.showdownRevealsBySeat || {}).length > 0;
 
       // 只對 last_action_at 最大（最新）的玩家顯示動作標籤
       let maxRecentActionAt = 0;
+      let maxRecentActionSeat = null;
       for (const _p of (Array.isArray(table.players) ? table.players : [])) {
         const _pAt = Number(_p.last_action_at);
         const _pKey = String(parseSeat(_p.seat) ?? "");
         const _pBaseline = Number(this.actionRoundBaselineAtBySeat?.[_pKey] ?? 0);
         if (Number.isFinite(_pAt) && _pAt > _pBaseline && _pAt > maxRecentActionAt) {
           maxRecentActionAt = _pAt;
+          maxRecentActionSeat = _pKey;
         }
       }
 
@@ -4752,7 +4770,7 @@ export class TableScene extends Phaser.Scene {
         const seatKey = String(parseSeat(player.seat) ?? "");
         const actionAt = Number(player.last_action_at);
         const baselineAt = Number(this.actionRoundBaselineAtBySeat?.[seatKey] ?? 0);
-        const hasFreshAction = Number.isFinite(actionAt) && actionAt > baselineAt && actionAt === maxRecentActionAt;
+        const hasFreshAction = Number.isFinite(actionAt) && actionAt > baselineAt && seatKey === maxRecentActionSeat;
         const actionForDisplay = (hasFreshAction && !isShowdownActive) ? player.last_action : null;
         this.trackSeatActionSfx(player.seat, actionForDisplay, nextSeatActionMap);
         const actionBrandFrame = this.resolveSeatActionBrandFrame(actionForDisplay);
