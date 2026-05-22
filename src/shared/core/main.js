@@ -2340,6 +2340,10 @@ document.addEventListener("visibilitychange", () => {
     lastPageHiddenAt = Date.now();
     stopReplayPlayback("hidden");
     stopActiveVoice();
+    // Explicitly pause all sounds so Phaser marks them as paused.
+    // Safari suspends the AudioContext on minimize/background; without this,
+    // resumeAll() on restore has nothing to resume (BGM stays silent).
+    game.sound?.pauseAll?.();
     return;
   }
   lastPageVisibleAt = Date.now();
@@ -2377,8 +2381,28 @@ window.addEventListener("pagehide", () => {
   clearVoiceCueQueue();
   stopActiveVoice();
 });
+// Safari on macOS sometimes fires blur/focus instead of visibilitychange when the
+// window is minimized to the dock. We debounce by 200 ms so a quick focus-switch
+// (e.g. clicking devtools) doesn't cause an audible pause/resume stutter.
+let _blurAudioPauseTimer = null;
+window.addEventListener("blur", () => {
+  if (_blurAudioPauseTimer) return;
+  _blurAudioPauseTimer = window.setTimeout(() => {
+    _blurAudioPauseTimer = null;
+    // Skip if visibilitychange already handled the pause.
+    if (!document.hidden) {
+      game.sound?.pauseAll?.();
+    }
+  }, 200);
+});
 // Desktop browsers fire "focus" when the window is un-minimized (does not trigger visibilitychange).
 window.addEventListener("focus", () => {
+  // Cancel a pending blur-pause if focus returns quickly (prevents stutter).
+  if (_blurAudioPauseTimer) {
+    window.clearTimeout(_blurAudioPauseTimer);
+    _blurAudioPauseTimer = null;
+    return;
+  }
   if (document.hidden) return;
   const _resumeOnFocus = () => {
     game.sound?.resumeAll?.();
