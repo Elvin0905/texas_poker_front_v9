@@ -678,7 +678,7 @@ export class RegisterScene extends Phaser.Scene {
     const rect = canvas.getBoundingClientRect();
     const scale = Math.min(rect.width / layout.width, rect.height / layout.height);
     const ox = rect.left + (rect.width - layout.width * scale) / 2;
-    const oy = -this._kbOffset;
+    const oy = rect.top;
 
     if (this._phoneMode && this._phoneCodeEl) {
       const selLeft = layout.centerX - 268;
@@ -1164,7 +1164,7 @@ export class RegisterScene extends Phaser.Scene {
     }
     const vv = window.visualViewport;
     const visibleH = vv ? vv.height : window.innerHeight;
-    const keyboardH = Math.max(0, this._initWindowH - visibleH);
+    const keyboardH = Math.max(0, window.innerHeight - visibleH);
     if (keyboardH < 80) {
       if (this._kbOffset > 0) this._adjustForKeyboard(false);
       return;

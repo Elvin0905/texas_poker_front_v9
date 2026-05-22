@@ -706,6 +706,7 @@ export class TableScene extends Phaser.Scene {
     this._rebuyDeclined = false;
     this._pendingLeaveAfterHandResult = false;
     this._pendingSwitchAfterRebuy = false;
+    this._pendingSwitchMidHand = false;
     this._actionSentPending = false;
     this.raiseActionModel = null;
     this.raiseActionType = null;
@@ -1887,7 +1888,7 @@ export class TableScene extends Phaser.Scene {
       this.app.sendPacket("enter_game", { game_id: _gameId });
     }
 
-    if (!this.winGifIsPlaying) {
+    if (!this.winGifIsPlaying && !this._pendingSwitchAfterRebuy) {
       this.renderRebuyModal(this._rebuyDeclined ? null : (this.state?.rebuyOffer ?? null));
     }
   }
@@ -5053,7 +5054,9 @@ export class TableScene extends Phaser.Scene {
     const handResultVersion = Number(this.state.handResultVersion ?? 0);
     const hasPendingHandResult = handResultVersion > this.lastSeenHandResultVersion;
     const suppressRebuy = (this.state?.table?.status === "playing") || this.isHandResultModalOpen || hasPendingHandResult || this.winGifIsPlaying;
-    this.renderRebuyModal(suppressRebuy ? null : this.state.rebuyOffer);
+    if (!this._pendingSwitchAfterRebuy) {
+      this.renderRebuyModal(suppressRebuy ? null : this.state.rebuyOffer);
+    }
 
     if (hasPendingHandResult) {
       this.lastSeenHandResultVersion = handResultVersion;
@@ -5320,12 +5323,16 @@ export class TableScene extends Phaser.Scene {
       this.app.sendPacket("rebuy_decision", { buyin });
     }
     if (this._pendingSwitchAfterRebuy) {
+      const isMidHand = this._pendingSwitchMidHand;
       this._pendingSwitchAfterRebuy = false;
+      this._pendingSwitchMidHand = false;
       if (!offer) {
         this.renderRebuyModal(null);
       }
       this.store.beginSwitchRoom?.();
-      this.app.sendPacket("switch_room", { buyin });
+      const switchPacket = { buyin };
+      if (isMidHand) switchPacket._heroWaiting = true;
+      this.app.sendPacket("switch_room", switchPacket);
     }
   }
 
@@ -5334,10 +5341,14 @@ export class TableScene extends Phaser.Scene {
     this.renderRebuyModal(null);
 
     if (this._pendingSwitchAfterRebuy) {
+      const isMidHand = this._pendingSwitchMidHand;
       this._pendingSwitchAfterRebuy = false;
+      this._pendingSwitchMidHand = false;
       this.store.beginSwitchRoom?.();
       const switchBuyin = this.resolveSwitchRoomBuyin();
-      this.app.sendPacket("switch_room", { buyin: switchBuyin });
+      const switchPacket = { buyin: switchBuyin };
+      if (isMidHand) switchPacket._heroWaiting = true;
+      this.app.sendPacket("switch_room", switchPacket);
       return;
     }
 
@@ -5355,13 +5366,32 @@ export class TableScene extends Phaser.Scene {
   queueLeaveAction(type) {
     if (type === "switch") {
       const currentTableId = String(this.store.getState?.()?.table?.table_id ?? "");
-      const _heroSeat = this.resolveHeroSeatForDisplay(this.store.getState?.()?.table);
-      const _heroPlayer = this.store.getState?.()?.table?.players?.find(
-        (p) => isSameSeat(p?.seat, _heroSeat),
-      ) ?? null;
+      const _table = this.store.getState?.()?.table;
+      const _heroSeat = this.resolveHeroSeatForDisplay(_table);
+      const _heroPlayer = Array.isArray(_table?.players)
+        ? (_table.players.find((p) => isSameSeat(p?.seat, _heroSeat)) ?? null)
+        : null;
       this.app.setHeroOldSeatData?.(_heroPlayer);
       this.app.setHeroOldTableId?.(currentTableId);
       this.app.setHeroSwitchedMidHand?.(true);
+
+      const _heroChips = Number(_heroPlayer?.chips ?? 0);
+      const _minBuyin = Number(_table?.min_buyin ?? 0);
+      if (_minBuyin > 0 && _heroChips < _minBuyin) {
+        this._pendingSwitchAfterRebuy = true;
+        this._pendingSwitchMidHand = true;
+        this._rebuyDeclined = false;
+        const offerForSwitch = this.state?.rebuyOffer || {
+          table_id: _table?.table_id,
+          current_chips: _heroChips,
+          min_buyin: _minBuyin,
+          max_buyin: Number(_table?.max_buyin ?? _minBuyin),
+          default_buyin: _minBuyin,
+        };
+        this.renderRebuyModal(offerForSwitch);
+        return;
+      }
+
       this.store.beginSwitchRoom?.();
       const buyin = this.resolveSwitchRoomBuyin();
       this.app.sendPacket("switch_room", { buyin, _heroWaiting: true });
@@ -5370,6 +5400,7 @@ export class TableScene extends Phaser.Scene {
       const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
       this.app.setPendingTableExit?.("leave", currentTableId, 0);
       this.store.beginLeaveTable?.(currentTableId);
+      this.app.sendPacket("leave_room", {});
       this.app.sendPacket?.("enter_game", { game_id: _gameId });
     }
   }

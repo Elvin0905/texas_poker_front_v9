@@ -13,7 +13,20 @@ const PANEL_HEIGHT = 580;
 const ROW_START_Y = 345;
 const ROW_GAP = 92;
 const LABEL_X = 110;
-const TOGGLE_X = 545;
+const BTN_ON_X = 490;
+const BTN_OFF_X = 600;
+const TOGGLE_BTN_WIDTH = 100;
+const TOGGLE_BTN_HEIGHT = 56;
+
+const ACTIVE_ON_TOP    = 0x3db428;
+const ACTIVE_ON_BOT    = 0x145018;
+const ACTIVE_ON_BDR    = 0x1aed30;
+const ACTIVE_OFF_TOP   = 0xc02828;
+const ACTIVE_OFF_BOT   = 0x6a1010;
+const ACTIVE_OFF_BDR   = 0xd43535;
+const INACTIVE_TOP     = 0x484848;
+const INACTIVE_BOT     = 0x282828;
+const INACTIVE_BDR     = 0x555555;
 
 export class SoundSettingsPanel {
   constructor(scene, {
@@ -43,7 +56,6 @@ export class SoundSettingsPanel {
       onClick: () => this.open(),
     });
 
-    // 用超大尺寸確保響應式 scene 上也能覆蓋整個 viewport
     this.overlay = scene.add
       .rectangle(360, 720, 4000, 4000, 0x000000, 0.58)
       .setDepth(OVERLAY_DEPTH)
@@ -132,10 +144,10 @@ export class SoundSettingsPanel {
   }
 
   createRows() {
-    this.createToggleRow("全部聲音", 0, () => this.app.masterAudioEnabled, (value) => this.app.setMasterAudioEnabled?.(value));
-    this.createToggleRow("音效", 1, () => this.app.sfxEnabled, (value) => this.app.setSfxEnabled?.(value));
-    this.createToggleRow("語音", 2, () => this.app.voiceEnabled, (value) => this.app.setVoiceEnabled?.(value));
-    this.createToggleRow("背景音樂", 3, () => this.app.bgmEnabled, (value) => this.app.setBgmEnabled?.(value));
+    this.createToggleRow("全部聲音", 0, () => this.app.masterAudioEnabled, (v) => this.app.setMasterAudioEnabled?.(v));
+    this.createToggleRow("音效",     1, () => this.app.sfxEnabled,          (v) => this.app.setSfxEnabled?.(v));
+    this.createToggleRow("語音",     2, () => this.app.voiceEnabled,        (v) => this.app.setVoiceEnabled?.(v));
+    this.createToggleRow("背景音樂", 3, () => this.app.bgmEnabled,          (v) => this.app.setBgmEnabled?.(v));
   }
 
   createLabel(text, rowIndex) {
@@ -157,25 +169,44 @@ export class SoundSettingsPanel {
 
   createToggleRow(labelText, rowIndex, getter, setter) {
     const y = this.createLabel(labelText, rowIndex);
-    const button = createGradientButton(this.scene, {
-      x: TOGGLE_X,
+
+    const buttonOn = createGradientButton(this.scene, {
+      x: BTN_ON_X,
       y,
-      width: 130,
-      height: 56,
+      width: TOGGLE_BTN_WIDTH,
+      height: TOGGLE_BTN_HEIGHT,
       cornerRadius: 10,
-      topColor: 0x3db428,
-      bottomColor: 0x145018,
-      borderColor: 0x1aed30,
+      topColor: ACTIVE_ON_TOP,
+      bottomColor: ACTIVE_ON_BOT,
+      borderColor: ACTIVE_ON_BDR,
       label: "開",
       depth: WIDGET_DEPTH,
       onClick: () => {
-        const next = !Boolean(getter());
-        setter(next);
+        setter(true);
         this.notifyChanged();
       },
       visible: false,
     });
-    this.rows.push({ type: "toggle", getter, button });
+
+    const buttonOff = createGradientButton(this.scene, {
+      x: BTN_OFF_X,
+      y,
+      width: TOGGLE_BTN_WIDTH,
+      height: TOGGLE_BTN_HEIGHT,
+      cornerRadius: 10,
+      topColor: ACTIVE_OFF_TOP,
+      bottomColor: ACTIVE_OFF_BOT,
+      borderColor: ACTIVE_OFF_BDR,
+      label: "關",
+      depth: WIDGET_DEPTH,
+      onClick: () => {
+        setter(false);
+        this.notifyChanged();
+      },
+      visible: false,
+    });
+
+    this.rows.push({ type: "toggle", getter, buttonOn, buttonOff });
   }
 
   notifyChanged() {
@@ -189,11 +220,16 @@ export class SoundSettingsPanel {
     this.triggerButton?.setFrame(triggerOn ? this.buttonOnFrame : this.buttonOffFrame);
     this.rows.forEach((row) => {
       const enabled = Boolean(row.getter());
-      row.button.setLabel(enabled ? "開" : "關");
       if (enabled) {
-        row.button.setGradient(0x3db428, 0x145018, 0x1aed30);
+        row.buttonOn.setGradient(ACTIVE_ON_TOP,  ACTIVE_ON_BOT,  ACTIVE_ON_BDR);
+        row.buttonOn.text.setColor("#ffffff");
+        row.buttonOff.setGradient(INACTIVE_TOP,  INACTIVE_BOT,   INACTIVE_BDR);
+        row.buttonOff.text.setColor("#666666");
       } else {
-        row.button.setGradient(0xc02828, 0x6a1010, 0xd43535);
+        row.buttonOn.setGradient(INACTIVE_TOP,   INACTIVE_BOT,   INACTIVE_BDR);
+        row.buttonOn.text.setColor("#666666");
+        row.buttonOff.setGradient(ACTIVE_OFF_TOP, ACTIVE_OFF_BOT, ACTIVE_OFF_BDR);
+        row.buttonOff.text.setColor("#ffffff");
       }
     });
   }
@@ -227,7 +263,8 @@ export class SoundSettingsPanel {
     this.closeButton?.setVisible(visible);
     this.widgets.forEach((node) => node?.setVisible?.(visible));
     this.rows.forEach((row) => {
-      row.button.setVisible(visible);
+      row.buttonOn.setVisible(visible);
+      row.buttonOff.setVisible(visible);
     });
   }
 
@@ -241,7 +278,8 @@ export class SoundSettingsPanel {
     this.title?.destroy?.();
     this.closeButton?.destroy();
     this.rows.forEach((row) => {
-      row.button?.destroy();
+      row.buttonOn?.destroy();
+      row.buttonOff?.destroy();
     });
     this.widgets.forEach((node) => node?.destroy?.());
     this.rows = [];
