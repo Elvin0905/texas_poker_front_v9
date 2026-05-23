@@ -67,6 +67,7 @@ export class ProfileEditorModal {
     this._currentVerifyField = null;
     this._avatarScrollOffset = 35;
     this._baseAvatarYs = [];
+    this._avatarInputBlocked = false;
     this._avatarScrollListener = null;
     this._avatarNativeTouchStart = null;
     this._avatarNativeTouchMove = null;
@@ -480,8 +481,10 @@ export class ProfileEditorModal {
         .setDepth(this.depth + 3)
         .setVisible(false);
       const select = () => {
+        if (this._avatarInputBlocked) return;
         if (this._avatarWasDragged) { this._avatarWasDragged = false; return; }
         this.selectedAvatar = frame;
+        try { localStorage.setItem("last_selected_avatar", frame); } catch (_) {}
         this.render();
       };
       image.setInteractive({ useHandCursor: true });
@@ -541,7 +544,9 @@ export class ProfileEditorModal {
     this._kbOffset = 0;
     const rawName = String(user?.nickname || user?.display_name || user?.username || "").trim();
     this.nickname = rawName.includes("@") ? rawName.split("@")[0] : rawName;
-    this.selectedAvatar = resolveMainAvatarFrame(this.scene, user?.avatar);
+    const _serverAvatar = user?.avatar;
+    const _fallback = (() => { try { return localStorage.getItem("last_selected_avatar") || "avatar_1"; } catch (_) { return "avatar_1"; } })();
+    this.selectedAvatar = resolveMainAvatarFrame(this.scene, _serverAvatar || _fallback);
     this.statusText.setText("");
     const email = String(user?.email || "---");
     const phone = String(user?.phone || "---");
@@ -560,6 +565,8 @@ export class ProfileEditorModal {
     }
     this.genderValueText?.setText(String(user?.gender || "男"));
     this._resetEditModes();
+    this._avatarInputBlocked = true;
+    this.scene.time.delayedCall(350, () => { this._avatarInputBlocked = false; });
     this.setVisible(true);
     this._syncNickInputPosition();
     this._syncEmailInputPosition();
