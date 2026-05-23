@@ -1257,6 +1257,11 @@ export class GameLobbyScene extends Phaser.Scene {
     if (!stake) {
       return;
     }
+    const _s = this.store?.getState?.() ?? {};
+    if (_s.heroSeat != null) {
+      this.store?.applyPacket?.({ type: "error", data: { code: "GAME_IN_PROGRESS", message: "遊戲進行中，\n請耐心等待遊戲結束後才可進入！" } });
+      return;
+    }
     this.buyinModalVisible = true;
     this.buyinStake = stake;
     this.buyinModel = this.buildStakeBuyinModel(stake, this.store.getState?.().walletBalance ?? 0);
