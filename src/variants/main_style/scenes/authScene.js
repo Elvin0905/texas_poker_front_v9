@@ -189,6 +189,8 @@ export class AuthScene extends Phaser.Scene {
               target.dispatchEvent(new PointerEvent('pointerdown', opts));
               target.dispatchEvent(new PointerEvent('pointerup', opts));
             }
+          } else if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+            target.focus({ preventScroll: true });
           } else {
             target.click();
           }
