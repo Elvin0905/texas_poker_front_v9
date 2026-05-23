@@ -295,6 +295,11 @@ const HAND_RESULT_CARDS_Y_OFFSET = 24;
 const HAND_RESULT_CARD_WIDTH = 50;
 const HAND_RESULT_CARD_HEIGHT = 70;
 const HAND_RESULT_CARD_GAP = 3;
+const HAND_RESULT_SCROLL_TOP_BASE = HAND_RESULT_LIST_START_Y - HAND_RESULT_ROW_HEIGHT / 2;
+const HAND_RESULT_SCROLL_BOTTOM_BASE = HAND_RESULT_HINT_Y - 24;
+const HAND_RESULT_SCROLL_VISIBLE_H = HAND_RESULT_SCROLL_BOTTOM_BASE - HAND_RESULT_SCROLL_TOP_BASE;
+const HAND_RESULT_SCROLLBAR_X = HAND_RESULT_PANEL_X + HAND_RESULT_PANEL_WIDTH / 2 - 20;
+const HAND_RESULT_SCROLLBAR_W = 10;
 
 // 座位與頭像比例、輪到玩家特效參數
 const DEFAULT_SEAT_COUNT = 6;
@@ -709,6 +714,11 @@ export class TableScene extends Phaser.Scene {
     this.isHandResultModalOpen = false;
     this.handResultAutoCloseTimer = null;
     this.handResultAutoCloseEndAt = 0;
+    this._hrScrollY = 0;
+    this._hrScrollMaxY = 0;
+    this._hrContentH = 0;
+    this._hrDragStartY = null;
+    this._hrDragStartScrollY = 0;
     this.nextHandCountdownEnd = 0;
     this._handEndMenuSeq = 0;
     this._handEndMenuEnd = 0;
@@ -1622,6 +1632,32 @@ export class TableScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setVisible(false);
 
+    this.handResultScrollContainer = this.add.container(0, 0)
+      .setDepth(HAND_RESULT_TEXT_DEPTH).setVisible(false);
+    this._hrScrollMaskGfx = this.make.graphics({ add: false });
+    this.handResultScrollContainer.setMask(this._hrScrollMaskGfx.createGeometryMask());
+    this.handResultScrollbarTrack = this.add.graphics().setDepth(HAND_RESULT_TEXT_DEPTH + 1).setVisible(false);
+    this.handResultScrollbarThumb = this.add.graphics().setDepth(HAND_RESULT_TEXT_DEPTH + 1.5).setVisible(false);
+
+    this._hrPointerDown = (ptr) => {
+      if (!this.isHandResultModalOpen) return;
+      const zoom = this.cameras.main.zoom || 1;
+      const wy = ptr.y / zoom;
+      const dy = this.modalDy || 0;
+      if (wy < HAND_RESULT_SCROLL_TOP_BASE + dy || wy > HAND_RESULT_SCROLL_BOTTOM_BASE + dy) return;
+      this._hrDragStartY = wy;
+      this._hrDragStartScrollY = this._hrScrollY;
+    };
+    this._hrPointerMove = (ptr) => {
+      if (this._hrDragStartY == null || !ptr.isDown) return;
+      const wy = ptr.y / (this.cameras.main.zoom || 1);
+      this._setHandResultScrollY(this._hrDragStartScrollY - (wy - this._hrDragStartY));
+    };
+    this._hrPointerUp = () => { this._hrDragStartY = null; };
+    this.input.on("pointerdown", this._hrPointerDown, this);
+    this.input.on("pointermove", this._hrPointerMove, this);
+    this.input.on("pointerup", this._hrPointerUp, this);
+
     onLayoutResize(this, () => this.applyLayout());
     this.applyLayout();
 
@@ -1668,6 +1704,9 @@ export class TableScene extends Phaser.Scene {
       this.handEndMenuJoinBtn?.destroy();
       this.handEndMenuSwitchBtn?.destroy();
       this.handEndMenuExitBtn?.destroy();
+      this.input.off("pointerdown", this._hrPointerDown, this);
+      this.input.off("pointermove", this._hrPointerMove, this);
+      this.input.off("pointerup", this._hrPointerUp, this);
     });
   }
 
@@ -1731,6 +1770,8 @@ export class TableScene extends Phaser.Scene {
     this.handResultTitleLabel?.setPosition(CENTER_X, _hrTitleY + dy);
     this.handResultTitle?.setPosition(CENTER_X, _hrTitleY + 8 + dy);
     this.handResultHint?.setPosition(CENTER_X, HAND_RESULT_HINT_Y + dy);
+    this._updateHandResultScrollMask();
+    this._setHandResultScrollY(this._hrScrollY);
 
     // Switch confirm dialog
     this.switchConfirmOverlay?.setPosition(layout.centerX, layout.centerY);
@@ -1899,43 +1940,58 @@ export class TableScene extends Phaser.Scene {
     }
   }
 
+  _updateHandResultScrollMask() {
+    if (!this._hrScrollMaskGfx) return;
+    const dy = this.modalDy || 0;
+    const scrollTopY = HAND_RESULT_SCROLL_TOP_BASE + dy;
+    const panelL = HAND_RESULT_PANEL_X - HAND_RESULT_PANEL_WIDTH / 2 + 4;
+    this._hrScrollMaskGfx.clear();
+    this._hrScrollMaskGfx.fillStyle(0xffffff);
+    this._hrScrollMaskGfx.fillRect(panelL, scrollTopY, HAND_RESULT_PANEL_WIDTH - 8, HAND_RESULT_SCROLL_VISIBLE_H);
+  }
+
+  _setHandResultScrollY(y) {
+    this._hrScrollY = Math.max(0, Math.min(this._hrScrollMaxY, y));
+    const dy = this.modalDy || 0;
+    const scrollTopY = HAND_RESULT_SCROLL_TOP_BASE + dy;
+    if (this.handResultScrollContainer) {
+      this.handResultScrollContainer.y = scrollTopY - this._hrScrollY;
+    }
+    this._updateHandResultScrollbar();
+  }
+
+  _updateHandResultScrollbar() {
+    const dy = this.modalDy || 0;
+    const scrollTopY = HAND_RESULT_SCROLL_TOP_BASE + dy;
+    const contentH = this._hrContentH || 0;
+    const hasScroll = contentH > HAND_RESULT_SCROLL_VISIBLE_H;
+    const visible = this.isHandResultModalOpen && hasScroll;
+    this.handResultScrollbarTrack?.setVisible(visible);
+    this.handResultScrollbarThumb?.setVisible(visible);
+    if (!visible) return;
+    const maxScroll = contentH - HAND_RESULT_SCROLL_VISIBLE_H;
+    const thumbH = Math.max(40, (HAND_RESULT_SCROLL_VISIBLE_H / contentH) * HAND_RESULT_SCROLL_VISIBLE_H);
+    const maxThumbY = HAND_RESULT_SCROLL_VISIBLE_H - thumbH;
+    const thumbOffset = maxScroll > 0 ? (this._hrScrollY / maxScroll) * maxThumbY : 0;
+    this.handResultScrollbarTrack.clear();
+    this.handResultScrollbarTrack.fillStyle(0x0a0202, 0.7);
+    this.handResultScrollbarTrack.fillRoundedRect(HAND_RESULT_SCROLLBAR_X, scrollTopY, HAND_RESULT_SCROLLBAR_W, HAND_RESULT_SCROLL_VISIBLE_H, 5);
+    this.handResultScrollbarThumb.clear();
+    this.handResultScrollbarThumb.fillStyle(0xffefb0, 0.95);
+    this.handResultScrollbarThumb.fillRoundedRect(HAND_RESULT_SCROLLBAR_X, scrollTopY + thumbOffset, HAND_RESULT_SCROLLBAR_W, thumbH, 5);
+  }
+
   clearHandResultRows() {
     if (Array.isArray(this.handResultHeaderItems)) {
       this.handResultHeaderItems.forEach((item) => item?.destroy?.());
       this.handResultHeaderItems = [];
     }
-    if (!Array.isArray(this.handResultRows) || this.handResultRows.length <= 0) {
-      this.handResultRows = [];
-      return;
-    }
-    this.handResultRows.forEach((item) => {
-      if (item?.bg?.destroy) {
-        item.bg.destroy();
-      }
-      if (item?.text?.destroy) {
-        item.text.destroy();
-      }
-      if (item?.betText?.destroy) {
-        item.betText.destroy();
-      }
-      if (item?.winText?.destroy) {
-        item.winText.destroy();
-      }
-      if (item?.netText?.destroy) {
-        item.netText.destroy();
-      }
-      if (item?.rankText?.destroy) {
-        item.rankText.destroy();
-      }
-      if (Array.isArray(item?.cardImages)) {
-        item.cardImages.forEach((cardImage) => {
-          if (cardImage?.destroy) {
-            cardImage.destroy();
-          }
-        });
-      }
-    });
+    this.handResultScrollContainer?.removeAll(true);
     this.handResultRows = [];
+    this._hrScrollY = 0;
+    this._hrScrollMaxY = 0;
+    this._hrContentH = 0;
+    this._hrDragStartY = null;
   }
 
   closeHandResultModal() {
@@ -1957,6 +2013,9 @@ export class TableScene extends Phaser.Scene {
     this.handResultTitleLabel?.setVisible(false);
     this.handResultTitle?.setVisible(false);
     this.handResultHint?.setVisible(false);
+    this.handResultScrollContainer?.setVisible(false);
+    this.handResultScrollbarTrack?.setVisible(false);
+    this.handResultScrollbarThumb?.setVisible(false);
     if (this._pendingLeaveAfterHandResult) {
       this._pendingLeaveAfterHandResult = false;
       const currentTableId = this.store.getState?.().table?.table_id ?? null;
@@ -2060,9 +2119,11 @@ export class TableScene extends Phaser.Scene {
     this.handResultOverlay?.setVisible(true);
     this.handResultPanel?.setVisible(true);
     this.handResultPanelBorder?.setVisible(true);
+    this.handResultDivider?.setVisible(true);
     this.handResultTitleLabel?.setVisible(true);
     this.handResultTitle?.setVisible(true);
     this.handResultHint?.setVisible(true);
+    this.handResultScrollContainer?.setVisible(true);
 
     const heroSeat = this.resolveHeroSeatForDisplay(this.state?.table);
     const dy = this.modalDy || 0;
@@ -2084,17 +2145,16 @@ export class TableScene extends Phaser.Scene {
       makeHeaderText(CENTER_X + HAND_RESULT_NET_X_OFFSET, HAND_RESULT_HEADER_Y, "結果", 1),
     ];
 
+    // Items use LOCAL Y coordinates (container.y = scrollTopY + dy - scrollY)
     rows.forEach((row, index) => {
-      const rowY = HAND_RESULT_LIST_START_Y + index * HAND_RESULT_ROW_GAP + dy;
-      const nameY = rowY + HAND_RESULT_NAME_Y_OFFSET;
-      const rankY = rowY + HAND_RESULT_RANK_Y_OFFSET;
-      const cardsY = rowY + HAND_RESULT_CARDS_Y_OFFSET;
+      const localRowY = HAND_RESULT_ROW_HEIGHT / 2 + index * HAND_RESULT_ROW_GAP;
+      const nameY = localRowY + HAND_RESULT_NAME_Y_OFFSET;
+      const rankY = localRowY + HAND_RESULT_RANK_Y_OFFSET;
+      const cardsY = localRowY + HAND_RESULT_CARDS_Y_OFFSET;
       const isHeroRow = heroSeat !== null && row.seat !== null && row.seat === heroSeat;
       const rowL = CENTER_X - HAND_RESULT_ROW_WIDTH / 2;
-      const rowT = rowY - HAND_RESULT_ROW_HEIGHT / 2;
-      const rowMask = this.make.graphics({ add: false });
-      rowMask.fillStyle(0xffffff);
-      rowMask.fillRoundedRect(rowL, rowT, HAND_RESULT_ROW_WIDTH, HAND_RESULT_ROW_HEIGHT, HAND_RESULT_ROW_CORNER);
+      const rowT = localRowY - HAND_RESULT_ROW_HEIGHT / 2;
+
       const bg = this.add.graphics();
       bg.fillGradientStyle(
         isHeroRow ? HAND_RESULT_ROW_HERO_TOP : HAND_RESULT_ROW_NORMAL_TOP,
@@ -2103,11 +2163,9 @@ export class TableScene extends Phaser.Scene {
         isHeroRow ? HAND_RESULT_ROW_HERO_BOT : HAND_RESULT_ROW_NORMAL_BOT,
         1, 1, 1, 1,
       );
-      bg.fillRect(rowL, rowT, HAND_RESULT_ROW_WIDTH, HAND_RESULT_ROW_HEIGHT);
-      bg.setMask(rowMask.createGeometryMask());
+      bg.fillRoundedRect(rowL, rowT, HAND_RESULT_ROW_WIDTH, HAND_RESULT_ROW_HEIGHT, HAND_RESULT_ROW_CORNER);
       bg.lineStyle(1.5, isHeroRow ? 0xc84050 : 0x6a1828, 0.7);
       bg.strokeRoundedRect(rowL, rowT, HAND_RESULT_ROW_WIDTH, HAND_RESULT_ROW_HEIGHT, HAND_RESULT_ROW_CORNER);
-      bg.setDepth(HAND_RESULT_TEXT_DEPTH);
 
       const text = this.add
         .text(CENTER_X + HAND_RESULT_NAME_X_OFFSET, nameY, row.username, {
@@ -2116,7 +2174,6 @@ export class TableScene extends Phaser.Scene {
           fontStyle: "bold",
           fontFamily: UI_FONT_STACK,
         })
-        .setDepth(HAND_RESULT_TEXT_DEPTH + 0.1)
         .setOrigin(0, 0.5);
 
       const betText = this.add
@@ -2126,7 +2183,6 @@ export class TableScene extends Phaser.Scene {
           fontStyle: "bold",
           fontFamily: UI_FONT_STACK,
         })
-        .setDepth(HAND_RESULT_TEXT_DEPTH + 0.1)
         .setOrigin(1, 0.5);
 
       const winText = this.add
@@ -2136,7 +2192,6 @@ export class TableScene extends Phaser.Scene {
           fontStyle: "bold",
           fontFamily: UI_FONT_STACK,
         })
-        .setDepth(HAND_RESULT_TEXT_DEPTH + 0.1)
         .setOrigin(1, 0.5);
 
       const netText = this.add
@@ -2146,7 +2201,6 @@ export class TableScene extends Phaser.Scene {
           fontStyle: "bold",
           fontFamily: UI_FONT_STACK,
         })
-        .setDepth(HAND_RESULT_TEXT_DEPTH + 0.1)
         .setOrigin(1, 0.5);
 
       const cardImages = [];
@@ -2156,15 +2210,13 @@ export class TableScene extends Phaser.Scene {
             return;
           }
           const x = CENTER_X + HAND_RESULT_CARDS_START_X_OFFSET + cardIndex * (HAND_RESULT_CARD_WIDTH + HAND_RESULT_CARD_GAP);
-          const shadow = this.add.graphics()
-            .setDepth(HAND_RESULT_TEXT_DEPTH + 0.11);
+          const shadow = this.add.graphics();
           shadow.fillStyle(0x000000, 0.18);
           shadow.fillRoundedRect(x + 2, cardsY - HAND_RESULT_CARD_HEIGHT / 2 + 3, HAND_RESULT_CARD_WIDTH, HAND_RESULT_CARD_HEIGHT, 3);
           cardImages.push(shadow);
           const cardImage = this.add
             .image(x, cardsY, PLAYING_CARDS_ATLAS_KEY, frame)
             .setDisplaySize(HAND_RESULT_CARD_WIDTH, HAND_RESULT_CARD_HEIGHT)
-            .setDepth(HAND_RESULT_TEXT_DEPTH + 0.12)
             .setOrigin(0, 0.5);
           cardImages.push(cardImage);
         });
@@ -2177,19 +2229,17 @@ export class TableScene extends Phaser.Scene {
           fontStyle: "bold",
           fontFamily: UI_FONT_STACK,
         })
-        .setDepth(HAND_RESULT_TEXT_DEPTH + 0.1)
         .setOrigin(0, 0.5);
 
-      this.handResultRows.push({
-        bg,
-        text,
-        betText,
-        winText,
-        netText,
-        rankText,
-        cardImages,
-      });
+      this.handResultScrollContainer.add([bg, text, betText, winText, netText, rankText, ...cardImages]);
+      this.handResultRows.push({ bg, text, betText, winText, netText, rankText, cardImages });
     });
+
+    // Compute scroll params and initialise scroll position
+    this._hrContentH = rows.length * HAND_RESULT_ROW_GAP;
+    this._hrScrollMaxY = Math.max(0, this._hrContentH - HAND_RESULT_SCROLL_VISIBLE_H);
+    this._updateHandResultScrollMask();
+    this._setHandResultScrollY(0);
   }
 
   createHeroTableSfxSnapshot(table) {
