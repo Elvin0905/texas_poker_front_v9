@@ -4069,11 +4069,22 @@ export class TableScene extends Phaser.Scene {
     }
     const baseScale = this.getSeatHoleCardScale(seatView);
     seatView.holeCards.forEach((holeCard) => {
+      const prevBase = holeCard.baseScaleX;
       holeCard.baseScaleX = baseScale;
       holeCard.baseScaleY = baseScale;
-      if (!holeCard.inFlight && !holeCard.isFlipping && !holeCard.flipPopTween) {
-        holeCard.sprite.setScale(baseScale);
+      if (holeCard.inFlight || holeCard.isFlipping || holeCard.flipPopTween) {
+        return;
       }
+      if (holeCard.faceFrameKey) {
+        // Card is showing face — only update sprite scale if base changed,
+        // and use the face-adjusted scale to avoid a one-frame zoom flash.
+        if (prevBase !== baseScale) {
+          const faceScale = this.resolveHoleFaceScale(baseScale, baseScale, holeCard.faceFrameKey);
+          holeCard.sprite.setScale(faceScale.scaleX, faceScale.scaleY);
+        }
+        return;
+      }
+      holeCard.sprite.setScale(baseScale);
     });
   }
 
