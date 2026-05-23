@@ -700,6 +700,7 @@ export class TableScene extends Phaser.Scene {
     this.lastHintHandId = null;
     this.hadCountdownForCurrentTable = false;
     this.lastSeenHandEndSeq = 0;
+    this._replayBoardFrozen = false;
     this.lastRenderedTableId = null;
     this._heroPlayedCurrentHand = false;
     this.newRoundHintTimer = null;
@@ -791,7 +792,7 @@ export class TableScene extends Phaser.Scene {
     this.lastSeenHandResultVersion = Number(this.store.getState?.().handResultVersion ?? 0);
 
     this.bgImage = this.add.image(layout.centerX, layout.centerY, "game_table", "bg").setDisplaySize(layout.width, layout.height).setDepth(BG_DEPTH);
-    const tableImg = this.add.image(CENTER_X + 10, TABLE_HINT_TEXT_Y + 150, "game_table", "tbale").setDisplaySize(TABLE_DISPLAY_WIDTH, TABLE_DISPLAY_HEIGHT).setDepth(TABLE_DEPTH);
+    const tableImg = this.add.image(CENTER_X + 10, TABLE_HINT_TEXT_Y + 170, "game_table", "tbale").setDisplaySize(TABLE_DISPLAY_WIDTH, TABLE_DISPLAY_HEIGHT).setDepth(TABLE_DEPTH);
     tableImg.postFX.addShadow(2, 10, 0.005, 2.5, 0x000000, 8, 0.85);
 
     this.bgm = this.sound.get("bgm_main");
@@ -1610,16 +1611,6 @@ export class TableScene extends Phaser.Scene {
       .setVisible(false);
     applyGoldTitleGradient(this.handResultTitle);
 
-    this.handResultDivider = this.add.graphics()
-      .setDepth(HAND_RESULT_TEXT_DEPTH)
-      .setVisible(false);
-    this.handResultDivider.lineStyle(1.5, HAND_RESULT_PANEL_BORDER_COLOR, 0.55);
-    this.handResultDivider.lineBetween(
-      CENTER_X - HAND_RESULT_ROW_WIDTH / 2,
-      HAND_RESULT_DIVIDER_Y,
-      CENTER_X + HAND_RESULT_ROW_WIDTH / 2,
-      HAND_RESULT_DIVIDER_Y,
-    );
 
     this.handResultHint = this.add
       .text(CENTER_X, HAND_RESULT_HINT_Y, "點擊任意處關閉", {
@@ -1765,7 +1756,6 @@ export class TableScene extends Phaser.Scene {
     if (this.handResultPanel) this.handResultPanel.y = dy;
     if (this.handResultPanelBorder) this.handResultPanelBorder.y = dy;
     if (this._handResultPanelMask) this._handResultPanelMask.y = dy;
-    if (this.handResultDivider) this.handResultDivider.y = dy;
     const _hrTitleY = HAND_RESULT_PANEL_Y - HAND_RESULT_PANEL_HEIGHT / 2;
     this.handResultTitleLabel?.setPosition(CENTER_X, _hrTitleY + dy);
     this.handResultTitle?.setPosition(CENTER_X, _hrTitleY + 8 + dy);
@@ -2009,7 +1999,6 @@ export class TableScene extends Phaser.Scene {
     this.handResultOverlay?.setVisible(false);
     this.handResultPanel?.setVisible(false);
     this.handResultPanelBorder?.setVisible(false);
-    this.handResultDivider?.setVisible(false);
     this.handResultTitleLabel?.setVisible(false);
     this.handResultTitle?.setVisible(false);
     this.handResultHint?.setVisible(false);
@@ -2028,6 +2017,7 @@ export class TableScene extends Phaser.Scene {
     if (!this.winGifIsPlaying && !this._pendingSwitchAfterRebuy) {
       this.renderRebuyModal(this._rebuyDeclined ? null : (this.state?.rebuyOffer ?? null));
     }
+    this.app?.notifyReplayHandResultClosed?.();
   }
 
   buildHandResultDisplayRows(handResult) {
@@ -2119,7 +2109,6 @@ export class TableScene extends Phaser.Scene {
     this.handResultOverlay?.setVisible(true);
     this.handResultPanel?.setVisible(true);
     this.handResultPanelBorder?.setVisible(true);
-    this.handResultDivider?.setVisible(true);
     this.handResultTitleLabel?.setVisible(true);
     this.handResultTitle?.setVisible(true);
     this.handResultHint?.setVisible(true);
@@ -3772,7 +3761,6 @@ export class TableScene extends Phaser.Scene {
     const isPlaying = tableStatus === "playing" || tableStatus === "preflop"
       || tableStatus === "flop" || tableStatus === "turn" || tableStatus === "river"
       || !!this.state?.actionRequest;
-    const countdownStarted = this.hadCountdownForCurrentTable || this.nextHandCountdownEnd > 0;
     const anyModalOpen = this.isHandResultModalOpen
       || (this.handEndModalOverlay?.visible === true)
       || (this.rebuyOverlay?.visible === true);
@@ -3781,8 +3769,10 @@ export class TableScene extends Phaser.Scene {
       return;
     }
     const seatedCount = Array.isArray(this.state?.table?.players) ? this.state.table.players.length : 0;
-    const enoughPlayers = seatedCount >= 2;
-    if (!enoughPlayers) {
+    const countdownStarted = this.nextHandCountdownEnd > 0 && this.nextHandCountdownEnd > Date.now();
+    if (seatedCount < 3) {
+      this.hadCountdownForCurrentTable = false;
+      this.nextHandCountdownEnd = 0;
       this.heroJoinWaitText?.setText("等待足數玩家開局").setVisible(true);
     } else if (!countdownStarted) {
       this.heroJoinWaitText?.setText("等待其他玩家確認中").setVisible(true);
@@ -3991,7 +3981,7 @@ export class TableScene extends Phaser.Scene {
     });
   }
 
-  renderCommunityCards(communityRaw, animateNewCards = true) {
+  renderCommunityCards(communityRaw, animateNewCards = true, frozen = false) {
     const community = Array.isArray(communityRaw) ? communityRaw : [];
     const revealQueue = [];
     for (let index = 0; index < COMMUNITY_SLOT_COUNT; index += 1) {
@@ -4002,7 +3992,7 @@ export class TableScene extends Phaser.Scene {
       const targetCardRaw = community[index];
       const targetCard = targetCardRaw === null || targetCardRaw === undefined || targetCardRaw === "" ? null : String(targetCardRaw);
       if (!targetCard) {
-        if (slot.shownCard !== null || (slot.pendingCard !== null && !animateNewCards)) {
+        if (!frozen && (slot.shownCard !== null || (slot.pendingCard !== null && !animateNewCards))) {
           this.setCommunityCardImmediate(index, null);
         }
         continue;
@@ -4202,12 +4192,17 @@ export class TableScene extends Phaser.Scene {
         this.showdownAnimatedSet.add(animKey);
         holeCard.pendingShowdownFlip = true;
         const angle = dealCardAngleByIndex(cardIndex, seatView.avatarFlipX);
+        // Capture replay state at schedule time: during replay, hand_end may clear
+        // showdownRevealsBySeat before the stagger timer fires, so we skip the live check.
+        const scheduledDuringReplay = this._replayBoardFrozen || Boolean(this.app?.isHandReplayActive?.());
         const timerId = setTimeout(() => {
           holeCard.pendingShowdownFlip = false;
           // Guard: if showdown reveal for this seat was cleared (e.g. by hand_end arriving
           // before the 220ms stagger delay), don't flip — the card belongs to a past hand.
-          const stillRevealed = Array.isArray(this.state?.showdownRevealsBySeat?.[seatKey])
-            && this.state.showdownRevealsBySeat[seatKey].length > 0;
+          // Skip this guard during replay as hand_end clears state before stagger fires.
+          const stillRevealed = scheduledDuringReplay
+            || (Array.isArray(this.state?.showdownRevealsBySeat?.[seatKey])
+              && this.state.showdownRevealsBySeat[seatKey].length > 0);
           if (stillRevealed && holeCard.sprite?.active && holeCard.sprite?.visible) {
             this.playHoleCardFlipToFace(holeCard, frameKey, angle);
           }
@@ -4795,13 +4790,23 @@ export class TableScene extends Phaser.Scene {
     if (!this.state) {
       return;
     }
+    const isReplayActive = Boolean(this.app?.isHandReplayActive?.());
     const currentHandEndSeq = Number(this.state.handEndSeq ?? 0);
+    // Latch freeze when hand_end fires during replay; hold it until replay fully exits.
+    if (isReplayActive && currentHandEndSeq !== this.lastSeenHandEndSeq) {
+      this._replayBoardFrozen = true;
+    }
+    if (!isReplayActive) {
+      this._replayBoardFrozen = false;
+    }
+    const replayHandEndFreeze = this._replayBoardFrozen;
     if (currentHandEndSeq !== this.lastSeenHandEndSeq) {
       this.lastSeenHandEndSeq = currentHandEndSeq;
       this.clearShowdownFlipTimers();
-      this.seatViews?.forEach((sv) => this.hideSeatHoleCards(sv));
+      if (!replayHandEndFreeze) {
+        this.seatViews?.forEach((sv) => this.hideSeatHoleCards(sv));
+      }
     }
-    const isReplayActive = Boolean(this.app?.isHandReplayActive?.());
     const isReplayFast = Boolean(this.app?.isHandReplayFastMode?.());
     this.exitReplayButton?.setVisible(isReplayActive);
     this.replaySpeedButton?.setVisible(isReplayActive);
@@ -4970,7 +4975,7 @@ export class TableScene extends Phaser.Scene {
 
       const community = Array.isArray(table.community) ? table.community : [];
       const allowCommunityAnimation = this.communityAnimationReady;
-      this.renderCommunityCards(community, allowCommunityAnimation);
+      this.renderCommunityCards(community, allowCommunityAnimation, replayHandEndFreeze);
       this.communityAnimationReady = true;
       const nextActionRoundKey = `${nextRoundSnapshot.tableId}|${nextRoundSnapshot.handId}|${nextRoundSnapshot.round}`;
       if (this.actionRoundKey !== nextActionRoundKey) {
@@ -5208,9 +5213,11 @@ export class TableScene extends Phaser.Scene {
         seatView.profileFrame.setAlpha(1).setTint(dimTint);
         seatView.profileBg.setAlpha(1);
         seatView.foldOverlay.setVisible(isDimmed);
-        const holeRenderOptions = this.resolveSeatHoleRenderOptions(player, isHero);
-        if (isWaiting) holeRenderOptions.visibleCount = 0;
-        this.setSeatHoleCardsVisibleCount(seatView, holeRenderOptions.visibleCount, holeRenderOptions);
+        if (!replayHandEndFreeze) {
+          const holeRenderOptions = this.resolveSeatHoleRenderOptions(player, isHero);
+          if (isWaiting) holeRenderOptions.visibleCount = 0;
+          this.setSeatHoleCardsVisibleCount(seatView, holeRenderOptions.visibleCount, holeRenderOptions);
+        }
       }
       this.seatLastActionMap = nextSeatActionMap;
       this.seatActionMapReady = true;
@@ -5232,9 +5239,7 @@ export class TableScene extends Phaser.Scene {
         this.lastShowdownCollectHandId = currentHandId;
       }
       if (showdownRevealCount > 0) {
-        if (!isReplayActive) {
-          this.scheduleShowdownFlips();
-        }
+        this.scheduleShowdownFlips();
         this.seatViews.forEach((sv) => {
           if (sv.actionBadge?.visible) {
             sv.actionBadgeHideTimer?.remove();

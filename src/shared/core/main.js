@@ -169,6 +169,7 @@ const replaySessionState = {
   active: false,
   finishing: false,
   fromScene: null,
+  returnPage: null,
   id: 0,
   timers: [],
   fastMode: false,
@@ -793,6 +794,7 @@ function stopReplayPlayback(reason = "") {
   replaySessionState.active = false;
   replaySessionState.finishing = false;
   replaySessionState.fromScene = null;
+  replaySessionState.returnPage = null;
   clearReplayTimers();
   replaySessionState.timeline = [];
   replaySessionState.replay = null;
@@ -1120,14 +1122,11 @@ function finishReplayPlayback() {
   const hasHandResult = Boolean(store.getState?.()?.handResult);
   if (hasHandResult) {
     replaySessionState.finishing = true;
-    // Wait for the hand result modal (6s countdown) to finish before switching to lobby/gameLobby
-    window.setTimeout(() => {
-      replaySessionState.finishing = false;
-      replaySessionState.fromScene = null;
-      store.openDailySettlementAfterReplay(returnPage);
-    }, 6500);
+    replaySessionState.returnPage = returnPage;
+    // Exit is triggered by notifyReplayHandResultClosed when the modal countdown ends
   } else {
     replaySessionState.fromScene = null;
+    replaySessionState.returnPage = null;
     store.openDailySettlementAfterReplay(returnPage);
   }
 }
@@ -2002,6 +2001,14 @@ window.__APP__ = {
   },
   stopHandReplay: (reason = "manual_stop") => {
     stopReplayPlayback(reason);
+  },
+  notifyReplayHandResultClosed: () => {
+    if (!replaySessionState.finishing) return;
+    const rp = replaySessionState.returnPage || "lobby";
+    replaySessionState.finishing = false;
+    replaySessionState.fromScene = null;
+    replaySessionState.returnPage = null;
+    store.openDailySettlementAfterReplay(rp);
   },
   persistAudioSettings: () => {
     writeAudioPrefsToStorage(window.__APP__);
