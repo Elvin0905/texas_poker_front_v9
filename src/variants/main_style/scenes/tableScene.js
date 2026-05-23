@@ -114,6 +114,22 @@ const HAND_END_MENU_SWITCH_X = 393;
 const HAND_END_MENU_EXIT_X = 558;
 const HAND_END_MENU_DEPTH = 129;
 
+// 手局結束彈窗（進入下局 / 換桌 / 結束）
+const HAND_END_MODAL_OVERLAY_DEPTH = 145;
+const HAND_END_MODAL_PANEL_DEPTH = 146;
+const HAND_END_MODAL_TEXT_DEPTH = 147;
+const HAND_END_MODAL_WIDTH = 580;
+const HAND_END_MODAL_HEIGHT = 260;
+const HAND_END_MODAL_CORNER = 16;
+const HAND_END_MODAL_TITLE_Y = CENTER_Y - HAND_END_MODAL_HEIGHT / 2;
+const HAND_END_MODAL_BTN_Y = CENTER_Y + 75;
+const HAND_END_MODAL_BTN_H = 72;
+const HAND_END_MODAL_JOIN_W = 200;
+const HAND_END_MODAL_ACT_W = 150;
+const HAND_END_MODAL_JOIN_X = CENTER_X - 170;
+const HAND_END_MODAL_SWITCH_X = CENTER_X + 25;
+const HAND_END_MODAL_EXIT_X = CENTER_X + 195;
+
 // 玩家操作列（棄牌/過牌/跟注/全下）
 const ACTION_ROW_Y = 1330;
 const ACTION_BUTTON_ORDER = ["bet", "raise", "check", "call", "allin", "fold"];
@@ -261,7 +277,7 @@ const HAND_RESULT_NEUTRAL_COLOR = "#e8d2ad";
 const HAND_RESULT_FOLD_COLOR = "#b8c1cc";
 const HAND_RESULT_TITLE_FONT_SIZE = "42px";
 const HAND_RESULT_ROW_FONT_SIZE = "26px";
-const HAND_RESULT_HINT_FONT_SIZE = "24px";
+const HAND_RESULT_HINT_FONT_SIZE = "26px";
 const HAND_RESULT_HINT_Y = 1135;
 const HAND_RESULT_AUTO_CLOSE_SECONDS = 6;
 const HAND_RESULT_TITLE_OUTLINE_STYLE = { stroke: "#3a1a00", strokeThickness: 2 };
@@ -698,6 +714,13 @@ export class TableScene extends Phaser.Scene {
     this.handEndMenuJoinBtn = null;
     this.handEndMenuSwitchBtn = null;
     this.handEndMenuExitBtn = null;
+    this.handEndModalOverlay = null;
+    this.handEndModalPanelGrad = null;
+    this.handEndModalPanel = null;
+    this.handEndModalMask = null;
+    this.handEndModalTitleLabel = null;
+    this.handEndModalTitle = null;
+    this.handEndModalBody = null;
     this.lastSeenActionRequestKey = "";
     this.seatLastActionMap = {};
     this.seatActionMapReady = false;
@@ -1092,65 +1115,7 @@ export class TableScene extends Phaser.Scene {
       this.actionButtons[action] = image;
     });
 
-    const _hemStyle = { fontSize: "26px", color: "#fff8e0", fontStyle: "bold", fontFamily: UI_FONT_STACK };
-    this.handEndMenuJoinBtn = createGradientButton(this, {
-      x: HAND_END_MENU_JOIN_X, y: HAND_END_MENU_Y,
-      width: HAND_END_MENU_JOIN_W, height: HAND_END_MENU_BTN_H, cornerRadius: 12,
-      topColor: 0x3db428, bottomColor: 0x145018, borderColor: 0x1aed30,
-      label: "進入下局", labelStyle: _hemStyle,
-      depth: HAND_END_MENU_DEPTH,
-      onClick: () => { this._handEndMenuEnd = 0; this.refreshHandEndMenu(); },
-      visible: false,
-    });
-    this.handEndMenuSwitchBtn = createGradientButton(this, {
-      x: HAND_END_MENU_SWITCH_X, y: HAND_END_MENU_Y,
-      width: HAND_END_MENU_ACT_W, height: HAND_END_MENU_BTN_H, cornerRadius: 12,
-      topColor: 0x1a5aaa, bottomColor: 0x0a2855, borderColor: 0x3d90f5,
-      label: "換桌", labelStyle: _hemStyle,
-      depth: HAND_END_MENU_DEPTH,
-      onClick: () => {
-        this._handEndMenuEnd = 0;
-        const heroSeat = this.resolveHeroSeatForDisplay(this.state?.table);
-        const heroPlayer = heroSeat !== null && Array.isArray(this.state?.table?.players)
-          ? this.state.table.players.find(p => isSameSeat(p?.seat, heroSeat)) : null;
-        const heroChips = Number(heroPlayer?.chips ?? 0);
-        const minBuyin = Number(this.state?.table?.min_buyin ?? 0);
-        if (minBuyin > 0 && heroChips < minBuyin) {
-          this._pendingSwitchAfterRebuy = true;
-          this._pendingSwitchMidHand = false;
-          this._rebuyDeclined = false;
-          const offer = this.state?.rebuyOffer || {
-            table_id: this.state?.table?.table_id,
-            current_chips: heroChips,
-            min_buyin: minBuyin,
-            max_buyin: Number(this.state?.table?.max_buyin ?? minBuyin),
-            default_buyin: minBuyin,
-          };
-          this.renderRebuyModal(offer);
-          return;
-        }
-        this.store.beginSwitchRoom?.();
-        const buyin = this.resolveSwitchRoomBuyin();
-        this.app.sendPacket("switch_room", { buyin });
-      },
-      visible: false,
-    });
-    this.handEndMenuExitBtn = createGradientButton(this, {
-      x: HAND_END_MENU_EXIT_X, y: HAND_END_MENU_Y,
-      width: HAND_END_MENU_ACT_W, height: HAND_END_MENU_BTN_H, cornerRadius: 12,
-      topColor: 0xc02828, bottomColor: 0x6a1010, borderColor: 0xd43535,
-      label: "結束", labelStyle: _hemStyle,
-      depth: HAND_END_MENU_DEPTH,
-      onClick: () => {
-        this._handEndMenuEnd = 0;
-        const currentTableId = this.store.getState?.().table?.table_id ?? null;
-        const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
-        this.store.beginLeaveTable?.(currentTableId);
-        this.app.sendPacket("leave_room", {});
-        this.app.sendPacket("enter_game", { game_id: _gameId });
-      },
-      visible: false,
-    });
+    this.buildHandEndModal();
 
     this.raisePanelOverlay = this.add
       .rectangle(layout.centerX, layout.centerY, 4000, 4000, 0x000000, 0.001)
@@ -1680,6 +1645,12 @@ export class TableScene extends Phaser.Scene {
       this.isRaisePanelOpen = false;
       this.exitReplayButton?.destroy?.();
       this.replaySpeedButton?.destroy?.();
+      this.handEndModalOverlay?.destroy();
+      this.handEndModalPanelGrad?.destroy();
+      this.handEndModalPanel?.destroy();
+      this.handEndModalTitleLabel?.destroy();
+      this.handEndModalTitle?.destroy();
+      this.handEndModalBody?.destroy();
       this.handEndMenuJoinBtn?.destroy();
       this.handEndMenuSwitchBtn?.destroy();
       this.handEndMenuExitBtn?.destroy();
@@ -1702,11 +1673,6 @@ export class TableScene extends Phaser.Scene {
       const btn = this.actionButtons?.[action];
       if (btn) btn.y = newActionY;
     });
-
-    const newHandEndMenuY = HAND_END_MENU_Y + newBottomDy;
-    this.handEndMenuJoinBtn?.setPosition(HAND_END_MENU_JOIN_X, newHandEndMenuY);
-    this.handEndMenuSwitchBtn?.setPosition(HAND_END_MENU_SWITCH_X, newHandEndMenuY);
-    this.handEndMenuExitBtn?.setPosition(HAND_END_MENU_EXIT_X, newHandEndMenuY);
 
     // Raise panel：如果是開的，重新定位；否則初始位置會在下次 open 時自動套用 bottomDy
     if (this.isRaisePanelOpen) {
@@ -1765,6 +1731,18 @@ export class TableScene extends Phaser.Scene {
     const _swBtnY = CENTER_Y + 90;
     this.switchConfirmCancelBtn?.setPosition?.(CENTER_X - 118, _swBtnY + dy);
     this.switchConfirmOkBtn?.setPosition?.(CENTER_X + 118, _swBtnY + dy);
+
+    // Hand end modal
+    this.handEndModalOverlay?.setPosition(layout.centerX, layout.centerY);
+    if (this.handEndModalPanelGrad) this.handEndModalPanelGrad.y = dy;
+    if (this.handEndModalPanel) this.handEndModalPanel.y = dy;
+    if (this.handEndModalMask) this.handEndModalMask.y = dy;
+    this.handEndModalTitleLabel?.setPosition(CENTER_X, HAND_END_MODAL_TITLE_Y + dy);
+    this.handEndModalTitle?.setPosition(CENTER_X, HAND_END_MODAL_TITLE_Y + 8 + dy);
+    this.handEndModalBody?.setPosition(CENTER_X, CENTER_Y - 20 + dy);
+    this.handEndMenuJoinBtn?.setPosition?.(HAND_END_MODAL_JOIN_X, HAND_END_MODAL_BTN_Y + dy);
+    this.handEndMenuSwitchBtn?.setPosition?.(HAND_END_MODAL_SWITCH_X, HAND_END_MODAL_BTN_Y + dy);
+    this.handEndMenuExitBtn?.setPosition?.(HAND_END_MODAL_EXIT_X, HAND_END_MODAL_BTN_Y + dy);
 
     // Hero waiting prompt
     this.heroWaitPromptOverlay?.setPosition(layout.centerX, layout.centerY);
@@ -1962,6 +1940,11 @@ export class TableScene extends Phaser.Scene {
     this.handResultTitleLabel?.setVisible(false);
     this.handResultTitle?.setVisible(false);
     this.handResultHint?.setVisible(false);
+    this.changeTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
+    this.exitTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
+    if (this.soundSettingsPanel?.triggerButton) {
+      this.soundSettingsPanel.triggerButton.setDepth(220);
+    }
 
     if (this._pendingLeaveAfterHandResult) {
       this._pendingLeaveAfterHandResult = false;
@@ -2062,6 +2045,11 @@ export class TableScene extends Phaser.Scene {
       },
     });
     this.app?.playVoiceByKey?.("voice_congrats_winner");
+    this.changeTableButton?.setDepth(HAND_RESULT_OVERLAY_DEPTH - 1);
+    this.exitTableButton?.setDepth(HAND_RESULT_OVERLAY_DEPTH - 1);
+    if (this.soundSettingsPanel?.triggerButton) {
+      this.soundSettingsPanel.triggerButton.setDepth(HAND_RESULT_OVERLAY_DEPTH - 1);
+    }
     this.handResultOverlay?.setVisible(true);
     this.handResultPanel?.setVisible(true);
     this.handResultPanelBorder?.setVisible(true);
@@ -2831,6 +2819,121 @@ export class TableScene extends Phaser.Scene {
     this.switchConfirmOkBtn?.setVisible(false);
   }
 
+  buildHandEndModal() {
+    const W = HAND_END_MODAL_WIDTH;
+    const H = HAND_END_MODAL_HEIGHT;
+    const cr = HAND_END_MODAL_CORNER;
+    const L = CENTER_X - W / 2;
+    const T = CENTER_Y - H / 2;
+
+    this.handEndModalOverlay = this.add
+      .rectangle(layout.centerX, layout.centerY, 4000, 4000, 0x000000, 0.6)
+      .setDepth(HAND_END_MODAL_OVERLAY_DEPTH)
+      .setVisible(false);
+
+    const maskGfx = this.make.graphics({ add: false });
+    maskGfx.fillStyle(0xffffff);
+    maskGfx.fillRoundedRect(L, T, W, H, cr);
+    this.handEndModalMask = maskGfx;
+
+    const panelGrad = this.add.graphics();
+    panelGrad.fillGradientStyle(0x680c15, 0x680c15, 0x170202, 0x170202, 0.97, 0.97, 0.97, 0.97);
+    panelGrad.fillRect(L, T, W, H);
+    panelGrad.setMask(maskGfx.createGeometryMask());
+    panelGrad.setDepth(HAND_END_MODAL_PANEL_DEPTH).setVisible(false);
+    this.handEndModalPanelGrad = panelGrad;
+
+    const panelBorder = this.add.graphics();
+    drawEnhancedBorder(panelBorder, L, T, W, H, cr);
+    panelBorder.setDepth(HAND_END_MODAL_PANEL_DEPTH - 0.5).setVisible(false);
+    this.handEndModalPanel = panelBorder;
+
+    this.handEndModalTitleLabel = this.add
+      .image(CENTER_X, HAND_END_MODAL_TITLE_Y, "game_table", "title_label")
+      .setOrigin(0.5)
+      .setDisplaySize(320, 112)
+      .setDepth(HAND_END_MODAL_TEXT_DEPTH - 0.5)
+      .setVisible(false);
+
+    this.handEndModalTitle = this.add
+      .text(CENTER_X, HAND_END_MODAL_TITLE_Y + 8, "系統通知", {
+        fontSize: "34px", color: "#f0c040", fontStyle: "bold",
+        fontFamily: UI_FONT_STACK, stroke: "#000000", strokeThickness: 1,
+      })
+      .setOrigin(0.5)
+      .setDepth(HAND_END_MODAL_TEXT_DEPTH)
+      .setVisible(false);
+    applyGoldTitleGradient(this.handEndModalTitle);
+
+    this.handEndModalBody = this.add
+      .text(CENTER_X, CENTER_Y - 20, "親愛的玩家，是否繼續遊戲？", {
+        fontSize: "26px", color: "#e8d2ad", fontFamily: UI_FONT_STACK, align: "center",
+      })
+      .setOrigin(0.5)
+      .setDepth(HAND_END_MODAL_TEXT_DEPTH)
+      .setVisible(false);
+
+    const _btnStyle = { fontSize: "26px", color: "#fff8e0", fontStyle: "bold", fontFamily: UI_FONT_STACK };
+    this.handEndMenuJoinBtn = createGradientButton(this, {
+      x: HAND_END_MODAL_JOIN_X, y: HAND_END_MODAL_BTN_Y,
+      width: HAND_END_MODAL_JOIN_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
+      topColor: 0x3db428, bottomColor: 0x145018, borderColor: 0x1aed30,
+      label: "進入下局", labelStyle: _btnStyle,
+      depth: HAND_END_MODAL_TEXT_DEPTH,
+      onClick: () => { this._handEndMenuEnd = 0; this.refreshHandEndMenu(); },
+      visible: false,
+    });
+    this.handEndMenuSwitchBtn = createGradientButton(this, {
+      x: HAND_END_MODAL_SWITCH_X, y: HAND_END_MODAL_BTN_Y,
+      width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
+      topColor: 0x1a5aaa, bottomColor: 0x0a2855, borderColor: 0x3d90f5,
+      label: "換桌", labelStyle: _btnStyle,
+      depth: HAND_END_MODAL_TEXT_DEPTH,
+      onClick: () => {
+        this._handEndMenuEnd = 0;
+        const heroSeat = this.resolveHeroSeatForDisplay(this.state?.table);
+        const heroPlayer = heroSeat !== null && Array.isArray(this.state?.table?.players)
+          ? this.state.table.players.find(p => isSameSeat(p?.seat, heroSeat)) : null;
+        const heroChips = Number(heroPlayer?.chips ?? 0);
+        const minBuyin = Number(this.state?.table?.min_buyin ?? 0);
+        if (minBuyin > 0 && heroChips < minBuyin) {
+          this._pendingSwitchAfterRebuy = true;
+          this._pendingSwitchMidHand = false;
+          this._rebuyDeclined = false;
+          const offer = this.state?.rebuyOffer || {
+            table_id: this.state?.table?.table_id,
+            current_chips: heroChips,
+            min_buyin: minBuyin,
+            max_buyin: Number(this.state?.table?.max_buyin ?? minBuyin),
+            default_buyin: minBuyin,
+          };
+          this.renderRebuyModal(offer);
+          return;
+        }
+        this.store.beginSwitchRoom?.();
+        const buyin = this.resolveSwitchRoomBuyin();
+        this.app.sendPacket("switch_room", { buyin });
+      },
+      visible: false,
+    });
+    this.handEndMenuExitBtn = createGradientButton(this, {
+      x: HAND_END_MODAL_EXIT_X, y: HAND_END_MODAL_BTN_Y,
+      width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
+      topColor: 0xc02828, bottomColor: 0x6a1010, borderColor: 0xd43535,
+      label: "結束", labelStyle: _btnStyle,
+      depth: HAND_END_MODAL_TEXT_DEPTH,
+      onClick: () => {
+        this._handEndMenuEnd = 0;
+        const currentTableId = this.store.getState?.().table?.table_id ?? null;
+        const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
+        this.store.beginLeaveTable?.(currentTableId);
+        this.app.sendPacket("leave_room", {});
+        this.app.sendPacket("enter_game", { game_id: _gameId });
+      },
+      visible: false,
+    });
+  }
+
   buildHeroWaitingJoinPrompt() {
     const W = 520;
     const H = 280;
@@ -3529,13 +3632,37 @@ export class TableScene extends Phaser.Scene {
     const show = secsLeft > 0 && !isPlaying && !rebuyOpen && !this.isHandResultModalOpen;
 
     if (!show) {
+      this.handEndModalOverlay?.setVisible(false).disableInteractive();
+      this.handEndModalPanelGrad?.setVisible(false);
+      this.handEndModalPanel?.setVisible(false);
+      this.handEndModalTitleLabel?.setVisible(false);
+      this.handEndModalTitle?.setVisible(false);
+      this.handEndModalBody?.setVisible(false);
       this.handEndMenuJoinBtn?.setVisible(false);
       this.handEndMenuSwitchBtn?.setVisible(false);
       this.handEndMenuExitBtn?.setVisible(false);
+      if (!this.isHandResultModalOpen) {
+        this.changeTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
+        this.exitTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
+        if (this.soundSettingsPanel?.triggerButton) {
+          this.soundSettingsPanel.triggerButton.setDepth(220);
+        }
+      }
       return;
     }
 
     this.handEndMenuJoinBtn?.setLabel(`進入下局(${secsLeft})`);
+    this.changeTableButton?.setDepth(HAND_END_MODAL_OVERLAY_DEPTH - 1);
+    this.exitTableButton?.setDepth(HAND_END_MODAL_OVERLAY_DEPTH - 1);
+    if (this.soundSettingsPanel?.triggerButton) {
+      this.soundSettingsPanel.triggerButton.setDepth(HAND_END_MODAL_OVERLAY_DEPTH - 1);
+    }
+    this.handEndModalOverlay?.setVisible(true).setInteractive();
+    this.handEndModalPanelGrad?.setVisible(true);
+    this.handEndModalPanel?.setVisible(true);
+    this.handEndModalTitleLabel?.setVisible(true);
+    this.handEndModalTitle?.setVisible(true);
+    this.handEndModalBody?.setVisible(true);
     this.handEndMenuJoinBtn?.setVisible(true);
     this.handEndMenuSwitchBtn?.setVisible(true);
     this.handEndMenuExitBtn?.setVisible(true);
@@ -5299,7 +5426,7 @@ export class TableScene extends Phaser.Scene {
       this.rebuySliderFill.fillStyle(REBUY_SLIDER_FILL_COLOR, 1);
       this.rebuySliderFill.fillRoundedRect(0, -_rfr, fillWidth, REBUY_SLIDER_TRACK_HEIGHT, _rfr);
     }
-    this.rebuySliderKnob.setPosition(knobX, REBUY_SLIDER_Y);
+    this.rebuySliderKnob.setPosition(knobX, REBUY_SLIDER_Y + (this.modalDy || 0));
     const sliderAlpha = model.isSliderMovable ? 1 : 0.5;
     this.rebuySliderTrack.setAlpha(sliderAlpha);
     this.rebuySliderFill.setAlpha(sliderAlpha);
