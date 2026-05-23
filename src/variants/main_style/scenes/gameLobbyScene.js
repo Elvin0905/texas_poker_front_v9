@@ -197,7 +197,7 @@ export class GameLobbyScene extends Phaser.Scene {
     this.roomScrollContainer.add(this.add.graphics({ x: 83, y: 97 }).fillStyle(0x1c0508, 1).fillCircle(0, 0, 69));
     this.avatarImage = this.add.image(83, 97, "avatar_element", "avatar_001").setDisplaySize(124, 124);
     this.roomScrollContainer.add(this.avatarImage);
-    this.roomScrollContainer.add(this.add.image(83, 97, "game_table", "profile_frame_on").setDisplaySize(170, 170));
+    this.roomScrollContainer.add(this.add.image(83, 97, "game_table", "profile_frame_off").setDisplaySize(170, 170));
     this.nicknameText = this.add
       .text(168, 78, "-", {
         fontFamily: UI_FONT_STACK,
@@ -1255,11 +1255,6 @@ export class GameLobbyScene extends Phaser.Scene {
 
   showBuyinModalForStake(stake) {
     if (!stake) {
-      return;
-    }
-    const _s = this.store?.getState?.() ?? {};
-    if (_s.heroSeat != null) {
-      this.store?.applyPacket?.({ type: "error", data: { code: "GAME_IN_PROGRESS", message: "遊戲進行中，\n請耐心等待遊戲結束後才可進入！" } });
       return;
     }
     this.buyinModalVisible = true;

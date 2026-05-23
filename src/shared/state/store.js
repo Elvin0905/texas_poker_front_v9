@@ -539,7 +539,7 @@ export class Store extends EventTarget {
       case "table_joined":
         this.endLeaveTableFlow();
         this.state.page = "table";
-        this.state.lastLeftTableId = null;
+            this.state.lastLeftTableId = null;
         this.state.handResult = null;
         this.state.handResultEventKey = "";
         this.state.actionRequest = null;
@@ -687,7 +687,7 @@ export class Store extends EventTarget {
 
         if (!_isStaleAfterLeave) {
           this.state.page = "table";
-        }
+              }
         if (hasValidHeroSeat) {
           this.state.heroSeat = nextHeroSeat;
         } else if (derivedHeroSeat !== null) {

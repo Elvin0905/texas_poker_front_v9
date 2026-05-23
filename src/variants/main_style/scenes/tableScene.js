@@ -3768,7 +3768,10 @@ export class TableScene extends Phaser.Scene {
 
   refreshHeroJoinWaitText() {
     const heroSeat = this.state?.heroSeat ?? null;
-    const isPlaying = this.state?.table?.status === "playing";
+    const tableStatus = String(this.state?.table?.status || "").toLowerCase();
+    const isPlaying = tableStatus === "playing" || tableStatus === "preflop"
+      || tableStatus === "flop" || tableStatus === "turn" || tableStatus === "river"
+      || !!this.state?.actionRequest;
     const countdownStarted = this.hadCountdownForCurrentTable || this.nextHandCountdownEnd > 0;
     const anyModalOpen = this.isHandResultModalOpen
       || (this.handEndModalOverlay?.visible === true)
@@ -5239,6 +5242,7 @@ export class TableScene extends Phaser.Scene {
       if (isNewHandStarted) {
         const _prevHintHandId = this.lastHintHandId;
         this.lastHintHandId = currentHintHandId;
+        this.nextHandCountdownEnd = 0;
         this.clearShowdownFlipTimers();
         this.showdownAnimatedSet = new Set();
         // Force-clear all community card slots (including any mid-animation pendingCards).

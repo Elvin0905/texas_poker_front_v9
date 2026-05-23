@@ -158,7 +158,7 @@ export class LobbyScene extends Phaser.Scene {
     this.pageScrollContainer.add(this.add.graphics({ x: 81, y: INFO_Y }).fillStyle(0x1c0508, 1).fillCircle(0, 0, 60));
     this.avatarImage = this.add.image(81, INFO_Y, "avatar_element", "avatar_1").setDisplaySize(120, 120);
     this.pageScrollContainer.add(this.avatarImage);
-    this.pageScrollContainer.add(this.add.image(81, INFO_Y, "game_table", "profile_frame_on").setDisplaySize(168, 168));
+    this.pageScrollContainer.add(this.add.image(81, INFO_Y, "game_table", "profile_frame_off").setDisplaySize(168, 168));
     this.nicknameText = this.add.text(165, INFO_Y - 18, "-", {
       fontFamily: "sans-serif", fontSize: "30px", fontStyle: "bold", color: "#ffc000",
     }).setOrigin(0, 0.5);
