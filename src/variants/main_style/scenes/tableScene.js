@@ -2163,7 +2163,7 @@ export class TableScene extends Phaser.Scene {
         isHeroRow ? HAND_RESULT_ROW_HERO_BOT : HAND_RESULT_ROW_NORMAL_BOT,
         1, 1, 1, 1,
       );
-      bg.fillRoundedRect(rowL, rowT, HAND_RESULT_ROW_WIDTH, HAND_RESULT_ROW_HEIGHT, HAND_RESULT_ROW_CORNER);
+      bg.fillRect(rowL, rowT, HAND_RESULT_ROW_WIDTH, HAND_RESULT_ROW_HEIGHT);
       bg.lineStyle(1.5, isHeroRow ? 0xc84050 : 0x6a1828, 0.7);
       bg.strokeRoundedRect(rowL, rowT, HAND_RESULT_ROW_WIDTH, HAND_RESULT_ROW_HEIGHT, HAND_RESULT_ROW_CORNER);
 
