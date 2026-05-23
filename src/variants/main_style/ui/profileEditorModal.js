@@ -285,7 +285,7 @@ export class ProfileEditorModal {
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
     this.emailVerifyBtn = createGradientButton(scene, {
-      x: 545, y: 320, width: 70, height: 50, cornerRadius: 8,
+      x: 530, y: 320, width: 70, height: 50, cornerRadius: 8,
       topColor: 0x1a4d99, bottomColor: 0x0d2e5e, borderColor: 0x2a7dd9,
       label: "編輯",
       labelStyle: { fontSize: "16px", color: "#fff" },
@@ -320,7 +320,7 @@ export class ProfileEditorModal {
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
     this.phoneVerifyBtn = createGradientButton(scene, {
-      x: 515, y: 385, width: 70, height: 50, cornerRadius: 8,
+      x: 530, y: 385, width: 70, height: 50, cornerRadius: 8,
       topColor: 0x1a4d99, bottomColor: 0x0d2e5e, borderColor: 0x2a7dd9,
       label: "編輯",
       labelStyle: { fontSize: "16px", color: "#fff" },
@@ -355,7 +355,7 @@ export class ProfileEditorModal {
       .setVisible(false);
 
     this.nicknameConfirmBtn = createGradientButton(scene, {
-      x: 515, y: 450, width: 70, height: 50, cornerRadius: 8,
+      x: 530, y: 450, width: 70, height: 50, cornerRadius: 8,
       topColor: 0x1a4d99, bottomColor: 0x0d2e5e, borderColor: 0x2a7dd9,
       label: "編輯",
       labelStyle: { fontSize: "16px", color: "#fff" },
@@ -523,15 +523,15 @@ export class ProfileEditorModal {
     this.cancelButton?.setPosition?.(470, 1170 + this.dy);
     this.emailValueText?.setPosition?.(210, 320 + this.dy);
     this.emailInputBg?.setPosition?.(330, 320 + this.dy);
-    this.emailVerifyBtn?.setPosition?.(545, 320 + this.dy);
+    this.emailVerifyBtn?.setPosition?.(530, 320 + this.dy);
     this.emailConfirmBtn?.setPosition?.(620, 320 + this.dy);
     this.phoneValueText?.setPosition?.(210, 385 + this.dy);
     this.phoneInputBg?.setPosition?.(330, 385 + this.dy);
-    this.phoneVerifyBtn?.setPosition?.(545, 385 + this.dy);
+    this.phoneVerifyBtn?.setPosition?.(530, 385 + this.dy);
     this.phoneConfirmBtn?.setPosition?.(620, 385 + this.dy);
     this.nicknameValueText?.setPosition?.(210, 450 + this.dy);
     this.nicknameInputBg?.setPosition?.(330, 450 + this.dy);
-    this.nicknameConfirmBtn?.setPosition?.(545, 450 + this.dy);
+    this.nicknameConfirmBtn?.setPosition?.(530, 450 + this.dy);
     this._updateAvatarPositions();
     this._syncNickInputPosition();
     this._syncEmailInputPosition();
@@ -565,6 +565,7 @@ export class ProfileEditorModal {
     }
     this.genderValueText?.setText(String(user?.gender || "男"));
     this._resetEditModes();
+    this.setOffset(this.dy, this.centerX, this.centerY);
     this._avatarInputBlocked = true;
     this.scene.time.delayedCall(350, () => { this._avatarInputBlocked = false; });
     this.setVisible(true);

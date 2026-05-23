@@ -277,7 +277,7 @@ const HAND_RESULT_NEUTRAL_COLOR = "#e8d2ad";
 const HAND_RESULT_FOLD_COLOR = "#b8c1cc";
 const HAND_RESULT_TITLE_FONT_SIZE = "42px";
 const HAND_RESULT_ROW_FONT_SIZE = "26px";
-const HAND_RESULT_HINT_FONT_SIZE = "26px";
+const HAND_RESULT_HINT_FONT_SIZE = "28px";
 const HAND_RESULT_HINT_Y = 1135;
 const HAND_RESULT_AUTO_CLOSE_SECONDS = 6;
 const HAND_RESULT_TITLE_OUTLINE_STYLE = { stroke: "#3a1a00", strokeThickness: 2 };
@@ -696,6 +696,7 @@ export class TableScene extends Phaser.Scene {
     this.hadCountdownForCurrentTable = false;
     this.lastSeenHandEndSeq = 0;
     this.lastRenderedTableId = null;
+    this._heroPlayedCurrentHand = false;
     this.newRoundHintTimer = null;
 
     this.roundBetCollectFx = [];
@@ -780,7 +781,7 @@ export class TableScene extends Phaser.Scene {
     this.lastSeenHandResultVersion = Number(this.store.getState?.().handResultVersion ?? 0);
 
     this.bgImage = this.add.image(layout.centerX, layout.centerY, "game_table", "bg").setDisplaySize(layout.width, layout.height).setDepth(BG_DEPTH);
-    const tableImg = this.add.image(CENTER_X + 10, CENTER_Y - 20, "game_table", "tbale").setDisplaySize(TABLE_DISPLAY_WIDTH, TABLE_DISPLAY_HEIGHT).setDepth(TABLE_DEPTH);
+    const tableImg = this.add.image(CENTER_X + 10, TABLE_HINT_TEXT_Y + 150, "game_table", "tbale").setDisplaySize(TABLE_DISPLAY_WIDTH, TABLE_DISPLAY_HEIGHT).setDepth(TABLE_DEPTH);
     tableImg.postFX.addShadow(2, 10, 0.005, 2.5, 0x000000, 8, 0.85);
 
     this.bgm = this.sound.get("bgm_main");
@@ -1024,6 +1025,18 @@ export class TableScene extends Phaser.Scene {
       .setAlpha(0.88)
       .setVisible(false);
 
+    this.heroJoinWaitText = this.add
+      .text(CENTER_X, TABLE_HINT_TEXT_Y, "等待其他玩家確認中", {
+        fontSize: "30px",
+        color: "#f4deba",
+        fontStyle: "bold",
+        fontFamily: UI_FONT_STACK,
+        shadow: { offsetX: 0, offsetY: 2, color: "#000000", blur: 10, fill: true },
+      })
+      .setOrigin(0.5)
+      .setDepth(51)
+      .setVisible(false);
+
     this.betFlyPool = Array.from({ length: 6 }, () =>
       this.add.image(0, 0, DEAL_CARD_ATLAS_KEY, "token_red")
         .setDisplaySize(28, 28)
@@ -1092,6 +1105,7 @@ export class TableScene extends Phaser.Scene {
         this.refreshTurnCountdownOverlay();
         this.refreshNextHandCountdown();
         this.refreshHandEndMenu();
+        this.refreshHeroJoinWaitText();
       },
     });
     this.countdownSfxSound = this.cache.audio.exists(COUNTDOWN_TIMER_SFX_KEY)
@@ -1543,8 +1557,8 @@ export class TableScene extends Phaser.Scene {
       .rectangle(layout.centerX, layout.centerY, 4000, 4000, OVERLAY_COLOR, HAND_RESULT_OVERLAY_ALPHA)
       .setDepth(HAND_RESULT_OVERLAY_DEPTH)
       .setVisible(false);
-    this.handResultOverlay.setInteractive({ useHandCursor: true });
-    this.handResultOverlay.on("pointerdown", () => this.closeHandResultModal());
+    this.handResultOverlay.setInteractive({ useHandCursor: false });
+    this.handResultOverlay.on("pointerdown", () => {});
 
     {
       const pL = HAND_RESULT_PANEL_X - HAND_RESULT_PANEL_WIDTH / 2;
@@ -1744,6 +1758,9 @@ export class TableScene extends Phaser.Scene {
     this.handEndMenuSwitchBtn?.setPosition?.(HAND_END_MODAL_SWITCH_X, HAND_END_MODAL_BTN_Y + dy);
     this.handEndMenuExitBtn?.setPosition?.(HAND_END_MODAL_EXIT_X, HAND_END_MODAL_BTN_Y + dy);
 
+    // Hero join wait text (fixed position, no dy — same as nextHandCountdown)
+    this.heroJoinWaitText?.setPosition(CENTER_X, TABLE_HINT_TEXT_Y);
+
     // Hero waiting prompt
     this.heroWaitPromptOverlay?.setPosition(layout.centerX, layout.centerY);
     if (this.heroWaitPromptGrad) this.heroWaitPromptGrad.y = dy;
@@ -1940,12 +1957,6 @@ export class TableScene extends Phaser.Scene {
     this.handResultTitleLabel?.setVisible(false);
     this.handResultTitle?.setVisible(false);
     this.handResultHint?.setVisible(false);
-    this.changeTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
-    this.exitTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
-    if (this.soundSettingsPanel?.triggerButton) {
-      this.soundSettingsPanel.triggerButton.setDepth(220);
-    }
-
     if (this._pendingLeaveAfterHandResult) {
       this._pendingLeaveAfterHandResult = false;
       const currentTableId = this.store.getState?.().table?.table_id ?? null;
@@ -2027,7 +2038,7 @@ export class TableScene extends Phaser.Scene {
     this.clearHandResultRows();
     this.isHandResultModalOpen = true;
     this.handResultAutoCloseEndAt = Date.now() + HAND_RESULT_AUTO_CLOSE_SECONDS * 1000;
-    this.handResultHint?.setText(`點擊任意處關閉（${HAND_RESULT_AUTO_CLOSE_SECONDS} 秒）`);
+    this.handResultHint?.setText(`彈窗倒數（${HAND_RESULT_AUTO_CLOSE_SECONDS}）秒 自動關閉`);
     if (this.handResultAutoCloseTimer) {
       this.handResultAutoCloseTimer.remove();
     }
@@ -2038,18 +2049,14 @@ export class TableScene extends Phaser.Scene {
       callback: () => {
         autoCloseDisplaySecs = Math.max(0, autoCloseDisplaySecs - 1);
         if (autoCloseDisplaySecs > 0) {
-          this.handResultHint?.setText(`點擊任意處關閉（${autoCloseDisplaySecs} 秒）`);
+          this.handResultHint?.setText(`彈窗倒數（${autoCloseDisplaySecs}）秒 自動關閉`);
         } else {
           this.closeHandResultModal();
         }
       },
     });
     this.app?.playVoiceByKey?.("voice_congrats_winner");
-    this.changeTableButton?.setDepth(HAND_RESULT_OVERLAY_DEPTH - 1);
-    this.exitTableButton?.setDepth(HAND_RESULT_OVERLAY_DEPTH - 1);
-    if (this.soundSettingsPanel?.triggerButton) {
-      this.soundSettingsPanel.triggerButton.setDepth(HAND_RESULT_OVERLAY_DEPTH - 1);
-    }
+    this._refreshTopButtonsState();
     this.handResultOverlay?.setVisible(true);
     this.handResultPanel?.setVisible(true);
     this.handResultPanelBorder?.setVisible(true);
@@ -3616,6 +3623,29 @@ export class TableScene extends Phaser.Scene {
     return null;
   }
 
+  _refreshTopButtonsState() {
+    const isReplayActive = Boolean(this.app?.isHandReplayActive?.());
+    const fullyHide = this.isHandResultModalOpen || (this.handEndModalOverlay?.visible === true);
+    const behindModal = !fullyHide && (this.rebuyOverlay?.visible === true);
+
+    const showButtons = !isReplayActive && !fullyHide;
+    this.changeTableButton?.setVisible(showButtons);
+    this.exitTableButton?.setVisible(showButtons);
+    if (this.soundSettingsPanel?.triggerButton) {
+      this.soundSettingsPanel.triggerButton.setVisible(!fullyHide);
+    }
+
+    if (behindModal) {
+      this.changeTableButton?.setDepth(REBUY_OVERLAY_DEPTH - 1);
+      this.exitTableButton?.setDepth(REBUY_OVERLAY_DEPTH - 1);
+      if (this.soundSettingsPanel?.triggerButton) this.soundSettingsPanel.triggerButton.setDepth(REBUY_OVERLAY_DEPTH - 1);
+    } else if (!fullyHide) {
+      this.changeTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
+      this.exitTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
+      if (this.soundSettingsPanel?.triggerButton) this.soundSettingsPanel.triggerButton.setDepth(220);
+    }
+  }
+
   refreshHandEndMenu() {
     const seq = this.state?.handEndSeq ?? 0;
     const nextEventIn = this.state?.handEndNextEventIn ?? 0;
@@ -3629,9 +3659,10 @@ export class TableScene extends Phaser.Scene {
     const secsLeft = endAt > 0 ? Math.max(0, Math.ceil((endAt - Date.now()) / 1000)) : 0;
     const isPlaying = this.state?.table?.status === "playing";
     const rebuyOpen = this.rebuyOverlay?.visible === true;
-    const show = secsLeft > 0 && !isPlaying && !rebuyOpen && !this.isHandResultModalOpen;
+    const show = secsLeft > 0 && !isPlaying && !rebuyOpen && !this.isHandResultModalOpen && this._heroPlayedCurrentHand;
 
     if (!show) {
+      const _wasVisible = this.handEndModalOverlay?.visible === true;
       this.handEndModalOverlay?.setVisible(false).disableInteractive();
       this.handEndModalPanelGrad?.setVisible(false);
       this.handEndModalPanel?.setVisible(false);
@@ -3641,22 +3672,20 @@ export class TableScene extends Phaser.Scene {
       this.handEndMenuJoinBtn?.setVisible(false);
       this.handEndMenuSwitchBtn?.setVisible(false);
       this.handEndMenuExitBtn?.setVisible(false);
-      if (!this.isHandResultModalOpen) {
-        this.changeTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
-        this.exitTableButton?.setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10);
-        if (this.soundSettingsPanel?.triggerButton) {
-          this.soundSettingsPanel.triggerButton.setDepth(220);
+      this._refreshTopButtonsState();
+      // If menu just closed, start next hand countdown now if server still has seconds
+      if (_wasVisible && this.nextHandCountdownEnd <= 0) {
+        const pendingSecs = this.state?.nextHandCountdownSeconds ?? 0;
+        if (pendingSecs > 0) {
+          this.nextHandCountdownEnd = Date.now() + pendingSecs * 1000;
+          this.hadCountdownForCurrentTable = true;
         }
       }
       return;
     }
 
     this.handEndMenuJoinBtn?.setLabel(`進入下局(${secsLeft})`);
-    this.changeTableButton?.setDepth(HAND_END_MODAL_OVERLAY_DEPTH - 1);
-    this.exitTableButton?.setDepth(HAND_END_MODAL_OVERLAY_DEPTH - 1);
-    if (this.soundSettingsPanel?.triggerButton) {
-      this.soundSettingsPanel.triggerButton.setDepth(HAND_END_MODAL_OVERLAY_DEPTH - 1);
-    }
+    this._refreshTopButtonsState();
     this.handEndModalOverlay?.setVisible(true).setInteractive();
     this.handEndModalPanelGrad?.setVisible(true);
     this.handEndModalPanel?.setVisible(true);
@@ -3685,6 +3714,17 @@ export class TableScene extends Phaser.Scene {
 
     const elapsedSeconds = (Date.now() - startedAt) / 1000;
     return Math.max(0, Math.ceil(timeout - elapsedSeconds));
+  }
+
+  refreshHeroJoinWaitText() {
+    const heroSeat = this.state?.heroSeat ?? null;
+    const isPlaying = this.state?.table?.status === "playing";
+    const countdownStarted = this.hadCountdownForCurrentTable || this.nextHandCountdownEnd > 0;
+    const anyModalOpen = this.isHandResultModalOpen
+      || (this.handEndModalOverlay?.visible === true)
+      || (this.rebuyOverlay?.visible === true);
+    const show = heroSeat !== null && !isPlaying && !countdownStarted && !anyModalOpen;
+    this.heroJoinWaitText?.setVisible(show);
   }
 
   refreshNextHandCountdown() {
@@ -4690,8 +4730,6 @@ export class TableScene extends Phaser.Scene {
     const isReplayFast = Boolean(this.app?.isHandReplayFastMode?.());
     this.exitReplayButton?.setVisible(isReplayActive);
     this.replaySpeedButton?.setVisible(isReplayActive);
-    this.changeTableButton?.setVisible(!isReplayActive);
-    this.exitTableButton?.setVisible(!isReplayActive);
     if (this.replaySpeedButton && isReplayActive) {
       this.replaySpeedButton.setLabel(isReplayFast ? "加速：開" : "加速：關");
       if (isReplayFast) {
@@ -4728,6 +4766,8 @@ export class TableScene extends Phaser.Scene {
         this.hadCountdownForCurrentTable = false;
         this.nextHandCountdownEnd = 0;
         this._handEndMenuEnd = 0;
+        this._heroPlayedCurrentHand = false;
+        this.heroJoinWaitText?.setVisible(false);
         this.lastRoundSnapshot = null;
       }
       if (currentRenderedTableId !== "") {
@@ -5305,6 +5345,9 @@ export class TableScene extends Phaser.Scene {
 
     if (hasPendingHandResult) {
       this.lastSeenHandResultVersion = handResultVersion;
+      const _heroSeatForResult = parseSeat(this.state?.heroSeat);
+      const _playerResults = Array.isArray(this.state?.handResult?.player_results) ? this.state.handResult.player_results : [];
+      this._heroPlayedCurrentHand = _heroSeatForResult !== null && _playerResults.some(r => parseSeat(r?.seat) === _heroSeatForResult);
       if (this.winGifIsPlaying) {
         this.pendingHandResult = this.state.handResult;
       } else {
@@ -5318,14 +5361,18 @@ export class TableScene extends Phaser.Scene {
     }
 
     const countdownSecs = this.state?.nextHandCountdownSeconds ?? 0;
+    const handEndMenuActive = this._handEndMenuEnd > 0 && this._handEndMenuEnd > Date.now();
     if (countdownSecs > 0) {
-      if (this.nextHandCountdownEnd <= 0) {
+      if (this.nextHandCountdownEnd <= 0 && !handEndMenuActive) {
         this.nextHandCountdownEnd = Date.now() + countdownSecs * 1000;
         this.hadCountdownForCurrentTable = true;
       }
     } else if (countdownSecs <= 0) {
       this.nextHandCountdownEnd = 0;
     }
+
+    this._refreshTopButtonsState();
+    this.refreshHeroJoinWaitText();
   }
 
   buildRebuyOfferSignature(offer) {
