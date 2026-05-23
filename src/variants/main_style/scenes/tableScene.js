@@ -3723,8 +3723,19 @@ export class TableScene extends Phaser.Scene {
     const anyModalOpen = this.isHandResultModalOpen
       || (this.handEndModalOverlay?.visible === true)
       || (this.rebuyOverlay?.visible === true);
-    const show = heroSeat !== null && !isPlaying && !countdownStarted && !anyModalOpen;
-    this.heroJoinWaitText?.setVisible(show);
+    if (heroSeat === null || isPlaying || anyModalOpen) {
+      this.heroJoinWaitText?.setVisible(false);
+      return;
+    }
+    const seatedCount = Array.isArray(this.state?.table?.players) ? this.state.table.players.length : 0;
+    const enoughPlayers = seatedCount >= 2;
+    if (!enoughPlayers) {
+      this.heroJoinWaitText?.setText("等待足數玩家開局").setVisible(true);
+    } else if (!countdownStarted) {
+      this.heroJoinWaitText?.setText("等待其他玩家確認中").setVisible(true);
+    } else {
+      this.heroJoinWaitText?.setVisible(false);
+    }
   }
 
   refreshNextHandCountdown() {
