@@ -653,8 +653,9 @@ export class ProfileEditorModal {
     const root = document.getElementById("phaser-root");
     if (!root) return;
     const vv = window.visualViewport;
-    const visibleH = vv ? vv.height : window.innerHeight;
-    const keyboardH = Math.max(0, this._initWindowH - visibleH);
+    const baseH = Math.max(window.innerHeight, this._initWindowH);
+    const visibleH = vv ? vv.height : baseH;
+    const keyboardH = Math.max(0, baseH - visibleH);
     if (keyboardH < 80) {
       if (this._kbOffset > 0) {
         this._kbOffset = 0;
@@ -669,7 +670,7 @@ export class ProfileEditorModal {
       const anchorPhysY = (590 + this.dy) * physScale;
       const autoShift = Math.max(0, Math.ceil(anchorPhysY - (visibleH - 24)));
       if (autoShift > 0) {
-        this._kbOffset = Math.min(autoShift, keyboardH);
+        this._kbOffset = Math.min(autoShift, keyboardH - 1); // keep canvas bottom hidden below keyboard
         root.style.transition = "none";
         root.style.transform = `translateY(-${this._kbOffset}px)`;
       }
