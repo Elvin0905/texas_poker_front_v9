@@ -1329,6 +1329,8 @@ export class AuthScene extends Phaser.Scene {
     document.querySelectorAll(".lrn-input").forEach(el => el.style.setProperty("display", "none", "important"));
     this._syncInputPositions();
     this._fpShowStep(1);
+    // If keyboard was already open before the modal appeared, reclamp shift immediately
+    if (this._kbOffset > 0) this._adjustForKeyboard(true);
   }
 
   _fpShowStep(step) {
