@@ -864,26 +864,35 @@ export class AuthScene extends Phaser.Scene {
       return;
     }
     const physScale = window.innerWidth / 720;
-    const fpOpen = this._fpOverlay?.visible;
-    // When fp-modal is open: anchor on modal input, cap so modal top stays on screen
-    const anchorPhysY = fpOpen
-      ? (layout.centerY + 40) * physScale    // fp-modal bottom input
-      : (layout.centerY + 183) * physScale;  // login form bottom
-    const fpModalCapOffset = fpOpen
-      ? Math.max(0, Math.floor((layout.centerY - (this._fpPH ?? 460) / 2) * physScale) - 10)
-      : keyboardH;
-    this._kbMaxOffset = Math.min(keyboardH, fpModalCapOffset);
     if (this._kbOverlay) this._kbOverlay.style.display = 'block';
-    // Reclamp existing offset in case user dragged before opening fp-modal
+
+    if (this._fpOverlay?.visible) {
+      // fp-modal open: shift just enough to show modal input, never expose canvas bottom
+      const fpInputPhysY = (layout.centerY + 20) * physScale;
+      const modalTopCap = Math.max(0, Math.floor((layout.centerY - (this._fpPH ?? 460) / 2) * physScale) - 10);
+      let target = Math.max(0, Math.ceil(fpInputPhysY - (visibleH - 40)));
+      target = Math.min(target, modalTopCap, keyboardH - 1); // never expose canvas bottom
+      this._kbMaxOffset = target;
+      if (this._kbOffset !== target) {
+        this._kbOffset = target;
+        root.style.transition = 'none';
+        root.style.transform = target > 0 ? `translateY(-${target}px)` : '';
+        this._syncInputPositions();
+      }
+      return;
+    }
+
+    // Normal login form shift
+    const anchorPhysY = (layout.centerY + 183) * physScale;
+    this._kbMaxOffset = keyboardH;
     if (this._kbOffset > this._kbMaxOffset) {
       this._kbOffset = this._kbMaxOffset;
       root.style.transition = 'none';
-      root.style.transform = this._kbOffset > 0 ? `translateY(-${this._kbOffset}px)` : '';
+      root.style.transform = `translateY(-${this._kbOffset}px)`;
       this._syncInputPositions();
     }
     if (this._kbOffset === 0) {
-      let autoShift = Math.max(0, Math.ceil(anchorPhysY - (visibleH - 24)));
-      autoShift = Math.min(autoShift, this._kbMaxOffset);
+      const autoShift = Math.min(Math.max(0, Math.ceil(anchorPhysY - (visibleH - 24))), keyboardH);
       if (autoShift > 0) {
         this._kbOffset = autoShift;
         root.style.transition = 'none';
