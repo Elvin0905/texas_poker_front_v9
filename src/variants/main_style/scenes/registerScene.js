@@ -546,7 +546,7 @@ export class RegisterScene extends Phaser.Scene {
   _buildHtmlInputs() {
     this._phoneCodeEl = this._makePhoneCodeEl();
 
-    this._emailEl = this._makeEl("reg-email", "text", "請輸入信箱或電話號碼", "username");
+    this._emailEl = this._makeEl("reg-email", "text", "輸入信箱或電話號碼", "username");
     this._emailEl.addEventListener("input", () => {
       this.usernameValue = this._emailEl.value;
       if (this._emailVerified) {
@@ -706,14 +706,14 @@ export class RegisterScene extends Phaser.Scene {
       const selLeft = layout.centerX - 268;
       const selW = 128;
       const inputLeft = selLeft + selW + 10;
-      const inputW = layout.centerX + 105 - inputLeft;
+      const inputW = layout.centerX + 155 - inputLeft;
       this._posEl(this._phoneCodeEl, selLeft, this._emailBoxY - 29, selW, 58, scale, ox, oy);
       this._phoneCodeEl.style.removeProperty("display");
       this._posEl(this._emailEl, inputLeft, this._emailBoxY - 29, inputW, 58, scale, ox, oy);
     } else {
       this._phoneCodeEl?.style.setProperty("display", "none", "important");
       const textStartX = layout.centerX - 162;
-      this._posEl(this._emailEl, textStartX, this._emailBoxY - 29, 298, 58, scale, ox, oy);
+      this._posEl(this._emailEl, textStartX, this._emailBoxY - 29, 318, 58, scale, ox, oy);
     }
     const nickStartX = layout.centerX - 162;
     this._posEl(this._nickEl,      nickStartX, this._nickBoxY      - 29, 236, 58, scale, ox, oy);
@@ -733,7 +733,7 @@ export class RegisterScene extends Phaser.Scene {
       top:        Math.round(oy + dy * scale) + "px",
       width:      Math.round(dw * scale) + "px",
       height:     Math.round(dh * scale) + "px",
-      fontSize:   Math.max(16, Math.round(26 * scale)) + "px",
+      fontSize:   Math.max(16, Math.round(24 * scale)) + "px",
       lineHeight: Math.round(dh * scale) + "px",
     });
   }

@@ -543,7 +543,7 @@ export class AuthScene extends Phaser.Scene {
   _buildHtmlInputs() {
     this._phoneCodeEl = this._makePhoneCodeEl();
 
-    this._emailEl = this._makeEl("auth-email", "text", "請輸入信箱或電話號碼", "username");
+    this._emailEl = this._makeEl("auth-email", "text", "輸入信箱或電話號碼", "username");
     this._emailEl.value = this.usernameValue;
     this._emailEl.addEventListener("input", () => {
       this.usernameValue = this._emailEl.value;
