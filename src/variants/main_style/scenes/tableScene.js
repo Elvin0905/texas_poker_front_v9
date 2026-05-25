@@ -3763,6 +3763,8 @@ export class TableScene extends Phaser.Scene {
     if (seatedCount < 3) {
       this.hadCountdownForCurrentTable = false;
       this.nextHandCountdownEnd = 0;
+      this.nextHandCountdownLabel?.setVisible(false);
+      this.nextHandCountdownNum?.setVisible(false);
       this.heroJoinWaitText?.setText("等待足數玩家開局").setVisible(true);
     } else if (!countdownStarted) {
       this.heroJoinWaitText?.setText("等待其他玩家確認中").setVisible(true);
