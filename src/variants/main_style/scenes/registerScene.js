@@ -724,7 +724,7 @@ export class RegisterScene extends Phaser.Scene {
     if (this._verifyCodeEl) {
       const vmBoxY = layout.centerY + 20;
       this._posEl(this._verifyCodeEl, layout.centerX - 142, vmBoxY - 29, 318, 58, scale, ox, oy);
-      this._verifyCodeEl.style.fontSize = Math.max(16, Math.round(26 * scale)) + "px";
+      this._verifyCodeEl.style.fontSize = Math.max(16, Math.round(21 * scale)) + "px";
     }
   }
 
