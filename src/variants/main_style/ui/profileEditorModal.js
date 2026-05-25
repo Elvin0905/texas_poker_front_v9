@@ -236,7 +236,6 @@ export class ProfileEditorModal {
       .setDepth(depth)
       .setVisible(false);
     this.overlay.setInteractive({ useHandCursor: false });
-    this.overlay.on("pointerdown", () => this.close());
 
     this.panelBorder = scene.add.graphics().setDepth(depth + 0.5).setVisible(false);
     drawEnhancedBorder(this.panelBorder, left, PANEL_TOP, PANEL_WIDTH, PANEL_HEIGHT, PANEL_CORNER);
