@@ -864,14 +864,24 @@ export class AuthScene extends Phaser.Scene {
       return;
     }
     const physScale = window.innerWidth / 720;
-    // When fp-modal is open, cap shift so modal top stays on screen
-    const fpModalCapOffset = this._fpOverlay?.visible
+    const fpOpen = this._fpOverlay?.visible;
+    // When fp-modal is open: anchor on modal input, cap so modal top stays on screen
+    const anchorPhysY = fpOpen
+      ? (layout.centerY + 40) * physScale    // fp-modal bottom input
+      : (layout.centerY + 183) * physScale;  // login form bottom
+    const fpModalCapOffset = fpOpen
       ? Math.max(0, Math.floor((layout.centerY - (this._fpPH ?? 460) / 2) * physScale) - 10)
       : keyboardH;
     this._kbMaxOffset = Math.min(keyboardH, fpModalCapOffset);
     if (this._kbOverlay) this._kbOverlay.style.display = 'block';
+    // Reclamp existing offset in case user dragged before opening fp-modal
+    if (this._kbOffset > this._kbMaxOffset) {
+      this._kbOffset = this._kbMaxOffset;
+      root.style.transition = 'none';
+      root.style.transform = this._kbOffset > 0 ? `translateY(-${this._kbOffset}px)` : '';
+      this._syncInputPositions();
+    }
     if (this._kbOffset === 0) {
-      const anchorPhysY = (layout.centerY + 183) * physScale;
       let autoShift = Math.max(0, Math.ceil(anchorPhysY - (visibleH - 24)));
       autoShift = Math.min(autoShift, this._kbMaxOffset);
       if (autoShift > 0) {
