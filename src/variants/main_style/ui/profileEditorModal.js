@@ -779,6 +779,12 @@ export class ProfileEditorModal {
     // 'avatar' | 'modal' | null
     let dragMode = null;
 
+    const isKbOpen = () => {
+      const vv = window.visualViewport;
+      const baseH = Math.max(window.innerHeight, this._initWindowH);
+      return vv ? (baseH - vv.height) > 80 : false;
+    };
+
     this._avatarNativeTouchStart = (e) => {
       if (!this.visible || !e.touches.length) return;
       const t = e.touches[0];
@@ -793,11 +799,11 @@ export class ProfileEditorModal {
         this._avatarWasDragged = false;
         avatarLastClientY = t.clientY;
         avatarLastTime = performance.now();
-      } else if (this._kbOffset > 0) {
-        const panelLeft  = b.rect.left + (PANEL_X - PANEL_WIDTH / 2) * b.ps;
-        const panelRight = b.rect.left + (PANEL_X + PANEL_WIDTH / 2) * b.ps;
-        const panelTop   = b.rect.top  + (PANEL_TOP + this.dy) * b.ps;
-        const panelBottom = b.rect.top + (PANEL_TOP + PANEL_HEIGHT + this.dy) * b.ps;
+      } else if (isKbOpen()) {
+        const panelLeft   = b.rect.left + (PANEL_X - PANEL_WIDTH / 2) * b.ps;
+        const panelRight  = b.rect.left + (PANEL_X + PANEL_WIDTH / 2) * b.ps;
+        const panelTop    = b.rect.top  + (PANEL_TOP + this.dy) * b.ps;
+        const panelBottom = b.rect.top  + (PANEL_TOP + PANEL_HEIGHT + this.dy) * b.ps;
         if (t.clientX >= panelLeft && t.clientX <= panelRight &&
             t.clientY >= panelTop  && t.clientY <= panelBottom) {
           dragMode = 'modal';
