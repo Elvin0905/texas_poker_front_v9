@@ -5107,6 +5107,9 @@ export class TableScene extends Phaser.Scene {
 
         const rawName = String(player.username ?? "");
         seatView.name.setText(rawName.length > 4 ? rawName.slice(0, 4) : rawName);
+        // Use smaller base font when name contains Chinese characters
+        const _hasCJK = /[一-鿿㐀-䶿]/.test(seatView.name.text);
+        seatView.name.setFontSize(_hasCJK ? "26px" : SEAT_NAME_FONT_SIZE);
         // Shrink font if name overflows nametag bounds
         const _ntW = seatView.nametag.displayWidth;
         const _maxNameW = _ntW * 0.82;
