@@ -66,8 +66,10 @@ export class RegisterScene extends Phaser.Scene {
     this.confirmPwAst = null;
     this._storeUnsub = null;
     this._waitingVerify = false;
+    this._waitingRegister = false;
     this._lastSeenVerifyVersion = 0;
     this._lastSeenErrVersionForVerify = 0;
+    this._lastSeenErrVersionForRegister = 0;
     this._verifyCode = "";
   }
 
@@ -163,11 +165,11 @@ export class RegisterScene extends Phaser.Scene {
               const t = new Touch({ identifier: Date.now(), target, clientX: x, clientY: y, screenX: x, screenY: y, pageX: x, pageY: y, radiusX: 1, radiusY: 1, rotationAngle: 0, force: 1 });
               target.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true, touches: [t], targetTouches: [t], changedTouches: [t] }));
               target.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [], targetTouches: [], changedTouches: [t] }));
-            } catch {
-              const opts = { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1, isPrimary: true, pointerType: 'touch' };
-              target.dispatchEvent(new PointerEvent('pointerdown', opts));
-              target.dispatchEvent(new PointerEvent('pointerup', opts));
-            }
+            } catch {}
+            // Always dispatch pointer events — Phaser listens to these, not just touch events
+            const pointerOpts = { bubbles: true, cancelable: true, clientX: x, clientY: y, screenX: x, screenY: y, pointerId: 1, isPrimary: true, pointerType: 'touch', button: 0, buttons: 1 };
+            target.dispatchEvent(new PointerEvent('pointerdown', pointerOpts));
+            target.dispatchEvent(new PointerEvent('pointerup', { ...pointerOpts, buttons: 0 }));
           } else if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
             target.focus({ preventScroll: true });
           } else {
@@ -194,12 +196,23 @@ export class RegisterScene extends Phaser.Scene {
     const _s = this.store?.getState?.() ?? {};
     this._lastSeenVerifyVersion = Number(_s.verifyCodeVersion ?? 0);
     this._lastSeenErrVersionForVerify = Number(_s.errorVersion ?? 0);
+    this._lastSeenErrVersionForRegister = Number(_s.errorVersion ?? 0);
     this._storeUnsub = this.store?.subscribe((state) => this._handleStoreState(state));
 
     this.events.once("shutdown", () => this._destroyScene());
   }
 
   _handleStoreState(state) {
+    if (this._waitingRegister) {
+      const errVer = Number(state?.errorVersion ?? 0);
+      if (errVer > this._lastSeenErrVersionForRegister) {
+        this._lastSeenErrVersionForRegister = errVer;
+        this._waitingRegister = false;
+        const msg = String(state?.lastError?.message ?? "註冊失敗，請重試");
+        this._showResultModal(false, msg, "註冊失敗");
+      }
+      return;
+    }
     if (!this._waitingVerify) return;
     const verifyVer = Number(state?.verifyCodeVersion ?? 0);
     if (verifyVer > this._lastSeenVerifyVersion) {
@@ -794,14 +807,20 @@ export class RegisterScene extends Phaser.Scene {
         this.emailHintText?.setText("* 請輸入正確的電話號碼").setVisible(true);
         return;
       }
-      this.app.sendPacket("register_verification_request", { username: this._phoneCode + val });
+      if (!this.app.sendPacket("register_verification_request", { username: this._phoneCode + val })) {
+        this.emailHintText?.setText("* 連線失敗，請稍後再試").setVisible(true);
+        return;
+      }
       this._showVerifyModal("sms");
     } else {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
         this.emailHintText?.setText("* 請輸入正確的郵箱格式").setVisible(true);
         return;
       }
-      this.app.sendPacket("register_verification_request", { username: val });
+      if (!this.app.sendPacket("register_verification_request", { username: val })) {
+        this.emailHintText?.setText("* 連線失敗，請稍後再試").setVisible(true);
+        return;
+      }
       this._showVerifyModal("email");
     }
   }
@@ -1001,7 +1020,7 @@ export class RegisterScene extends Phaser.Scene {
     this.emailHintText?.setVisible(false);
   }
 
-  _showResultModal(success) {
+  _showResultModal(success, errMsg = null, errTitle = null) {
     this._rmSuccess = success;
     const cx = layout.centerX, cy = layout.centerY;
     const PW = this._rmPW, PH = this._rmPH, CR = this._rmCR;
@@ -1023,12 +1042,12 @@ export class RegisterScene extends Phaser.Scene {
     this._rmPanel.setVisible(true);
 
     this._rmTitleLabel.setPosition(cx, t).setVisible(true);
-    this._rmTitle.setText(success ? "驗證成功" : "驗證失敗").setPosition(cx, t + 8).setVisible(true);
+    this._rmTitle.setText(success ? "驗證成功" : (errTitle ?? "驗證失敗")).setPosition(cx, t + 8).setVisible(true);
     applyGoldTitleGradient(this._rmTitle);
 
     const successMsg = this._vmType === "sms" ? "電話驗證成功！" : "郵箱驗證成功！";
     this._rmText
-      .setText(success ? successMsg : "驗證碼錯誤，請重試")
+      .setText(success ? successMsg : (errMsg ?? "驗證碼錯誤，請重試"))
       .setStyle({ color: "#ffffff" })
       .setPosition(cx, cy - 10)
       .setVisible(true);
@@ -1157,7 +1176,15 @@ export class RegisterScene extends Phaser.Scene {
     const displayName = this.displayNameValue.trim();
     const packet = { username, password, display_name: displayName || username, code: this._verifyCode };
     if (this.genderValue) packet.gender = this.genderValue;
-    this.app.sendPacket("register", packet);
+    const _sNow = this.store?.getState?.() ?? {};
+    this._lastSeenErrVersionForRegister = Number(_sNow.errorVersion ?? 0);
+    const sent = this.app.sendPacket("register", packet);
+    if (!sent) {
+      const msg = this.store?.getState?.()?.lastError?.message ?? "連線尚未建立，請稍後再試";
+      this._showResultModal(false, msg, "送出失敗");
+    } else {
+      this._waitingRegister = true;
+    }
   }
 
   _adjustForKeyboard(isOpen) {
@@ -1173,8 +1200,9 @@ export class RegisterScene extends Phaser.Scene {
       return;
     }
     const vv = window.visualViewport;
-    const visibleH = vv ? vv.height : window.innerHeight;
-    const keyboardH = Math.max(0, window.innerHeight - visibleH);
+    const baseH = Math.max(window.innerHeight, this._initWindowH);
+    const visibleH = vv ? vv.height : baseH;
+    const keyboardH = Math.max(0, baseH - visibleH);
     if (keyboardH < 80) {
       if (this._kbOffset > 0) this._adjustForKeyboard(false);
       return;

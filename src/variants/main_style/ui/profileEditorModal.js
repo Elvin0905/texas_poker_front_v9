@@ -124,7 +124,7 @@ export class ProfileEditorModal {
     }
     el.addEventListener("input", () => {
       this.nickname = String(el.value || "");
-      this.statusText?.setText("");
+      this.nicknameHintText?.setText("");
     });
     document.body.appendChild(el);
     return el;
@@ -157,7 +157,7 @@ export class ProfileEditorModal {
       styleEl.textContent = `input[id$="-main-profile-email"]::placeholder{color:${INPUT_PH_COLOR};}`;
       document.head.appendChild(styleEl);
     }
-    el.addEventListener("input", () => this.statusText?.setText(""));
+    el.addEventListener("input", () => this.emailHintText?.setText(""));
     document.body.appendChild(el);
     return el;
   }
@@ -189,7 +189,7 @@ export class ProfileEditorModal {
       styleEl.textContent = `input[id$="-main-profile-phone"]::placeholder{color:${INPUT_PH_COLOR};}`;
       document.head.appendChild(styleEl);
     }
-    el.addEventListener("input", () => this.statusText?.setText(""));
+    el.addEventListener("input", () => this.phoneHintText?.setText(""));
     document.body.appendChild(el);
     return el;
   }
@@ -269,23 +269,23 @@ export class ProfileEditorModal {
 
     this.infoBgGfx = scene.add.graphics().setDepth(depth + 1).setVisible(false);
 
-    this.emailLabel = scene.add.text(100, 320, "郵箱", {
+    this.emailLabel = scene.add.text(100, 310, "郵箱", {
       ...TEXT_STYLE,
       fontSize: "26px",
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
-    this.emailInputBg = scene.add.rectangle(330, 320, 300, 50, 0x1b0508, 0.96)
+    this.emailInputBg = scene.add.rectangle(330, 310, 300, 50, 0x1b0508, 0.96)
       .setStrokeStyle(2, 0xd4890f, 0.95)
       .setDepth(depth + 2)
       .setVisible(false);
 
-    this.emailValueText = scene.add.text(210, 320, "---", {
+    this.emailValueText = scene.add.text(210, 310, "---", {
       ...TEXT_STYLE,
       fontSize: "20px",
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
     this.emailVerifyBtn = createGradientButton(scene, {
-      x: 530, y: 320, width: 70, height: 50, cornerRadius: 8,
+      x: 530, y: 310, width: 70, height: 50, cornerRadius: 8,
       topColor: 0x1a4d99, bottomColor: 0x0d2e5e, borderColor: 0x2a7dd9,
       label: "編輯",
       labelStyle: { fontSize: "16px", color: "#fff" },
@@ -295,7 +295,7 @@ export class ProfileEditorModal {
     });
 
     this.emailConfirmBtn = createGradientButton(scene, {
-      x: 620, y: 320, width: 70, height: 50, cornerRadius: 8,
+      x: 620, y: 310, width: 70, height: 50, cornerRadius: 8,
       topColor: 0x3db428, bottomColor: 0x145018, borderColor: 0x1aed30,
       label: "確認",
       labelStyle: { fontSize: "16px", color: "#fff" },
@@ -304,23 +304,30 @@ export class ProfileEditorModal {
       visible: false,
     });
 
-    this.phoneLabel = scene.add.text(100, 385, "電話", {
+    this.emailHintText = scene.add.text(PANEL_X, 345, "", {
+      ...TEXT_STYLE,
+      fontSize: "19px",
+      color: "#ffcf7a",
+      align: "center",
+    }).setOrigin(0.5).setDepth(depth + 2).setVisible(false);
+
+    this.phoneLabel = scene.add.text(100, 395, "電話", {
       ...TEXT_STYLE,
       fontSize: "26px",
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
-    this.phoneInputBg = scene.add.rectangle(330, 385, 300, 50, 0x1b0508, 0.96)
+    this.phoneInputBg = scene.add.rectangle(330, 395, 300, 50, 0x1b0508, 0.96)
       .setStrokeStyle(2, 0xd4890f, 0.95)
       .setDepth(depth + 2)
       .setVisible(false);
 
-    this.phoneValueText = scene.add.text(210, 385, "---", {
+    this.phoneValueText = scene.add.text(210, 395, "---", {
       ...TEXT_STYLE,
       fontSize: "20px",
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
     this.phoneVerifyBtn = createGradientButton(scene, {
-      x: 530, y: 385, width: 70, height: 50, cornerRadius: 8,
+      x: 530, y: 395, width: 70, height: 50, cornerRadius: 8,
       topColor: 0x1a4d99, bottomColor: 0x0d2e5e, borderColor: 0x2a7dd9,
       label: "編輯",
       labelStyle: { fontSize: "16px", color: "#fff" },
@@ -330,7 +337,7 @@ export class ProfileEditorModal {
     });
 
     this.phoneConfirmBtn = createGradientButton(scene, {
-      x: 620, y: 385, width: 70, height: 50, cornerRadius: 8,
+      x: 620, y: 395, width: 70, height: 50, cornerRadius: 8,
       topColor: 0x3db428, bottomColor: 0x145018, borderColor: 0x1aed30,
       label: "確認",
       labelStyle: { fontSize: "16px", color: "#fff" },
@@ -339,23 +346,30 @@ export class ProfileEditorModal {
       visible: false,
     });
 
-    this.nicknameLabel = scene.add.text(100, 450, "暱稱", {
+    this.phoneHintText = scene.add.text(PANEL_X, 430, "", {
+      ...TEXT_STYLE,
+      fontSize: "19px",
+      color: "#ffcf7a",
+      align: "center",
+    }).setOrigin(0.5).setDepth(depth + 2).setVisible(false);
+
+    this.nicknameLabel = scene.add.text(100, 480, "暱稱", {
       ...TEXT_STYLE,
       fontSize: "26px",
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
-    this.nicknameValueText = scene.add.text(210, 450, "---", {
+    this.nicknameValueText = scene.add.text(210, 480, "---", {
       ...TEXT_STYLE,
       fontSize: "20px",
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
-    this.nicknameInputBg = scene.add.rectangle(330, 450, 300, 50, 0x1b0508, 0.96)
+    this.nicknameInputBg = scene.add.rectangle(330, 480, 300, 50, 0x1b0508, 0.96)
       .setStrokeStyle(2, 0xd4890f, 0.95)
       .setDepth(depth + 2)
       .setVisible(false);
 
     this.nicknameConfirmBtn = createGradientButton(scene, {
-      x: 530, y: 450, width: 70, height: 50, cornerRadius: 8,
+      x: 530, y: 480, width: 70, height: 50, cornerRadius: 8,
       topColor: 0x1a4d99, bottomColor: 0x0d2e5e, borderColor: 0x2a7dd9,
       label: "編輯",
       labelStyle: { fontSize: "16px", color: "#fff" },
@@ -364,12 +378,19 @@ export class ProfileEditorModal {
       visible: false,
     });
 
-    this.genderLabel = scene.add.text(100, 515, "性別", {
+    this.nicknameHintText = scene.add.text(PANEL_X, 515, "", {
+      ...TEXT_STYLE,
+      fontSize: "19px",
+      color: "#ffcf7a",
+      align: "center",
+    }).setOrigin(0.5).setDepth(depth + 2).setVisible(false);
+
+    this.genderLabel = scene.add.text(100, 560, "性別", {
       ...TEXT_STYLE,
       fontSize: "26px",
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
-    this.genderValueText = scene.add.text(192, 515, "---", {
+    this.genderValueText = scene.add.text(192, 560, "---", {
       ...TEXT_STYLE,
       fontSize: "24px",
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
@@ -436,15 +457,18 @@ export class ProfileEditorModal {
       this.emailValueText,
       this.emailVerifyBtn,
       this.emailConfirmBtn,
+      this.emailHintText,
       this.phoneLabel,
       this.phoneInputBg,
       this.phoneValueText,
       this.phoneVerifyBtn,
       this.phoneConfirmBtn,
+      this.phoneHintText,
       this.nicknameLabel,
       this.nicknameInputBg,
       this.nicknameValueText,
       this.nicknameConfirmBtn,
+      this.nicknameHintText,
       this.genderLabel,
       this.genderValueText,
       this.avatarLabel,
@@ -455,8 +479,11 @@ export class ProfileEditorModal {
       this.titleLabel, this.titleText,
       this.infoBgGfx,
       this.emailLabel, this.emailInputBg, this.emailValueText, this.emailVerifyBtn, this.emailConfirmBtn,
+      this.emailHintText,
       this.phoneLabel, this.phoneInputBg, this.phoneValueText, this.phoneVerifyBtn, this.phoneConfirmBtn,
+      this.phoneHintText,
       this.nicknameLabel, this.nicknameInputBg, this.nicknameValueText, this.nicknameConfirmBtn,
+      this.nicknameHintText,
       this.genderLabel, this.genderValueText,
       this.avatarBgGfx,
       this.avatarLabel, this.statusText
@@ -521,17 +548,17 @@ export class ProfileEditorModal {
     });
     this.confirmButton?.setPosition?.(250, 1200 + this.dy);
     this.cancelButton?.setPosition?.(470, 1200 + this.dy);
-    this.emailValueText?.setPosition?.(210, 320 + this.dy);
-    this.emailInputBg?.setPosition?.(330, 320 + this.dy);
-    this.emailVerifyBtn?.setPosition?.(530, 320 + this.dy);
-    this.emailConfirmBtn?.setPosition?.(620, 320 + this.dy);
-    this.phoneValueText?.setPosition?.(210, 385 + this.dy);
-    this.phoneInputBg?.setPosition?.(330, 385 + this.dy);
-    this.phoneVerifyBtn?.setPosition?.(530, 385 + this.dy);
-    this.phoneConfirmBtn?.setPosition?.(620, 385 + this.dy);
-    this.nicknameValueText?.setPosition?.(210, 450 + this.dy);
-    this.nicknameInputBg?.setPosition?.(330, 450 + this.dy);
-    this.nicknameConfirmBtn?.setPosition?.(530, 450 + this.dy);
+    this.emailValueText?.setPosition?.(210, 310 + this.dy);
+    this.emailInputBg?.setPosition?.(330, 310 + this.dy);
+    this.emailVerifyBtn?.setPosition?.(530, 310 + this.dy);
+    this.emailConfirmBtn?.setPosition?.(620, 310 + this.dy);
+    this.phoneValueText?.setPosition?.(210, 395 + this.dy);
+    this.phoneInputBg?.setPosition?.(330, 395 + this.dy);
+    this.phoneVerifyBtn?.setPosition?.(530, 395 + this.dy);
+    this.phoneConfirmBtn?.setPosition?.(620, 395 + this.dy);
+    this.nicknameValueText?.setPosition?.(210, 480 + this.dy);
+    this.nicknameInputBg?.setPosition?.(330, 480 + this.dy);
+    this.nicknameConfirmBtn?.setPosition?.(530, 480 + this.dy);
     this._updateAvatarPositions();
     this._syncNickInputPosition();
     this._syncEmailInputPosition();
@@ -548,6 +575,9 @@ export class ProfileEditorModal {
     const _fallback = (() => { try { return localStorage.getItem("last_selected_avatar") || "avatar_1"; } catch (_) { return "avatar_1"; } })();
     this.selectedAvatar = resolveMainAvatarFrame(this.scene, _serverAvatar || _fallback);
     this.statusText.setText("");
+    this.emailHintText?.setText("");
+    this.phoneHintText?.setText("");
+    this.nicknameHintText?.setText("");
     const email = String(user?.email || "---");
     const phone = String(user?.phone || "---");
     this._originalValues.email = email;
@@ -636,7 +666,7 @@ export class ProfileEditorModal {
     if (this._kbOffset === 0) {
       const physScale = window.innerWidth / 720;
       // Anchor to bottom of the info block (covers email/phone/nickname + verify code)
-      const anchorPhysY = (550 + this.dy) * physScale;
+      const anchorPhysY = (590 + this.dy) * physScale;
       const autoShift = Math.max(0, Math.ceil(anchorPhysY - (visibleH - 24)));
       if (autoShift > 0) {
         this._kbOffset = Math.min(autoShift, keyboardH);
@@ -655,9 +685,9 @@ export class ProfileEditorModal {
     const scale = Math.min(rect.width / layout.width, rect.height / layout.height);
     const ox = rect.left + (rect.width - layout.width * scale) / 2;
     const oy = rect.top + (rect.height - layout.height * scale) / 2;
-    // nicknameInputBg is at design coords (330, 450), size 300x50 centered.
+    // nicknameInputBg is at design coords (330, 480), size 300x50 centered.
     const designX = 330 - 300 / 2;
-    const designY = 450 - 50 / 2 + this.dy;
+    const designY = 480 - 50 / 2 + this.dy;
     const designW = 300;
     const designH = 50;
     Object.assign(this._nickEl.style, {
@@ -674,9 +704,9 @@ export class ProfileEditorModal {
     const CR = 14;
     this.infoBgGfx.clear();
     this.infoBgGfx.fillStyle(0x0a0502, 0.85);
-    this.infoBgGfx.fillRoundedRect(50, 270, 620, 280, CR);
+    this.infoBgGfx.fillRoundedRect(50, 270, 620, 320, CR);
     this.infoBgGfx.lineStyle(2, 0xd4890f, 0.8);
-    this.infoBgGfx.strokeRoundedRect(50, 270, 620, 280, CR);
+    this.infoBgGfx.strokeRoundedRect(50, 270, 620, 320, CR);
 
     this.avatarBgGfx.clear();
     this.avatarBgGfx.fillStyle(0x0a0502, 0.85);
@@ -870,11 +900,11 @@ export class ProfileEditorModal {
     const nickname = liveValue.trim();
     this.nickname = nickname;
     if (!nickname) {
-      this.statusText.setText("請輸入暱稱");
+      this.nicknameHintText?.setText("請輸入暱稱");
       return;
     }
     if (nickname.length > 16) {
-      this.statusText.setText("暱稱最多 16 個字");
+      this.nicknameHintText?.setText("暱稱最多 16 個字");
       return;
     }
     if (!this.selectedAvatar) {
@@ -898,7 +928,7 @@ export class ProfileEditorModal {
     const ox = rect.left + (rect.width - layout.width * scale) / 2;
     const oy = rect.top + (rect.height - layout.height * scale) / 2;
     const designX = 330 - 300 / 2;
-    const designY = 320 - 50 / 2 + this.dy;
+    const designY = 310 - 50 / 2 + this.dy;
     const designW = 300;
     const designH = 50;
     Object.assign(this._emailEl.style, {
@@ -921,7 +951,7 @@ export class ProfileEditorModal {
     const ox = rect.left + (rect.width - layout.width * scale) / 2;
     const oy = rect.top + (rect.height - layout.height * scale) / 2;
     const designX = 330 - 300 / 2;
-    const designY = 385 - 50 / 2 + this.dy;
+    const designY = 395 - 50 / 2 + this.dy;
     const designW = 300;
     const designH = 50;
     Object.assign(this._phoneEl.style, {
@@ -944,7 +974,7 @@ export class ProfileEditorModal {
     const ox = rect.left + (rect.width - layout.width * scale) / 2;
     const oy = rect.top + (rect.height - layout.height * scale) / 2;
     // Position below the active field (email or phone)
-    const yOffset = this._currentVerifyField === "email" ? 355 : 420;
+    const yOffset = this._currentVerifyField === "email" ? 347 : 432;
     const designX = 330 - 300 / 2;
     const designY = yOffset - 50 / 2 + this.dy;
     const designW = 300;
@@ -1093,19 +1123,19 @@ export class ProfileEditorModal {
     // If not in edit mode, enter edit mode
     if (!this._editMode.email) {
       this._enterEditMode("email");
-      this.statusText?.setText("");
+      this.emailHintText?.setText("");
       return;
     }
 
     // In edit mode: validate and send verification code
     if (!email) {
-      this.statusText?.setText("請輸入郵箱");
+      this.emailHintText?.setText("請輸入郵箱");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      this.statusText?.setText("請輸入有效的郵箱地址");
+      this.emailHintText?.setText("請輸入有效的郵箱地址");
       return;
     }
 
@@ -1114,7 +1144,7 @@ export class ProfileEditorModal {
     this._verifyCodeEl.style.visibility = "visible";
     this._syncVerifyCodeInputPosition();
     this._verifyCodeEl.focus();
-    this.statusText?.setText("驗証碼已發送到郵箱");
+    this.emailHintText?.setText("驗証碼已發送到郵箱");
 
     const store = this.scene.scene.get("boot")?.store?.getState?.() ?? {};
     const token = store.accessToken ?? "";
@@ -1132,12 +1162,12 @@ export class ProfileEditorModal {
         if (data.success) {
           this._verified.email = true;
         } else {
-          this.statusText?.setText(data.message || "發送驗証碼失敗");
+          this.emailHintText?.setText(data.message || "發送驗証碼失敗");
         }
       })
       .catch(err => {
         console.error("Verify email error:", err);
-        this.statusText?.setText("網絡錯誤");
+        this.emailHintText?.setText("網絡錯誤");
       });
   }
 
@@ -1147,19 +1177,19 @@ export class ProfileEditorModal {
     // If not in edit mode, enter edit mode
     if (!this._editMode.phone) {
       this._enterEditMode("phone");
-      this.statusText?.setText("");
+      this.phoneHintText?.setText("");
       return;
     }
 
     // In edit mode: validate and send verification code
     if (!phone) {
-      this.statusText?.setText("請輸入電話");
+      this.phoneHintText?.setText("請輸入電話");
       return;
     }
 
     const phoneRegex = /^\+?[\d\s\-()]{7,}$/;
     if (!phoneRegex.test(phone)) {
-      this.statusText?.setText("請輸入有效的電話號碼");
+      this.phoneHintText?.setText("請輸入有效的電話號碼");
       return;
     }
 
@@ -1168,7 +1198,7 @@ export class ProfileEditorModal {
     this._verifyCodeEl.style.visibility = "visible";
     this._syncVerifyCodeInputPosition();
     this._verifyCodeEl.focus();
-    this.statusText?.setText("驗証碼已發送到電話");
+    this.phoneHintText?.setText("驗証碼已發送到電話");
 
     const store = this.scene.scene.get("boot")?.store?.getState?.() ?? {};
     const token = store.accessToken ?? "";
@@ -1186,12 +1216,12 @@ export class ProfileEditorModal {
         if (data.success) {
           this._verified.phone = true;
         } else {
-          this.statusText?.setText(data.message || "發送驗証碼失敗");
+          this.phoneHintText?.setText(data.message || "發送驗証碼失敗");
         }
       })
       .catch(err => {
         console.error("Verify phone error:", err);
-        this.statusText?.setText("網絡錯誤");
+        this.phoneHintText?.setText("網絡錯誤");
       });
   }
 
@@ -1202,7 +1232,7 @@ export class ProfileEditorModal {
 
     // If email is modified, must verify first
     if (isEmailModified && !this._verified.email) {
-      this.statusText?.setText("請先驗証郵箱");
+      this.emailHintText?.setText("請先驗証郵箱");
       return;
     }
 
@@ -1210,7 +1240,7 @@ export class ProfileEditorModal {
     if (isEmailModified) {
       const code = String(this._verifyCodeEl?.value || "").trim();
       if (!code) {
-        this.statusText?.setText("請輸入驗証碼");
+        this.emailHintText?.setText("請輸入驗証碼");
         return;
       }
 
@@ -1228,7 +1258,7 @@ export class ProfileEditorModal {
         .then(r => r.json())
         .then(data => {
           if (data.success) {
-            this.statusText?.setText("郵箱已更新");
+            this.emailHintText?.setText("郵箱已更新");
             this._originalValues.email = email;
             this._verified.email = false;
             this._verifyCodeEl.style.visibility = "hidden";
@@ -1236,12 +1266,12 @@ export class ProfileEditorModal {
             this._currentVerifyField = null;
             this._resetEditMode("email");
           } else {
-            this.statusText?.setText(data.message || "驗証失敗，請重試");
+            this.emailHintText?.setText(data.message || "驗証失敗，請重試");
           }
         })
         .catch(err => {
           console.error("Confirm email error:", err);
-          this.statusText?.setText("網絡錯誤");
+          this.emailHintText?.setText("網絡錯誤");
         });
     } else {
       // Email not modified, just exit edit mode
@@ -1260,7 +1290,7 @@ export class ProfileEditorModal {
 
     // If phone is modified, must verify first
     if (isPhoneModified && !this._verified.phone) {
-      this.statusText?.setText("請先驗証電話");
+      this.phoneHintText?.setText("請先驗証電話");
       return;
     }
 
@@ -1268,7 +1298,7 @@ export class ProfileEditorModal {
     if (isPhoneModified) {
       const code = String(this._verifyCodeEl?.value || "").trim();
       if (!code) {
-        this.statusText?.setText("請輸入驗証碼");
+        this.phoneHintText?.setText("請輸入驗証碼");
         return;
       }
 
@@ -1286,7 +1316,7 @@ export class ProfileEditorModal {
         .then(r => r.json())
         .then(data => {
           if (data.success) {
-            this.statusText?.setText("電話已更新");
+            this.phoneHintText?.setText("電話已更新");
             this._originalValues.phone = phone;
             this._verified.phone = false;
             this._verifyCodeEl.style.visibility = "hidden";
@@ -1294,12 +1324,12 @@ export class ProfileEditorModal {
             this._currentVerifyField = null;
             this._resetEditMode("phone");
           } else {
-            this.statusText?.setText(data.message || "驗証失敗，請重試");
+            this.phoneHintText?.setText(data.message || "驗証失敗，請重試");
           }
         })
         .catch(err => {
           console.error("Confirm phone error:", err);
-          this.statusText?.setText("網絡錯誤");
+          this.phoneHintText?.setText("網絡錯誤");
         });
     } else {
       // Phone not modified, just exit edit mode
@@ -1324,12 +1354,12 @@ export class ProfileEditorModal {
 
     // In edit mode: save nickname
     if (!nickname) {
-      this.statusText?.setText("請輸入暱稱");
+      this.nicknameHintText?.setText("請輸入暱稱");
       return;
     }
 
     if (nickname.length > 16) {
-      this.statusText?.setText("暱稱最多 16 個字");
+      this.nicknameHintText?.setText("暱稱最多 16 個字");
       return;
     }
 
@@ -1354,17 +1384,17 @@ export class ProfileEditorModal {
       .then(r => r.json())
       .then(data => {
         if (data.success) {
-          this.statusText?.setText("暱稱已更新");
+          this.nicknameHintText?.setText("暱稱已更新");
           this.nicknameValueText?.setText(nickname);
           this.nickname = nickname;
           this._resetEditMode("nickname");
         } else {
-          this.statusText?.setText(data.message || "更新失敗");
+          this.nicknameHintText?.setText(data.message || "更新失敗");
         }
       })
       .catch(err => {
         console.error("Confirm nickname error:", err);
-        this.statusText?.setText("網絡錯誤");
+        this.nicknameHintText?.setText("網絡錯誤");
       });
   }
 

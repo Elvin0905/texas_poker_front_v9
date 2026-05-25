@@ -184,11 +184,11 @@ export class AuthScene extends Phaser.Scene {
               const t = new Touch({ identifier: Date.now(), target, clientX: x, clientY: y, screenX: x, screenY: y, pageX: x, pageY: y, radiusX: 1, radiusY: 1, rotationAngle: 0, force: 1 });
               target.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true, touches: [t], targetTouches: [t], changedTouches: [t] }));
               target.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [], targetTouches: [], changedTouches: [t] }));
-            } catch {
-              const opts = { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1, isPrimary: true, pointerType: 'touch' };
-              target.dispatchEvent(new PointerEvent('pointerdown', opts));
-              target.dispatchEvent(new PointerEvent('pointerup', opts));
-            }
+            } catch {}
+            // Always dispatch pointer events — Phaser listens to these, not just touch events
+            const pointerOpts = { bubbles: true, cancelable: true, clientX: x, clientY: y, screenX: x, screenY: y, pointerId: 1, isPrimary: true, pointerType: 'touch', button: 0, buttons: 1 };
+            target.dispatchEvent(new PointerEvent('pointerdown', pointerOpts));
+            target.dispatchEvent(new PointerEvent('pointerup', { ...pointerOpts, buttons: 0 }));
           } else if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
             target.focus({ preventScroll: true });
           } else {
@@ -690,6 +690,18 @@ export class AuthScene extends Phaser.Scene {
     this._posEl(this._pwEl, layout.centerX - 162, this._pwBoxY - 29, 310, 58, scale, ox, oy);
     if (this._eyeHitEl)    this._posEl(this._eyeHitEl,    layout.centerX + 203, this._pwBoxY - 32,    76, 64, scale, ox, oy);
     if (this._forgotHitEl) this._posEl(this._forgotHitEl, layout.centerX + 140, layout.centerY + 27, 142, 50, scale, ox, oy);
+
+    if (this._fpOverlay?.visible) {
+      const cx = layout.centerX, cy = layout.centerY;
+      if (this._fpStep === 1) {
+        this._fpSyncStep1Input();
+      } else if (this._fpStep === 2 && this._fpCodeEl) {
+        this._posInBox(this._fpCodeEl, cx, cy + 20);
+      } else if (this._fpStep === 3) {
+        if (this._fpNewPwEl) this._posInBox(this._fpNewPwEl, cx, cy - 70);
+        if (this._fpConfirmPwEl) this._posInBox(this._fpConfirmPwEl, cx, cy + 40);
+      }
+    }
   }
 
   _posEl(el, dx, dy, dw, dh, scale, ox, oy) {
@@ -843,8 +855,9 @@ export class AuthScene extends Phaser.Scene {
       return;
     }
     const vv = window.visualViewport;
-    const visibleH = vv ? vv.height : window.innerHeight;
-    const keyboardH = Math.max(0, window.innerHeight - visibleH);
+    const baseH = Math.max(window.innerHeight, this._initWindowH);
+    const visibleH = vv ? vv.height : baseH;
+    const keyboardH = Math.max(0, baseH - visibleH);
     if (keyboardH < 80) {
       // Keyboard dismissed while input kept focus — restore immediately
       if (this._kbOffset > 0) this._adjustForKeyboard(false);
