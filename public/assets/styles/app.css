@@ -30,7 +30,17 @@ body {
 body::before {
   content: "";
   position: fixed;
-  inset: -20px;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  /* Use lvh (large viewport height) so the element height is anchored to the
+     maximum viewport size and does not resize when the mobile address bar
+     shows or hides — prevents the blurred background from visually shifting.
+     Fallback for browsers without lvh support: 100vh already equals the large
+     viewport on Chrome Android and iOS Safari (pre-dvh era), so the fallback
+     provides the same effect on those browsers. */
+  height: calc(100vh + 40px);
+  height: calc(100lvh + 40px);
   background-image: url('/assets/variants/main_style/images/bg_big.webp');
   background-size: cover;
   background-position: center;
