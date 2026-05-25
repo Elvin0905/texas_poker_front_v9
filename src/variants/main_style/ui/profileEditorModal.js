@@ -765,10 +765,10 @@ export class ProfileEditorModal {
     let avatarLastClientY = 0;
     let avatarLastTime = 0;
     const applyAvatarInertia = () => {
-      if (!this.visible || Math.abs(avatarVelocity) < 0.3) {
+      if (!this.visible || Math.abs(avatarVelocity) < 0.08) {
         avatarVelocity = 0; this._avatarInertiaId = null; return;
       }
-      avatarVelocity *= 0.90;
+      avatarVelocity *= 0.94;
       this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarScrollOffset + avatarVelocity * getToWorld()));
       this._updateAvatarPositions();
       this._avatarInertiaId = requestAnimationFrame(applyAvatarInertia);
@@ -813,8 +813,8 @@ export class ProfileEditorModal {
 
       if (dragMode === 'avatar' && this._avatarDragStartY !== null) {
         const now = performance.now();
-        const dt = now - avatarLastTime;
-        if (dt > 0) avatarVelocity = (t.clientY - avatarLastClientY) / dt * 16;
+        const dt = Math.max(4, now - avatarLastTime); // clamp to avoid velocity spikes
+        avatarVelocity = (t.clientY - avatarLastClientY) / dt * 16;
         avatarLastClientY = t.clientY;
         avatarLastTime = now;
         const delta = t.clientY - this._avatarDragStartY;
