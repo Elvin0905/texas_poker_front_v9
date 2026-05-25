@@ -57,6 +57,9 @@ export class BootScene extends Phaser.Scene {
       this.load.atlas(key, `${imageBase}/${key}.webp`, `${imageBase}/${key}.json`);
     });
 
+    this.load.atlas("win", `${imageBase}/win.webp`, `${imageBase}/win.json`);
+    this.load.image("light", `${imageBase}/light.webp`);
+
     // Audio
     const audioFileByKey = {
       bgm_main: "main_bgm.mp3",

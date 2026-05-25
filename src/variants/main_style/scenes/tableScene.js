@@ -771,16 +771,6 @@ export class TableScene extends Phaser.Scene {
     this.soundSettingsPanel = null;
   }
 
-  preload() {
-    const imageBase = `${window.__APP__?.assetBase || "assets/variants/main_style"}/images`;
-    if (!this.textures.exists("win")) {
-      this.load.atlas("win", `${imageBase}/win.webp`, `${imageBase}/win.json`);
-    }
-    if (!this.textures.exists("light")) {
-      this.load.image("light", `${imageBase}/light.webp`);
-    }
-  }
-
   create() {
     this.useResponsiveLayout = true;
     this.bottomDy = 0; // 底部元素 y 偏移：layout.bottom - VIEW_HEIGHT
