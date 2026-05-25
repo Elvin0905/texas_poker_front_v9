@@ -863,14 +863,19 @@ export class AuthScene extends Phaser.Scene {
       if (this._kbOffset > 0) this._adjustForKeyboard(false);
       return;
     }
-    this._kbMaxOffset = keyboardH;
+    const physScale = window.innerWidth / 720;
+    // When fp-modal is open, cap shift so modal top stays on screen
+    const fpModalCapOffset = this._fpOverlay?.visible
+      ? Math.max(0, Math.floor((layout.centerY - (this._fpPH ?? 460) / 2) * physScale) - 10)
+      : keyboardH;
+    this._kbMaxOffset = Math.min(keyboardH, fpModalCapOffset);
     if (this._kbOverlay) this._kbOverlay.style.display = 'block';
     if (this._kbOffset === 0) {
-      const physScale = window.innerWidth / 720;
       const anchorPhysY = (layout.centerY + 183) * physScale;
-      const autoShift = Math.max(0, Math.ceil(anchorPhysY - (visibleH - 24)));
+      let autoShift = Math.max(0, Math.ceil(anchorPhysY - (visibleH - 24)));
+      autoShift = Math.min(autoShift, this._kbMaxOffset);
       if (autoShift > 0) {
-        this._kbOffset = Math.min(autoShift, keyboardH);
+        this._kbOffset = autoShift;
         root.style.transition = 'none';
         root.style.transform = `translateY(-${this._kbOffset}px)`;
         this._syncInputPositions();
