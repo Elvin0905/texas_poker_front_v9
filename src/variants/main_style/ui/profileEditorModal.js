@@ -841,7 +841,7 @@ export class ProfileEditorModal {
           const keyboardH = Math.max(0, baseH - visibleH);
           const maxUp = keyboardH > 1 ? keyboardH - 1 : 0;
           const newT = modalDragStartTranslate + delta;
-          const clamped = Math.min(50, Math.max(-maxUp, newT));
+          const clamped = Math.min(0, Math.max(-maxUp, newT));
           root.style.transform = clamped === 0 ? '' : `translateY(${clamped}px)`;
           this._kbOffset = -clamped;
           this._syncNickInputPosition();
