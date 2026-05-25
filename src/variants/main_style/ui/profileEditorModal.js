@@ -304,12 +304,12 @@ export class ProfileEditorModal {
       visible: false,
     });
 
-    this.emailHintText = scene.add.text(PANEL_X, 345, "", {
+    this.emailHintText = scene.add.text(180, 345, "", {
       ...TEXT_STYLE,
-      fontSize: "19px",
+      fontSize: "17px",
       color: "#ffcf7a",
-      align: "center",
-    }).setOrigin(0.5).setDepth(depth + 2).setVisible(false);
+      align: "left",
+    }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
     this.phoneLabel = scene.add.text(100, 395, "電話", {
       ...TEXT_STYLE,
@@ -346,12 +346,12 @@ export class ProfileEditorModal {
       visible: false,
     });
 
-    this.phoneHintText = scene.add.text(PANEL_X, 430, "", {
+    this.phoneHintText = scene.add.text(180, 430, "", {
       ...TEXT_STYLE,
-      fontSize: "19px",
+      fontSize: "17px",
       color: "#ffcf7a",
-      align: "center",
-    }).setOrigin(0.5).setDepth(depth + 2).setVisible(false);
+      align: "left",
+    }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
     this.nicknameLabel = scene.add.text(100, 480, "暱稱", {
       ...TEXT_STYLE,
@@ -378,12 +378,12 @@ export class ProfileEditorModal {
       visible: false,
     });
 
-    this.nicknameHintText = scene.add.text(PANEL_X, 515, "", {
+    this.nicknameHintText = scene.add.text(180, 515, "", {
       ...TEXT_STYLE,
-      fontSize: "19px",
+      fontSize: "17px",
       color: "#ffcf7a",
-      align: "center",
-    }).setOrigin(0.5).setDepth(depth + 2).setVisible(false);
+      align: "left",
+    }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
     this.genderLabel = scene.add.text(100, 560, "性別", {
       ...TEXT_STYLE,
