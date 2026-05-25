@@ -830,9 +830,9 @@ export class ProfileEditorModal {
         this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarDragStartOffset + delta / ps));
         this._updateAvatarPositions();
       } else if (dragMode === 'modal' && modalDragStartClientY !== null) {
+        e.preventDefault();
         const delta = t.clientY - modalDragStartClientY;
         if (Math.abs(delta) > DRAG_THRESHOLD) {
-          e.preventDefault();
           const root = document.getElementById('phaser-root');
           if (!root) return;
           const vv = window.visualViewport;
