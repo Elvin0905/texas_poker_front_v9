@@ -99,7 +99,7 @@ export class ProfileEditorModal {
     el.type = "text";
     el.placeholder = "請輸入暱稱";
     el.autocomplete = "nickname";
-    el.maxLength = 16;
+    el.maxLength = 4;
     Object.assign(el.style, {
       position: "fixed",
       background: "transparent",
@@ -920,8 +920,8 @@ export class ProfileEditorModal {
       this.nicknameHintText?.setText("請輸入暱稱");
       return;
     }
-    if (nickname.length > 16) {
-      this.nicknameHintText?.setText("暱稱最多 16 個字");
+    if (nickname.length > 4) {
+      this.nicknameHintText?.setText("暱稱最多 4 個字");
       return;
     }
     if (!this.selectedAvatar) {
@@ -1375,8 +1375,8 @@ export class ProfileEditorModal {
       return;
     }
 
-    if (nickname.length > 16) {
-      this.nicknameHintText?.setText("暱稱最多 16 個字");
+    if (nickname.length > 4) {
+      this.nicknameHintText?.setText("暱稱最多 4 個字");
       return;
     }
 
