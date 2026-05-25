@@ -559,6 +559,7 @@ export class RegisterScene extends Phaser.Scene {
     });
 
     this._nickEl = this._makeEl("reg-nick", "text", "點擊輸入暱稱", "nickname");
+    this._nickEl.maxLength = 4;
     this._nickEl.addEventListener("input", () => { this.displayNameValue = this._nickEl.value; this._updateHints(); });
     this._nickEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); this._pwEl?.focus(); }
@@ -1134,7 +1135,7 @@ export class RegisterScene extends Phaser.Scene {
       this.emailHintText?.setVisible(false);
     }
 
-    if (!this.displayNameValue.trim()) {
+    if (!this.displayNameValue.trim() || this.displayNameValue.trim().length > 4) {
       this.nickHintText?.setVisible(true);
       ok = false;
     } else {
