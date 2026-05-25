@@ -5107,17 +5107,12 @@ export class TableScene extends Phaser.Scene {
 
         const rawName = String(player.username ?? "");
         seatView.name.setText(rawName.length > 4 ? rawName.slice(0, 4) : rawName);
-        seatView.name.setFontSize(SEAT_NAME_FONT_SIZE);
         // Shrink font if name overflows nametag bounds
         const _ntW = seatView.nametag.displayWidth;
         const _maxNameW = _ntW * 0.82;
         if (_maxNameW > 0 && seatView.name.width > _maxNameW) {
           const _curPx = parseInt(seatView.name.style.fontSize, 10);
           seatView.name.setFontSize(`${Math.max(12, Math.floor(_curPx * _maxNameW / seatView.name.width))}px`);
-        }
-        // CJK names look visually larger at same px — subtract 2px from final size
-        if (/[一-鿿㐀-䶿]/.test(seatView.name.text)) {
-          seatView.name.setFontSize(`${Math.max(12, parseInt(seatView.name.style.fontSize, 10) - 2)}px`);
         }
         seatView.chips.setText(formatAmount(player.chips));
         const isActiveTurn = isSameSeat(player.seat, activeSeat);
