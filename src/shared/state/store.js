@@ -299,6 +299,10 @@ export class Store extends EventTarget {
 
   openDailySettlementAfterReplay(returnPage = "lobby") {
     this.endLeaveTableFlow();
+    const _replayTableId = String(this.state.table?.table_id ?? "");
+    if (_replayTableId) {
+      this.state.lastLeftTableId = _replayTableId;
+    }
     this.state.page = returnPage;
     this.state.table = null;
     this.state.tableUpdateSource = "";

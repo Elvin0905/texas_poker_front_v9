@@ -788,8 +788,9 @@ function setReplayFastMode(enabled) {
 }
 
 function stopReplayPlayback(reason = "") {
-  const hadActiveReplay = replaySessionState.active || replaySessionState.timers.length > 0;
+  const hadActiveReplay = replaySessionState.active || replaySessionState.finishing || replaySessionState.timers.length > 0;
   const fromScene = replaySessionState.fromScene;
+  const capturedReturnPage = replaySessionState.returnPage || (fromScene === "gameLobby" ? "gameLobby" : "lobby");
   replaySessionState.id += 1;
   replaySessionState.active = false;
   replaySessionState.finishing = false;
@@ -808,7 +809,7 @@ function stopReplayPlayback(reason = "") {
     store.pushLog("[replay] stop");
   }
   if (reason === "manual_exit_button") {
-    store.openDailySettlementAfterReplay(fromScene === "gameLobby" ? "gameLobby" : "lobby");
+    store.openDailySettlementAfterReplay(capturedReturnPage);
   } else {
     store.emit();
   }
@@ -1230,7 +1231,7 @@ function startReplayPlayback(packet) {
 }
 
 function shouldSkipLivePacketDuringReplay(packetTypeRaw) {
-  if (!replaySessionState.active) {
+  if (!replaySessionState.active && !replaySessionState.finishing) {
     return false;
   }
   const packetType = String(packetTypeRaw || "").toLowerCase();
