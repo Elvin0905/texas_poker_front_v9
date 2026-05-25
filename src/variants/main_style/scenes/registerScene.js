@@ -1174,7 +1174,7 @@ export class RegisterScene extends Phaser.Scene {
     const username = this._phoneMode ? (this._phoneCode + val) : val;
     const password = this.passwordValue;
     const displayName = this.displayNameValue.trim();
-    const packet = { username, password, display_name: displayName || username, code: this._verifyCode };
+    const packet = { username, password, avatar: "avatar_001", display_name: displayName || username, code: this._verifyCode };
     if (this.genderValue) packet.gender = this.genderValue;
     const _sNow = this.store?.getState?.() ?? {};
     this._lastSeenErrVersionForRegister = Number(_sNow.errorVersion ?? 0);
