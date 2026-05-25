@@ -839,6 +839,10 @@ export class ProfileEditorModal {
           const clamped = Math.min(50, Math.max(-window.innerHeight * 0.7, newT));
           root.style.transform = clamped === 0 ? '' : `translateY(${clamped}px)`;
           this._kbOffset = -clamped;
+          this._syncNickInputPosition();
+          this._syncEmailInputPosition();
+          this._syncPhoneInputPosition();
+          this._syncVerifyCodeInputPosition();
         }
       }
     };
