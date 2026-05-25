@@ -724,22 +724,20 @@ export class ProfileEditorModal {
     this._cleanupAvatarNativeTouch();
 
     const AVATAR_MIN = -200, AVATAR_MAX = 40;
-    const GRID_LEFT = 40, GRID_RIGHT = 680, GRID_TOP = 600, GRID_BOTTOM = 1140;
     const DRAG_THRESHOLD = 5;
     const canvas = this.scene.game.canvas;
 
-    const getToWorld = () => {
+    // CSS-space grid bounds derived from physScale (avoids DPR over-multiplication bug)
+    // Avatar bg box in game coords: x 50-670, y 630-1110 (+dy)
+    const getCssGridBounds = () => {
       const rect = canvas.getBoundingClientRect();
-      const cam = this.scene.cameras.main;
-      return (canvas.height / rect.height) / cam.zoom;
-    };
-    const clientToWorld = (clientX, clientY) => {
-      const rect = canvas.getBoundingClientRect();
-      const tw = getToWorld();
-      const cam = this.scene.cameras.main;
+      const ps = rect.width / 720;
       return {
-        x: cam.scrollX + (clientX - rect.left) * (canvas.width / rect.width) / cam.zoom,
-        y: cam.scrollY + (clientY - rect.top) * tw,
+        ps, rect,
+        left:   rect.left + 50  * ps,
+        right:  rect.left + 670 * ps,
+        top:    rect.top  + (630  + this.dy) * ps,
+        bottom: rect.top  + (1110 + this.dy) * ps,
       };
     };
     const getPhysTranslate = () => {
@@ -749,11 +747,11 @@ export class ProfileEditorModal {
       return m ? parseFloat(m[1]) : 0;
     };
 
-    // Mouse wheel (desktop) — only when pointer is over the avatar grid
+    // Mouse wheel (desktop) — only when pointer is over the avatar grid (Phaser worldX/Y is correct)
     this._avatarScrollListener = (pointer, gameObjects, deltaX, deltaY) => {
       if (!this.visible) return;
       const localY = pointer.worldY - this.dy;
-      if (pointer.worldX < GRID_LEFT || pointer.worldX > GRID_RIGHT || localY < GRID_TOP || localY > GRID_BOTTOM) return;
+      if (pointer.worldX < 40 || pointer.worldX > 680 || localY < 600 || localY > 1140) return;
       if (this._avatarInertiaId) { cancelAnimationFrame(this._avatarInertiaId); this._avatarInertiaId = null; }
       this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarScrollOffset - deltaY * 0.5));
       this._updateAvatarPositions();
@@ -769,7 +767,8 @@ export class ProfileEditorModal {
         avatarVelocity = 0; this._avatarInertiaId = null; return;
       }
       avatarVelocity *= 0.94;
-      this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarScrollOffset + avatarVelocity * getToWorld()));
+      const { ps } = getCssGridBounds();
+      this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarScrollOffset + avatarVelocity / ps));
       this._updateAvatarPositions();
       this._avatarInertiaId = requestAnimationFrame(applyAvatarInertia);
     };
@@ -783,10 +782,9 @@ export class ProfileEditorModal {
     this._avatarNativeTouchStart = (e) => {
       if (!this.visible || !e.touches.length) return;
       const t = e.touches[0];
-      const pos = clientToWorld(t.clientX, t.clientY);
-      const localY = pos.y - this.dy;
+      const b = getCssGridBounds();
 
-      if (pos.x >= GRID_LEFT && pos.x <= GRID_RIGHT && localY >= GRID_TOP && localY <= GRID_BOTTOM) {
+      if (t.clientX >= b.left && t.clientX <= b.right && t.clientY >= b.top && t.clientY <= b.bottom) {
         dragMode = 'avatar';
         if (this._avatarInertiaId) { cancelAnimationFrame(this._avatarInertiaId); this._avatarInertiaId = null; }
         avatarVelocity = 0;
@@ -796,10 +794,12 @@ export class ProfileEditorModal {
         avatarLastClientY = t.clientY;
         avatarLastTime = performance.now();
       } else if (this._kbOffset > 0) {
-        // Modal repositioning only active while keyboard is pushing the view up
-        const panelL = PANEL_X - PANEL_WIDTH / 2;
-        const panelR = PANEL_X + PANEL_WIDTH / 2;
-        if (pos.x >= panelL && pos.x <= panelR && localY >= PANEL_TOP && localY <= PANEL_TOP + PANEL_HEIGHT) {
+        const panelLeft  = b.rect.left + (PANEL_X - PANEL_WIDTH / 2) * b.ps;
+        const panelRight = b.rect.left + (PANEL_X + PANEL_WIDTH / 2) * b.ps;
+        const panelTop   = b.rect.top  + (PANEL_TOP + this.dy) * b.ps;
+        const panelBottom = b.rect.top + (PANEL_TOP + PANEL_HEIGHT + this.dy) * b.ps;
+        if (t.clientX >= panelLeft && t.clientX <= panelRight &&
+            t.clientY >= panelTop  && t.clientY <= panelBottom) {
           dragMode = 'modal';
           modalDragStartClientY = t.clientY;
           modalDragStartTranslate = getPhysTranslate();
@@ -820,7 +820,8 @@ export class ProfileEditorModal {
         const delta = t.clientY - this._avatarDragStartY;
         if (Math.abs(delta) > DRAG_THRESHOLD) this._avatarWasDragged = true;
         e.preventDefault();
-        this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarDragStartOffset + delta * getToWorld()));
+        const { ps } = getCssGridBounds();
+        this._avatarScrollOffset = Math.max(AVATAR_MIN, Math.min(AVATAR_MAX, this._avatarDragStartOffset + delta / ps));
         this._updateAvatarPositions();
       } else if (dragMode === 'modal' && modalDragStartClientY !== null) {
         const delta = t.clientY - modalDragStartClientY;
