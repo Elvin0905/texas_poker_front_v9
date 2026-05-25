@@ -2926,7 +2926,7 @@ export class TableScene extends Phaser.Scene {
       topColor: 0x3db428, bottomColor: 0x145018, borderColor: 0x1aed30,
       label: "進入下局", labelStyle: _btnStyle,
       depth: HAND_END_MODAL_TEXT_DEPTH,
-      onClick: () => { this._handEndMenuEnd = 0; this.refreshHandEndMenu(); },
+      onClick: () => { this._handEndMenuEnd = 0; this.refreshHandEndMenu(); this.app.sendPacket("hand_ready", {}); },
       visible: false,
     });
     this.handEndMenuSwitchBtn = createGradientButton(this, {
