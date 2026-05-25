@@ -835,8 +835,13 @@ export class ProfileEditorModal {
           e.preventDefault();
           const root = document.getElementById('phaser-root');
           if (!root) return;
+          const vv = window.visualViewport;
+          const baseH = Math.max(window.innerHeight, this._initWindowH);
+          const visibleH = vv ? vv.height : baseH;
+          const keyboardH = Math.max(0, baseH - visibleH);
+          const maxUp = keyboardH > 1 ? keyboardH - 1 : 0;
           const newT = modalDragStartTranslate + delta;
-          const clamped = Math.min(50, Math.max(-window.innerHeight * 0.7, newT));
+          const clamped = Math.min(50, Math.max(-maxUp, newT));
           root.style.transform = clamped === 0 ? '' : `translateY(${clamped}px)`;
           this._kbOffset = -clamped;
           this._syncNickInputPosition();
