@@ -2488,8 +2488,11 @@ function applyViewportCanvasLayout() {
   // exceeds 100px we infer the keyboard is open and use innerHeight so the game canvas stays
   // stable at its pre-keyboard size. For URL bar show/hide both values change together, so
   // rawVisualH is used and the canvas correctly follows the real visible area.
-  const keyboardIsOpen = Boolean(window.visualViewport) && (innerH - rawVisualH) > 100;
-  const viewportHeight = keyboardIsOpen ? innerH : rawVisualH;
+  // On iOS Safari < 15.4, innerH also shrinks with the keyboard, so use the
+  // larger of innerH vs the height captured at startup (_initH) as the baseline.
+  const baseH = Math.max(innerH, _initH);
+  const keyboardIsOpen = Boolean(window.visualViewport) && (baseH - rawVisualH) > 100;
+  const viewportHeight = keyboardIsOpen ? baseH : rawVisualH;
 
   root.style.width = `${viewportWidth}px`;
   root.style.height = `${viewportHeight}px`;
