@@ -399,9 +399,9 @@ export class ProfileEditorModal {
 
     this.avatarMaskGfx = scene.make.graphics({ add: false });
     this.avatarMaskGfx.fillStyle(0xffffff);
-    this.avatarMaskGfx.fillRoundedRect(50, 630, 620, 480, 14);
+    this.avatarMaskGfx.fillRoundedRect(50, 650, 620, 480, 14);
 
-    this.avatarLabel = scene.add.text(PANEL_X, 600, "選擇頭像", {
+    this.avatarLabel = scene.add.text(PANEL_X, 620, "選擇頭像", {
       ...TEXT_STYLE,
       fontSize: "31px",
       color: "#f0c040",
@@ -494,7 +494,7 @@ export class ProfileEditorModal {
 
   createAvatarGrid() {
     const xs = [130, 280, 430, 580];
-    const baseYs = [670, 810, 950, 1090, 1230];
+    const baseYs = [690, 830, 970, 1110, 1250];
     this._baseAvatarYs = baseYs;
     AVATAR_FRAMES.forEach((frame, index) => {
       const x = xs[index % xs.length];
@@ -711,9 +711,9 @@ export class ProfileEditorModal {
 
     this.avatarBgGfx.clear();
     this.avatarBgGfx.fillStyle(0x0a0502, 0.85);
-    this.avatarBgGfx.fillRoundedRect(50, 630, 620, 480, CR);
+    this.avatarBgGfx.fillRoundedRect(50, 650, 620, 480, CR);
     this.avatarBgGfx.lineStyle(2, 0xd4890f, 0.8);
-    this.avatarBgGfx.strokeRoundedRect(50, 630, 620, 480, CR);
+    this.avatarBgGfx.strokeRoundedRect(50, 650, 620, 480, CR);
   }
 
   _setupAvatarScroll() {
@@ -736,8 +736,8 @@ export class ProfileEditorModal {
         ps, rect,
         left:   rect.left + 50  * ps,
         right:  rect.left + 670 * ps,
-        top:    rect.top  + (630  + this.dy) * ps,
-        bottom: rect.top  + (1110 + this.dy) * ps,
+        top:    rect.top  + (650  + this.dy) * ps,
+        bottom: rect.top  + (1130 + this.dy) * ps,
       };
     };
     const getPhysTranslate = () => {
