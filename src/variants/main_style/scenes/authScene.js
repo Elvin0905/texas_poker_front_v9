@@ -119,15 +119,15 @@ export class AuthScene extends Phaser.Scene {
     window.visualViewport?.addEventListener("resize", this._syncBound);
 
     // iOS Safari ignores overflow:hidden on body when input focused — force scroll reset
-    this._preventScrollBound = () => { if (window.scrollY !== 0) window.scrollTo(0, 0); };
+    this._preventScrollBound = () => { if (window.scrollY !== 0) { window.scrollTo(0, 0); this._syncInputPositions(); } };
     window.addEventListener("scroll", this._preventScrollBound, { passive: true });
 
     // Focus fires the moment user taps an input — 400ms gives keyboard time to open
     this._onInputFocus = () => {
       clearTimeout(this._kbTimer);
       this._kbTimer = setTimeout(() => this._adjustForKeyboard(true), 400);
-      // iOS Safari scrolls page when input focused — reset immediately
-      setTimeout(() => window.scrollTo(0, 0), 50);
+      // iOS Safari scrolls page when input focused — reset immediately and re-sync inputs
+      setTimeout(() => { window.scrollTo(0, 0); this._syncInputPositions(); }, 50);
     };
     this._onInputBlur = () => {
       clearTimeout(this._kbTimer);
@@ -380,7 +380,7 @@ export class AuthScene extends Phaser.Scene {
     const canvas = this.sys?.game?.canvas;
     if (!cam || !canvas?.width || !canvas?.height) return;
     const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
-    const designZoom = window.innerHeight / layout.height;
+    const designZoom = Math.max(window.innerHeight, this._initWindowH || window.innerHeight) / layout.height;
     if (!Number.isFinite(designZoom) || designZoom <= 0) return;
     const zoom = designZoom * dpr;
     if (!Number.isFinite(zoom) || zoom <= 0) return;

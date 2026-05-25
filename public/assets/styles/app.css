@@ -361,7 +361,6 @@ body.modal-open #phaser-root {
 }
 
 body.modal-open .lrn-input,
-body.modal-open .fp-input,
 body.modal-open input[id*="main-profile"] {
   visibility: hidden !important;
   pointer-events: none !important;

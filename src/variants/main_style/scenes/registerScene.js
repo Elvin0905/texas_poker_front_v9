@@ -108,9 +108,15 @@ export class RegisterScene extends Phaser.Scene {
     window.addEventListener("resize", this._syncBound);
     window.visualViewport?.addEventListener("resize", this._syncBound);
 
+    // iOS Safari ignores overflow:hidden on body when input focused — force scroll reset
+    this._preventScrollBound = () => { if (window.scrollY !== 0) { window.scrollTo(0, 0); this._syncInputPositions(); } };
+    window.addEventListener("scroll", this._preventScrollBound, { passive: true });
+
     this._onInputFocus = () => {
       clearTimeout(this._kbTimer);
       this._kbTimer = setTimeout(() => this._adjustForKeyboard(true), 400);
+      // iOS Safari scrolls page when input focused — reset immediately and re-sync inputs
+      setTimeout(() => { window.scrollTo(0, 0); this._syncInputPositions(); }, 50);
     };
     this._onInputBlur = () => {
       clearTimeout(this._kbTimer);
@@ -400,7 +406,7 @@ export class RegisterScene extends Phaser.Scene {
     const canvas = this.sys?.game?.canvas;
     if (!cam || !canvas?.width || !canvas?.height) return;
     const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
-    const designZoom = window.innerHeight / layout.height;
+    const designZoom = Math.max(window.innerHeight, this._initWindowH || window.innerHeight) / layout.height;
     if (!Number.isFinite(designZoom) || designZoom <= 0) return;
     const zoom = designZoom * dpr;
     if (!Number.isFinite(zoom) || zoom <= 0) return;
@@ -727,7 +733,7 @@ export class RegisterScene extends Phaser.Scene {
       top:        Math.round(oy + dy * scale) + "px",
       width:      Math.round(dw * scale) + "px",
       height:     Math.round(dh * scale) + "px",
-      fontSize:   Math.round(26 * scale) + "px",
+      fontSize:   Math.max(16, Math.round(26 * scale)) + "px",
       lineHeight: Math.round(dh * scale) + "px",
     });
   }
@@ -1243,6 +1249,10 @@ export class RegisterScene extends Phaser.Scene {
       window.removeEventListener("resize", this._syncBound);
       window.visualViewport?.removeEventListener("resize", this._syncBound);
       this._syncBound = null;
+    }
+    if (this._preventScrollBound) {
+      window.removeEventListener("scroll", this._preventScrollBound);
+      this._preventScrollBound = null;
     }
     document.getElementById("reg-verify-code")?.remove();
     this._verifyCodeEl = null;
