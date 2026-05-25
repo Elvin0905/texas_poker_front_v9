@@ -399,7 +399,7 @@ export class ProfileEditorModal {
 
     this.confirmButton = createGradientButton(scene, {
       x: 250,
-      y: 1170,
+      y: 1200,
       width: 190,
       height: 64,
       cornerRadius: 8,
@@ -414,7 +414,7 @@ export class ProfileEditorModal {
     });
     this.cancelButton = createGradientButton(scene, {
       x: 470,
-      y: 1170,
+      y: 1200,
       width: 170,
       height: 64,
       cornerRadius: 8,
@@ -519,8 +519,8 @@ export class ProfileEditorModal {
     this.positionedNodes.forEach(({ node, x, y }) => {
       node?.setPosition?.(x, y + this.dy);
     });
-    this.confirmButton?.setPosition?.(250, 1170 + this.dy);
-    this.cancelButton?.setPosition?.(470, 1170 + this.dy);
+    this.confirmButton?.setPosition?.(250, 1200 + this.dy);
+    this.cancelButton?.setPosition?.(470, 1200 + this.dy);
     this.emailValueText?.setPosition?.(210, 320 + this.dy);
     this.emailInputBg?.setPosition?.(330, 320 + this.dy);
     this.emailVerifyBtn?.setPosition?.(530, 320 + this.dy);
@@ -692,7 +692,7 @@ export class ProfileEditorModal {
     }
     this._cleanupAvatarNativeTouch();
 
-    const AVATAR_MIN = -180, AVATAR_MAX = 40;
+    const AVATAR_MIN = -200, AVATAR_MAX = 40;
     const GRID_LEFT = 40, GRID_RIGHT = 680, GRID_TOP = 600, GRID_BOTTOM = 1140;
     const DRAG_THRESHOLD = 5;
     const canvas = this.scene.game.canvas;
