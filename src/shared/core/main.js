@@ -1995,6 +1995,7 @@ window.__APP__ = {
     return startReplayPlayback(packet);
   },
   isHandReplayActive: () => replaySessionState.active || replaySessionState.finishing,
+  isHandReplayRunning: () => replaySessionState.active,
   isHandReplayFastMode: () => isReplayFastMode(),
   setHandReplayFastMode: (enabled) => {
     setReplayFastMode(enabled);

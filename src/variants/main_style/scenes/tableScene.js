@@ -5425,11 +5425,26 @@ export class TableScene extends Phaser.Scene {
       const _heroSeatForResult = parseSeat(this.state?.heroSeat);
       const _playerResults = Array.isArray(this.state?.handResult?.player_results) ? this.state.handResult.player_results : [];
       this._heroPlayedCurrentHand = _heroSeatForResult !== null && _playerResults.some(r => parseSeat(r?.seat) === _heroSeatForResult);
-      if (this.winGifIsPlaying) {
+      // During active replay, latch the result but don't open the modal yet — the
+      // 6-second auto-close timer must not start before the replay ends, otherwise
+      // it can expire before finishReplayPlayback() sets finishing=true and leave
+      // the scene stuck with nobody to call notifyReplayHandResultClosed().
+      if (this.winGifIsPlaying || this.app?.isHandReplayRunning?.()) {
         this.pendingHandResult = this.state.handResult;
       } else {
         this.openHandResultModal(this.state.handResult);
       }
+    } else if (
+      !this.isHandResultModalOpen &&
+      this.pendingHandResult !== null &&
+      !this.winGifIsPlaying &&
+      this.app?.isHandReplayActive?.() &&
+      !this.app?.isHandReplayRunning?.()
+    ) {
+      // Replay just transitioned active→finishing: open the latched result now.
+      const result = this.pendingHandResult;
+      this.pendingHandResult = null;
+      this.openHandResultModal(result);
     } else if (!this.state.handResult && this.isHandResultModalOpen) {
       const countdownDone = this.handResultAutoCloseEndAt <= 0 || Date.now() >= this.handResultAutoCloseEndAt;
       if (countdownDone) {
