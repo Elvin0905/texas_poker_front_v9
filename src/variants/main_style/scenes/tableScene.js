@@ -1996,14 +1996,6 @@ export class TableScene extends Phaser.Scene {
     this.handResultScrollbarTrack?.setVisible(false);
     this.handResultScrollbarThumb?.setVisible(false);
 
-    // Immediately clear community cards and hole cards after settlement modal closes.
-    // resetTableAfterHandEnd zeroes community/pot/bets in state; emit() propagates to this.state
-    // so the render loop won't re-animate cards from stale state on the next frame.
-    this.store?.resetTableAfterHandEnd?.();
-    this.store?.emit?.();
-    this.seatViews?.forEach((sv) => this.hideSeatHoleCards(sv));
-    this.renderCommunityCards([], false);
-
     if (this._pendingLeaveAfterHandResult) {
       this._pendingLeaveAfterHandResult = false;
       const currentTableId = this.store.getState?.().table?.table_id ?? null;
@@ -4896,7 +4888,12 @@ export class TableScene extends Phaser.Scene {
       }
       if (dealCardVersion > this.lastSeenDealCardVersion) {
         this.lastSeenDealCardVersion = dealCardVersion;
-        this.playDealCardEffect(this.state.lastDealCard);
+        const _dealTableStatus = String(table?.status || "").toLowerCase();
+        const _tableIsWaiting = _dealTableStatus === "waiting" || _dealTableStatus === "";
+        const _heroWaiting = Boolean(this.state.heroJoinedWaiting);
+        if (!_tableIsWaiting && !_heroWaiting) {
+          this.playDealCardEffect(this.state.lastDealCard);
+        }
       }
       const activeSeat = this.findActiveSeat(table, actionRequest);
       this.currentActiveSeat = activeSeat;
@@ -4975,8 +4972,11 @@ export class TableScene extends Phaser.Scene {
       this.updatePotTextPosition();
 
       const community = Array.isArray(table.community) ? table.community : [];
+      const _communityTableStatus = String(table.status || "").toLowerCase();
+      const communityForRender = (_communityTableStatus === "waiting" || _communityTableStatus === "") ? [] : community;
+
       const allowCommunityAnimation = this.communityAnimationReady;
-      this.renderCommunityCards(community, allowCommunityAnimation, replayHandEndFreeze);
+      this.renderCommunityCards(communityForRender, allowCommunityAnimation, replayHandEndFreeze);
       this.communityAnimationReady = true;
       const nextActionRoundKey = `${nextRoundSnapshot.tableId}|${nextRoundSnapshot.handId}|${nextRoundSnapshot.round}`;
       if (this.actionRoundKey !== nextActionRoundKey) {
