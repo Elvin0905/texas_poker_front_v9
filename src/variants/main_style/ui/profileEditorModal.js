@@ -5,6 +5,8 @@ const INPUT_TEXT_COLOR = "#f4deba";
 const INPUT_PH_COLOR = "rgba(143,123,104,0.85)";
 
 const AVATAR_FRAMES = Array.from({ length: 20 }, (_, index) => `avatar_${index + 1}`);
+const AVATAR_MIN = -200;
+const AVATAR_MAX = 40;
 const PANEL_X = 360;
 const PANEL_Y = 720;
 const PANEL_WIDTH = 650;
@@ -395,6 +397,7 @@ export class ProfileEditorModal {
     }).setOrigin(0, 0.5).setDepth(depth + 2).setVisible(false);
 
     this.avatarBgGfx = scene.add.graphics().setDepth(depth + 1).setVisible(false);
+    this.avatarScrollGfx = scene.add.graphics().setDepth(depth + 4).setVisible(false);
 
     this.avatarMaskGfx = scene.make.graphics({ add: false });
     this.avatarMaskGfx.fillStyle(0xffffff);
@@ -485,6 +488,7 @@ export class ProfileEditorModal {
       this.nicknameHintText,
       this.genderLabel, this.genderValueText,
       this.avatarBgGfx,
+      this.avatarScrollGfx,
       this.avatarLabel, this.statusText
     );
 
@@ -541,6 +545,7 @@ export class ProfileEditorModal {
     if (this.panelMask) this.panelMask.y = this.dy;
     if (this.infoBgGfx) this.infoBgGfx.y = this.dy;
     if (this.avatarBgGfx) this.avatarBgGfx.y = this.dy;
+    if (this.avatarScrollGfx) this.avatarScrollGfx.y = this.dy;
     if (this.avatarMaskGfx) this.avatarMaskGfx.y = this.dy;
     this.positionedNodes.forEach(({ node, x, y }) => {
       node?.setPosition?.(x, y + this.dy);
@@ -722,7 +727,6 @@ export class ProfileEditorModal {
     }
     this._cleanupAvatarNativeTouch();
 
-    const AVATAR_MIN = -200, AVATAR_MAX = 40;
     const DRAG_THRESHOLD = 5;
     const canvas = this.scene.game.canvas;
 
@@ -900,6 +904,34 @@ export class ProfileEditorModal {
       node.ring.setPosition(node.x, newY).setVisible(this.visible);
       node.image.setPosition(node.x, newY).setVisible(this.visible);
     });
+    this._renderAvatarScrollbar();
+  }
+
+  _renderAvatarScrollbar() {
+    if (!this.avatarScrollGfx) return;
+    const gfx = this.avatarScrollGfx;
+    gfx.clear();
+    if (!this.visible) return;
+
+    // Track occupies the right inner edge of the avatar bg box (x:50–670, y:650–1130)
+    const trackX = 658;
+    const trackW = 6;
+    const trackTop = 664;
+    const trackH = 452;  // 664 to 1116
+
+    // Track background
+    gfx.fillStyle(0x000000, 0.28);
+    gfx.fillRoundedRect(trackX, trackTop, trackW, trackH, 3);
+
+    // Thumb — sized proportionally: visible area (480) / total content height (480 + scroll range 240)
+    const totalRange = AVATAR_MAX - AVATAR_MIN;
+    const thumbH = Math.max(36, Math.floor(trackH * 480 / (480 + totalRange)));
+    const maxTravel = trackH - thumbH;
+    const progress = (AVATAR_MAX - this._avatarScrollOffset) / totalRange;
+    const thumbY = trackTop + progress * maxTravel;
+
+    gfx.fillStyle(0xd4890f, 0.9);
+    gfx.fillRoundedRect(trackX, thumbY, trackW, thumbH, 3);
   }
 
   render() {
