@@ -865,18 +865,23 @@ function buildReplayPacketFromTimelineEvent(event, replay) {
 
 function extractReplayHeroHoleCards(replayData, replay, heroSeatRaw) {
   const normalizeCards = (cardsRaw) => {
-    if (!Array.isArray(cardsRaw)) {
+    let arr = cardsRaw;
+    if (typeof arr === "string") {
+      arr = arr.split(/[,\s]+/).filter(Boolean);
+    }
+    if (!Array.isArray(arr)) {
       return [];
     }
-    return cardsRaw
+    return arr
       .map((card) => String(card || "").trim())
       .filter((card) => card.length > 0)
       .slice(0, 2);
   };
 
-  const fromTopLevel = normalizeCards(replayData?.hero_hole_cards);
-  if (fromTopLevel.length > 0) {
-    return fromTopLevel;
+  // 1. Top-level hero_hole_cards in the response root
+  for (const key of ["hero_hole_cards", "hero_cards", "my_hole_cards", "my_cards"]) {
+    const v = normalizeCards(replayData?.[key]);
+    if (v.length > 0) return v;
   }
 
   const heroSeat = parseSeatNumber(heroSeatRaw);
@@ -884,18 +889,40 @@ function extractReplayHeroHoleCards(replayData, replay, heroSeatRaw) {
     return [];
   }
 
+  // 2. Showdown/reveal structure keyed by seat
   const revealInfo = replay?.reveals?.[String(heroSeat)];
-  const fromReveal = normalizeCards(revealInfo?.hole);
-  if (fromReveal.length > 0) {
-    return fromReveal;
+  for (const key of ["hole", "hole_cards", "cards", "hand"]) {
+    const v = normalizeCards(revealInfo?.[key]);
+    if (v.length > 0) return v;
   }
 
+  // 3. Player list
   const replayPlayers = Array.isArray(replay?.players) ? replay.players : [];
   const heroPlayer = replayPlayers.find((item) => parseSeatNumber(item?.seat) === heroSeat);
-  const fromPlayerRow = normalizeCards(heroPlayer?.hole_cards);
-  if (fromPlayerRow.length > 0) {
-    return fromPlayerRow;
+  for (const key of ["hole_cards", "cards", "hole", "hand"]) {
+    const v = normalizeCards(heroPlayer?.[key]);
+    if (v.length > 0) return v;
   }
+
+  // 4. replay-level hero_hole_cards (nested inside replay object)
+  for (const key of ["hero_hole_cards", "hero_cards"]) {
+    const v = normalizeCards(replay?.[key]);
+    if (v.length > 0) return v;
+  }
+
+  // 5. Scan timeline for deal_private events belonging to the hero
+  const timeline = Array.isArray(replay?.timeline) ? replay.timeline : [];
+  const timelineCards = [];
+  for (const event of timeline) {
+    if (String(event?.event || "").toLowerCase() !== "deal_private") continue;
+    const seat = parseSeatNumber(event?.seat ?? event?.payload?.seat);
+    if (seat !== heroSeat) continue;
+    const card = String(event?.payload?.card ?? event?.payload?.cards?.[0] ?? "").trim();
+    const cardIndex = Number(event?.payload?.card_index ?? 0);
+    if (card && cardIndex >= 0 && cardIndex < 2) timelineCards[cardIndex] = card;
+  }
+  const fromTimeline = timelineCards.filter(Boolean);
+  if (fromTimeline.length > 0) return fromTimeline;
 
   return [];
 }
@@ -1060,6 +1087,21 @@ function maybeRevealHeroHoleCardsAfterDeal(event, replay) {
     return;
   }
   const eventType = String(event?.event || "").toLowerCase();
+
+  // After hand_start clears store state, immediately re-plant the hero's cards so
+  // the render loop can show them face-up as soon as deal animations complete.
+  if (eventType === "hand_start") {
+    applyReplayPacket({
+      type: "hole_cards",
+      data: {
+        table_id: String(replay?.table_id || ""),
+        hand_id: Number(replay?.hand_id ?? 0),
+        cards: pending,
+      },
+    });
+    return;
+  }
+
   if (eventType !== "deal_card") {
     return;
   }
