@@ -4294,7 +4294,11 @@ export class TableScene extends Phaser.Scene {
     const showdownCards = Array.isArray(this.state?.showdownRevealsBySeat?.[key]) ? this.state.showdownRevealsBySeat[key] : [];
     const revealCards = showdownCards.length > 0 ? showdownCards : knownCards;
     const revealFace = revealCards.length > 0;
-    const fallbackVisibleCount = player?.in_hand === false ? 0 : Number(player?.hole_count ?? 0);
+    // During replay, keep hero card backs visible after fold — hand_end freeze cleans up.
+    const isReplayActive = Boolean(this.app?.isHandReplayActive?.());
+    const fallbackVisibleCount = (player?.in_hand === false && !(isHero && isReplayActive))
+      ? 0
+      : Number(player?.hole_count ?? 0);
     const visibleCount = revealFace ? revealCards.length : fallbackVisibleCount;
     return {
       revealFace,
