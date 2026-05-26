@@ -2008,6 +2008,7 @@ export class TableScene extends Phaser.Scene {
     this.potCoinStack?.forEach((img) => img.setVisible(false));
     this.tableHintText?.setText("").setVisible(false);
     this._clearCardsUntilNextHand = true;
+    this._clearCardsHandId = this.store?.getState?.()?.table?.hand_id ?? null;
 
     if (this._pendingLeaveAfterHandResult) {
       this._pendingLeaveAfterHandResult = false;
@@ -4920,10 +4921,10 @@ export class TableScene extends Phaser.Scene {
           && (this.handResultAutoCloseEndAt <= 0 || Date.now() >= this.handResultAutoCloseEndAt)) {
         this._clearCardsUntilNextHand = true;
       }
-      // Clear as soon as a new hand's preflop starts — blind bets are posted at this point
-      // and must not be suppressed. dealCardVersion bumps later (first deal), which is too late.
-      const _preHandStatus = String(table?.status || "").toLowerCase();
-      if (this._clearCardsUntilNextHand && _preHandStatus === "preflop") {
+      // Clear as soon as the hand_id changes — the new hand has started and bets/chips
+      // must not be suppressed (blind bets arrive before the first dealCardVersion bump).
+      if (this._clearCardsUntilNextHand && table?.hand_id != null
+          && table.hand_id !== this._clearCardsHandId) {
         this._clearCardsUntilNextHand = false;
       }
 
