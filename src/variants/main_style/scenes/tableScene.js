@@ -4920,6 +4920,12 @@ export class TableScene extends Phaser.Scene {
           && (this.handResultAutoCloseEndAt <= 0 || Date.now() >= this.handResultAutoCloseEndAt)) {
         this._clearCardsUntilNextHand = true;
       }
+      // Clear as soon as a new hand's preflop starts — blind bets are posted at this point
+      // and must not be suppressed. dealCardVersion bumps later (first deal), which is too late.
+      const _preHandStatus = String(table?.status || "").toLowerCase();
+      if (this._clearCardsUntilNextHand && _preHandStatus === "preflop") {
+        this._clearCardsUntilNextHand = false;
+      }
 
       const activeSeat = this.findActiveSeat(table, actionRequest);
       this.currentActiveSeat = activeSeat;

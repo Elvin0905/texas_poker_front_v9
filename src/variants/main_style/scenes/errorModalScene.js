@@ -71,7 +71,7 @@ export class ErrorModalScene extends Phaser.Scene {
         fontStyle: "bold",
         color: "#ffffff",
         align: "center",
-        wordWrap: { width: PANEL_W - 64 },
+        wordWrap: { width: PANEL_W - 64, useAdvancedWrap: true },
         lineSpacing: 8,
       })
       .setOrigin(0.5)
@@ -159,7 +159,11 @@ export class ErrorModalScene extends Phaser.Scene {
   }
 
   showModal(message) {
-    this.currentMessage = String(message || "未知錯誤");
+    let raw = String(message || "未知錯誤");
+    if (raw.length > 12) {
+      raw = raw.replace(/([，。！？；：、])\s*/g, "$1\n").replace(/\n+/g, "\n").trimEnd();
+    }
+    this.currentMessage = raw;
     this.messageText.setText(this.currentMessage);
     this.scene.bringToTop();
     this.applyLayout();
