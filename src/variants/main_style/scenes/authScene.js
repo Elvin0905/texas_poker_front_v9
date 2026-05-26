@@ -231,6 +231,7 @@ export class AuthScene extends Phaser.Scene {
       `.fp-input:-webkit-autofill,.fp-input:-webkit-autofill:hover,.fp-input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 200px #3a1800 inset !important; -webkit-text-fill-color: ${INPUT_TEXT_COLOR} !important; }`,
       `.phone-code-sel { background: #3a1800; color: ${INPUT_TEXT_COLOR}; border: none; border-right: 1px solid #d4a520; outline: none; cursor: pointer; font-weight: bold; }`,
       `.phone-code-sel option { background: #2a1000; color: ${INPUT_TEXT_COLOR}; }`,
+      `body.modal-open .lrn-input, body.modal-open .phone-code-sel { display: none !important; visibility: hidden !important; }`,
     ].join("\n");
     document.head.appendChild(this._styleEl);
   }

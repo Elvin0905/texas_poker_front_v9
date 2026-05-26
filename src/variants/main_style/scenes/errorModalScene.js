@@ -23,6 +23,13 @@ export class ErrorModalScene extends Phaser.Scene {
     this.app = window.__APP__;
     this.store = this.app?.store;
 
+    if (!document.getElementById("error-modal-css")) {
+      const s = document.createElement("style");
+      s.id = "error-modal-css";
+      s.textContent = "body.modal-open .lrn-input,body.modal-open .phone-code-sel{display:none!important;visibility:hidden!important}";
+      document.head.appendChild(s);
+    }
+
     // Keep the blocker larger than the viewport so it catches every outside click.
     this.blocker = this.add
       .rectangle(layout.centerX, layout.centerY, layout.width * 4, layout.height * 4, 0x000000, 0.68)
