@@ -1235,8 +1235,9 @@ export class Store extends EventTarget {
     }
 
     const seat = data.seat;
+    const seatNo = Number(seat);
     const paid = Number(data.paid ?? 0);
-    const player = this.state.table.players?.find((item) => item.seat === seat);
+    const player = this.state.table.players?.find((item) => Number(item.seat) === seatNo);
 
     if (player) {
       player.bet = Number(player.bet ?? 0) + paid;
