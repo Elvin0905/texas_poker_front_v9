@@ -4901,6 +4901,7 @@ export class TableScene extends Phaser.Scene {
       const dealCardVersion = Number(this.state.dealCardVersion ?? 0);
       if (dealCardVersion < this.lastSeenDealCardVersion) {
         this.lastSeenDealCardVersion = dealCardVersion;
+        this._clearCardsUntilNextHand = false;
       }
       if (dealCardVersion > this.lastSeenDealCardVersion) {
         this.lastSeenDealCardVersion = dealCardVersion;
@@ -4912,6 +4913,14 @@ export class TableScene extends Phaser.Scene {
           this.playDealCardEffect(this.state.lastDealCard);
         }
       }
+      // Pre-check: if the hand-result modal countdown has expired, set the clear flag NOW
+      // so all rendering below is suppressed this frame (instead of waiting until the
+      // closeHandResultModal() call at the bottom of renderState()).
+      if (!this.state.handResult && this.isHandResultModalOpen
+          && (this.handResultAutoCloseEndAt <= 0 || Date.now() >= this.handResultAutoCloseEndAt)) {
+        this._clearCardsUntilNextHand = true;
+      }
+
       const activeSeat = this.findActiveSeat(table, actionRequest);
       this.currentActiveSeat = activeSeat;
       this.currentTurnTimeout = this.resolveActiveTimeout(table, actionRequest);
@@ -4925,7 +4934,7 @@ export class TableScene extends Phaser.Scene {
       ) {
         displayPot += this.roundBetCollectCarryAmount;
       }
-      const shouldShowPot = displayPot > 0;
+      const shouldShowPot = displayPot > 0 && !this._clearCardsUntilNextHand;
       this.potText.setText("").setVisible(false);
       if (shouldShowPot) {
         this.centerPotText?.setText(`底池  ${formatAmount(displayPot)}`).setVisible(true);
@@ -5221,7 +5230,7 @@ export class TableScene extends Phaser.Scene {
           this.playBetFlyAnimation(seatView, betValue);
         }
         this.lastBetValueBySeat[seatKey] = hasBet ? betValue : 0;
-        if (hasBet && !isCollectHidden) {
+        if (hasBet && !isCollectHidden && !this._clearCardsUntilNextHand) {
           this.showSeatBetCoins(seatView, betValue);
           seatView.betAmount.setText(formatAmount(betValue)).setVisible(true);
         } else {
@@ -5340,14 +5349,16 @@ export class TableScene extends Phaser.Scene {
         }
       } else if (!this.newRoundHintTimer) {
         let hintLabel = "";
-        if (showdownRevealCount > 0) {
-          hintLabel = "攤牌";
-        } else if (visibleCommCount >= 5) {
-          hintLabel = "河牌";
-        } else if (visibleCommCount >= 4) {
-          hintLabel = "轉牌";
-        } else if (visibleCommCount >= 3) {
-          hintLabel = "翻牌";
+        if (!this._clearCardsUntilNextHand) {
+          if (showdownRevealCount > 0) {
+            hintLabel = "攤牌";
+          } else if (visibleCommCount >= 5) {
+            hintLabel = "河牌";
+          } else if (visibleCommCount >= 4) {
+            hintLabel = "轉牌";
+          } else if (visibleCommCount >= 3) {
+            hintLabel = "翻牌";
+          }
         }
         this.tableHintText.setText(hintLabel).setVisible(hintLabel !== "").setAlpha(0.88);
       }
