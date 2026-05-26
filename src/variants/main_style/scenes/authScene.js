@@ -75,8 +75,14 @@ export class AuthScene extends Phaser.Scene {
   }
 
   create() {
-    document.body.dataset.modalDepth = "0";
-    document.body.classList.remove("modal-open");
+    // Only reset modal state if no modal is currently showing across a scene transition.
+    // e.g. a WS_NOT_OPEN error fires in lobby, errorModal shows, then scene switches here —
+    // clearing modal-open would unhide inputs and let them paint over the still-visible modal.
+    const _errModalVisible = this.scene.get("errorModal")?.blocker?.visible;
+    if (!_errModalVisible) {
+      document.body.dataset.modalDepth = "0";
+      document.body.classList.remove("modal-open");
+    }
     this.useResponsiveLayout = true;
     this.app = window.__APP__;
     this.store = this.app.store;
@@ -585,6 +591,7 @@ export class AuthScene extends Phaser.Scene {
     // first frame with the correct camera/layout, which would show inputs floating
     // over an invisible Phaser panel.
     this.time.delayedCall(120, () => {
+      if (document.body.classList.contains("modal-open")) return;
       if (this._emailEl) this._emailEl.style.visibility = '';
       if (this._pwEl)    this._pwEl.style.visibility = '';
     });

@@ -189,7 +189,11 @@ export class ErrorModalScene extends Phaser.Scene {
     document.body.dataset.modalDepth = _d;
     if (_d === 0) {
       document.body.classList.remove("modal-open");
-      document.querySelectorAll(".lrn-input, input[id*='main-profile']").forEach(el => el.style.removeProperty("display"));
+      document.querySelectorAll(".lrn-input, input[id*='main-profile']").forEach(el => {
+        el.style.removeProperty("display");
+        // If the 120ms reveal was blocked by modal-open, visibility may still be "hidden" — clear it.
+        if (el.style.visibility === "hidden") el.style.visibility = "";
+      });
     }
     // Always restore fp-inputs so the underlying forgot-password modal stays usable
     document.querySelectorAll(".fp-input").forEach(el => el.style.removeProperty("display"));

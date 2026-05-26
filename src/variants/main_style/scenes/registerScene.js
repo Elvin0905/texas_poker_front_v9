@@ -74,8 +74,11 @@ export class RegisterScene extends Phaser.Scene {
   }
 
   create() {
-    document.body.dataset.modalDepth = "0";
-    document.body.classList.remove("modal-open");
+    const _errModalVisible = this.scene.get("errorModal")?.blocker?.visible;
+    if (!_errModalVisible) {
+      document.body.dataset.modalDepth = "0";
+      document.body.classList.remove("modal-open");
+    }
     this.useResponsiveLayout = true;
     this.app = window.__APP__;
     this.store = this.app.store;
@@ -594,6 +597,7 @@ export class RegisterScene extends Phaser.Scene {
     this.time.delayedCall(80, () => this._syncInputPositions());
 
     this.time.delayedCall(120, () => {
+      if (document.body.classList.contains("modal-open")) return;
       [this._emailEl, this._nickEl, this._pwEl, this._confirmPwEl,
        this._eyeHitEl, this._confirmEyeHitEl].forEach(el => {
         if (el) el.style.visibility = '';
