@@ -1996,6 +1996,19 @@ export class TableScene extends Phaser.Scene {
     this.handResultScrollbarTrack?.setVisible(false);
     this.handResultScrollbarThumb?.setVisible(false);
 
+    this.seatViews?.forEach((sv) => {
+      this.hideSeatHoleCards(sv);
+      this.hideSeatBetCoins(sv);
+      sv.betAmount?.setText("").setVisible(false);
+    });
+    this.renderCommunityCards([], false);
+    this.centerPotText?.setText("").setVisible(false);
+    this.centerPotBg?.setVisible(false);
+    this.potText?.setText("").setVisible(false);
+    this.potCoinStack?.forEach((img) => img.setVisible(false));
+    this.tableHintText?.setText("").setVisible(false);
+    this._clearCardsUntilNextHand = true;
+
     if (this._pendingLeaveAfterHandResult) {
       this._pendingLeaveAfterHandResult = false;
       const currentTableId = this.store.getState?.().table?.table_id ?? null;
@@ -4289,6 +4302,9 @@ export class TableScene extends Phaser.Scene {
   }
 
   resolveSeatHoleRenderOptions(player, isHero) {
+    if (this._clearCardsUntilNextHand) {
+      return { revealFace: false, cardValues: [], visibleCount: 0 };
+    }
     const seatNo = Number(player?.seat);
     const key = Number.isFinite(seatNo) ? String(seatNo) : "";
     const knownCards = Array.isArray(this.state?.holeCardsBySeat?.[key]) ? this.state.holeCardsBySeat[key] : [];
@@ -4888,6 +4904,7 @@ export class TableScene extends Phaser.Scene {
       }
       if (dealCardVersion > this.lastSeenDealCardVersion) {
         this.lastSeenDealCardVersion = dealCardVersion;
+        this._clearCardsUntilNextHand = false;
         const _dealTableStatus = String(table?.status || "").toLowerCase();
         const _tableIsWaiting = _dealTableStatus === "waiting" || _dealTableStatus === "";
         const _heroWaiting = Boolean(this.state.heroJoinedWaiting);
@@ -4973,7 +4990,7 @@ export class TableScene extends Phaser.Scene {
 
       const community = Array.isArray(table.community) ? table.community : [];
       const _communityTableStatus = String(table.status || "").toLowerCase();
-      const communityForRender = (_communityTableStatus === "waiting" || _communityTableStatus === "") ? [] : community;
+      const communityForRender = (_communityTableStatus === "waiting" || _communityTableStatus === "" || this._clearCardsUntilNextHand) ? [] : community;
 
       const allowCommunityAnimation = this.communityAnimationReady;
       this.renderCommunityCards(communityForRender, allowCommunityAnimation, replayHandEndFreeze);
