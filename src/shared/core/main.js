@@ -1087,39 +1087,16 @@ function maybeRevealHeroHoleCardsAfterDeal(event, replay) {
     return;
   }
   const eventType = String(event?.event || "").toLowerCase();
-
-  // After hand_start clears store state, immediately re-plant the hero's cards so
-  // the render loop can show them face-up as soon as deal animations complete.
-  if (eventType === "hand_start") {
-    applyReplayPacket({
-      type: "hole_cards",
-      data: {
-        table_id: String(replay?.table_id || ""),
-        hand_id: Number(replay?.hand_id ?? 0),
-        cards: pending,
-      },
-    });
-    return;
-  }
-
   if (eventType !== "deal_card") {
     return;
   }
   const seat = parseSeatNumber(event?.seat ?? event?.payload?.seat);
+  if (seat !== heroSeat) {
+    return;
+  }
   const cardIndex = Number(event?.payload?.card_index ?? event?.card_index);
   if (!Number.isFinite(cardIndex) || cardIndex < 1) {
     return;
-  }
-  // If the event is for a non-hero seat, only proceed as fallback when the hero
-  // has no deal_card events at all (server may omit private deal events for replay).
-  if (seat !== heroSeat) {
-    const heroHasDealCard = replaySessionState.timeline.some((e) => {
-      if (String(e?.event || "").toLowerCase() !== "deal_card") return false;
-      return parseSeatNumber(e?.seat ?? e?.payload?.seat) === heroSeat;
-    });
-    if (heroHasDealCard) {
-      return;
-    }
   }
   context.heroHoleCardsRevealed = true;
   applyReplayPacket({
