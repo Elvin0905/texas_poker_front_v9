@@ -1995,6 +1995,15 @@ export class TableScene extends Phaser.Scene {
     this.handResultScrollContainer?.setVisible(false);
     this.handResultScrollbarTrack?.setVisible(false);
     this.handResultScrollbarThumb?.setVisible(false);
+
+    // Immediately clear community cards and hole cards after settlement modal closes.
+    // resetTableAfterHandEnd zeroes community/pot/bets in state; emit() propagates to this.state
+    // so the render loop won't re-animate cards from stale state on the next frame.
+    this.store?.resetTableAfterHandEnd?.();
+    this.store?.emit?.();
+    this.seatViews?.forEach((sv) => this.hideSeatHoleCards(sv));
+    this.renderCommunityCards([], false);
+
     if (this._pendingLeaveAfterHandResult) {
       this._pendingLeaveAfterHandResult = false;
       const currentTableId = this.store.getState?.().table?.table_id ?? null;
