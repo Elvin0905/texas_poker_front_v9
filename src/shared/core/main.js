@@ -860,17 +860,17 @@ function buildReplayPacketFromTimelineEvent(event, replay) {
   if (!Object.prototype.hasOwnProperty.call(data, "hand_id") && Number.isFinite(handId)) {
     data.hand_id = handId;
   }
+  // Always copy top-level event.seat into data if payload didn't include it —
+  // some server formats put seat at the event root, not inside payload.
+  const topLevelSeat = event?.seat ?? event?.payload?.seat;
+  if (topLevelSeat != null && !Object.prototype.hasOwnProperty.call(data, "seat")) {
+    data.seat = topLevelSeat;
+  }
   // Normalize standalone action events to player_action so patchTableByAction runs.
-  // This ensures player.in_hand is set to false when a fold event fires in replay.
-  // event.seat may be at the top level (not inside payload), so copy it into data.
   const STANDALONE_ACTIONS = ["fold", "check", "call", "raise", "all_in", "allin", "bet"];
   if (STANDALONE_ACTIONS.includes(type)) {
     if (!Object.prototype.hasOwnProperty.call(data, "action")) {
       data.action = type;
-    }
-    const topLevelSeat = event?.seat ?? event?.payload?.seat;
-    if (topLevelSeat != null && !Object.prototype.hasOwnProperty.call(data, "seat")) {
-      data.seat = topLevelSeat;
     }
     return { type: "player_action", data };
   }
