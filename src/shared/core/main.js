@@ -1259,6 +1259,15 @@ function startReplayPlayback(packet) {
 
   const heroSeat = deriveReplayHeroSeat(replayData, initTable);
   const heroHoleCards = extractReplayHeroHoleCards(replayData, replay, heroSeat);
+  // DEBUG: log replay data keys so we can find which field has hero's cards
+  try {
+    console.log("[replay-debug] heroSeat:", heroSeat, "heroHoleCards:", heroHoleCards);
+    console.log("[replay-debug] replayData keys:", Object.keys(replayData || {}));
+    console.log("[replay-debug] replay keys:", Object.keys(replay || {}));
+    const p = (replay?.players || []).find(pl => pl?.seat == heroSeat);
+    console.log("[replay-debug] heroPlayer:", JSON.stringify(p));
+    console.log("[replay-debug] reveals keys:", Object.keys(replay?.reveals || {}));
+  } catch (_) {}
   replaySessionState.context.heroSeat = heroSeat;
   replaySessionState.context.pendingHeroHoleCards = heroHoleCards;
   replaySessionState.context.heroHoleCardsRevealed = heroHoleCards.length <= 0;
