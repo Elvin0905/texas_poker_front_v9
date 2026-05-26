@@ -151,7 +151,7 @@ export class ErrorModalScene extends Phaser.Scene {
     // Exception: third-party button errors always show as modal
     if (state?.page === "auth" || state?.page === "register") {
       const code = String(state?.lastError?.code ?? "").toUpperCase();
-      if (!code.includes("THIRD_PARTY") && !code.includes("UNDER_CONSTRUCTION")) return;
+      if (!code.includes("THIRD_PARTY") && !code.includes("UNDER_CONSTRUCTION") && !code.includes("DUPLICATE_LOGIN")) return;
     }
 
     const message = state?.lastError?.message || state?.lastError?.code || "未知錯誤";
