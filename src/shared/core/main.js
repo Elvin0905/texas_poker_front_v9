@@ -1263,10 +1263,10 @@ function startReplayPlayback(packet) {
   try {
     console.log("[replay-debug] heroSeat:", heroSeat, "heroHoleCards:", heroHoleCards);
     console.log("[replay-debug] replayData keys:", Object.keys(replayData || {}));
-    console.log("[replay-debug] replay keys:", Object.keys(replay || {}));
-    const p = (replay?.players || []).find(pl => pl?.seat == heroSeat);
-    console.log("[replay-debug] heroPlayer:", JSON.stringify(p));
-    console.log("[replay-debug] reveals keys:", Object.keys(replay?.reveals || {}));
+    console.log("[replay-debug] hero_hole_cards raw:", replayData?.hero_hole_cards);
+    const tl = Array.isArray(replay?.timeline) ? replay.timeline : [];
+    const dealEvents = tl.filter(e => ["deal_card","deal_private","hole_cards"].includes(String(e?.event||"").toLowerCase()));
+    console.log("[replay-debug] deal events in timeline:", JSON.stringify(dealEvents.slice(0,6)));
   } catch (_) {}
   replaySessionState.context.heroSeat = heroSeat;
   replaySessionState.context.pendingHeroHoleCards = heroHoleCards;
