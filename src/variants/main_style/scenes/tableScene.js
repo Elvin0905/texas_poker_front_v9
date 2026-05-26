@@ -1996,17 +1996,19 @@ export class TableScene extends Phaser.Scene {
     this.handResultScrollbarTrack?.setVisible(false);
     this.handResultScrollbarThumb?.setVisible(false);
 
-    this.seatViews?.forEach((sv) => {
-      this.hideSeatHoleCards(sv);
-      this.hideSeatBetCoins(sv);
-      sv.betAmount?.setText("").setVisible(false);
-    });
-    this.renderCommunityCards([], false);
-    this.centerPotText?.setText("").setVisible(false);
-    this.centerPotBg?.setVisible(false);
-    this.potText?.setText("").setVisible(false);
-    this.potCoinStack?.forEach((img) => img.setVisible(false));
-    this.tableHintText?.setText("").setVisible(false);
+    try {
+      this.seatViews?.forEach((sv) => {
+        this.hideSeatHoleCards(sv);
+        this.hideSeatBetCoins(sv);
+        sv.betAmount?.setText("").setVisible(false);
+      });
+      this.renderCommunityCards([], false);
+      this.centerPotText?.setText("").setVisible(false);
+      this.centerPotBg?.setVisible(false);
+      this.potText?.setText("").setVisible(false);
+      this.potCoinStack?.forEach((img) => img.setVisible(false));
+      this.tableHintText?.setText("").setVisible(false);
+    } catch (_e) {}
     this._clearCardsUntilNextHand = true;
     this._clearCardsHandId = this.store?.getState?.()?.table?.hand_id ?? null;
 
@@ -4312,8 +4314,11 @@ export class TableScene extends Phaser.Scene {
     const showdownCards = Array.isArray(this.state?.showdownRevealsBySeat?.[key]) ? this.state.showdownRevealsBySeat[key] : [];
     const revealCards = showdownCards.length > 0 ? showdownCards : knownCards;
     const revealFace = revealCards.length > 0;
-    const fallbackVisibleCount = player?.in_hand === false ? 0 : Number(player?.hole_count ?? 0);
-    const visibleCount = revealFace ? revealCards.length : fallbackVisibleCount;
+    const isFolded = player?.in_hand === false
+      || String(player?.last_action || "").toLowerCase().startsWith("fold");
+    // Hero always sees their own cards (even after folding); only suppress other folded players.
+    const fallbackVisibleCount = (isFolded && !isHero) ? 0 : Number(player?.hole_count ?? 0);
+    const visibleCount = (isFolded && !isHero && showdownCards.length === 0) ? 0 : (revealFace ? revealCards.length : fallbackVisibleCount);
     return {
       revealFace,
       cardValues: revealCards,
@@ -4625,13 +4630,19 @@ export class TableScene extends Phaser.Scene {
     if (!seatView) {
       return;
     }
-    const player = this.state?.table?.players?.find((item) => isSameSeat(item?.seat, seatView.displaySeatNo));
+    const table = this.state?.table;
+    const player = table?.players?.find((item) => isSameSeat(item?.seat, seatView.displaySeatNo));
     if (!player) {
       this.hideSeatHoleCards(seatView);
       return;
     }
-    const isHero = isSameSeat(player.seat, this.resolveHeroSeatForDisplay(this.state?.table));
+    const isHero = isSameSeat(player.seat, this.resolveHeroSeatForDisplay(table));
     const holeRenderOptions = this.resolveSeatHoleRenderOptions(player, isHero);
+    // Mirror the isWaiting suppression from the main render loop so deal-animation
+    // onComplete can't race in and leave card backs on seats that should have none.
+    const isHandPlaying = table?.status === "playing";
+    const isWaiting = !isHero && isHandPlaying && player.in_hand === false && Number(player.hole_count ?? 0) === 0;
+    if (isWaiting) holeRenderOptions.visibleCount = 0;
     this.setSeatHoleCardsVisibleCount(seatView, holeRenderOptions.visibleCount, holeRenderOptions);
   }
 
