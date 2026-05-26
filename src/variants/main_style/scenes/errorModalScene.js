@@ -191,8 +191,11 @@ export class ErrorModalScene extends Phaser.Scene {
       document.body.classList.remove("modal-open");
       document.querySelectorAll(".lrn-input, input[id*='main-profile']").forEach(el => {
         el.style.removeProperty("display");
-        // If the 120ms reveal was blocked by modal-open, visibility may still be "hidden" — clear it.
-        if (el.style.visibility === "hidden") el.style.visibility = "";
+        // Only clear lingering visibility:hidden on auth/register inputs (.lrn-input).
+        // Profile-editor inputs (main-profile) have no left/top set and would flash at 0,0.
+        if (el.classList.contains("lrn-input") && el.style.visibility === "hidden") {
+          el.style.visibility = "";
+        }
       });
     }
     // Always restore fp-inputs so the underlying forgot-password modal stays usable
