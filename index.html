@@ -67,11 +67,29 @@
         var posX=Math.round(-(fX*cvr+(fW*cvr-bgW)/2));
         var posY=Math.round(-(fY*cvr+(fH*cvr-bgH)/2));
         if(posX>0)posX=0; if(posY>0)posY=0;
-        bgEl.style.cssText='position:fixed;overflow:hidden;pointer-events:none;z-index:1;'+
-          'left:'+bgLeft+'px;top:'+bgTop+'px;width:'+bgW+'px;height:'+bgH+'px;'+
-          'background:url(/assets/variants/main_style/images/login.webp) '+
-          posX+'px '+posY+'px/'+Math.round(aW*cvr)+'px '+Math.round(aH*cvr)+'px no-repeat;';
-        document.body.appendChild(bgEl);
+        if(portrait){
+          // Apply to <html> so position is relative to the ICB, not the visual viewport.
+          // This prevents the background from shifting when the mobile address bar appears/disappears.
+          var de=document.documentElement;
+          de.style.backgroundImage='url(/assets/variants/main_style/images/login.webp)';
+          de.style.backgroundRepeat='no-repeat';
+          de.style.backgroundPosition=posX+'px '+posY+'px';
+          de.style.backgroundSize=Math.round(aW*cvr)+'px '+Math.round(aH*cvr)+'px';
+          de.style.backgroundColor='#440606';
+          window.__removePreloadBg=function(){
+            de.style.backgroundImage='';
+            de.style.backgroundRepeat='';
+            de.style.backgroundPosition='';
+            de.style.backgroundSize='';
+            de.style.backgroundColor='';
+          };
+        }else{
+          bgEl.style.cssText='position:fixed;overflow:hidden;pointer-events:none;z-index:1;'+
+            'left:'+bgLeft+'px;top:'+bgTop+'px;width:'+bgW+'px;height:'+bgH+'px;'+
+            'background:url(/assets/variants/main_style/images/login.webp) '+
+            posX+'px '+posY+'px/'+Math.round(aW*cvr)+'px '+Math.round(aH*cvr)+'px no-repeat;';
+          document.body.appendChild(bgEl);
+        }
 
         // Spinner — fixed pixel position so mobile URL-bar changes don't move it
         size=Math.round(300*sc);
