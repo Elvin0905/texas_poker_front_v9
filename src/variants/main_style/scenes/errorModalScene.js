@@ -154,15 +154,7 @@ export class ErrorModalScene extends Phaser.Scene {
       if (!code.includes("THIRD_PARTY") && !code.includes("UNDER_CONSTRUCTION") && !code.includes("DUPLICATE_LOGIN")) return;
     }
 
-    const ERROR_CODE_MESSAGES = {
-      duplicate_login: "帳號被檢測到重複登入",
-    };
-    const rawCode = String(state?.lastError?.code ?? "").toLowerCase();
-    const serverMsg = state?.lastError?.message;
-    // Use mapped Chinese message when server provides no human-readable message (absent or equals raw code)
-    const message = (serverMsg && serverMsg !== state?.lastError?.code)
-      ? serverMsg
-      : (ERROR_CODE_MESSAGES[rawCode] || rawCode || "未知錯誤");
+    const message = state?.lastError?.message || state?.lastError?.code || "未知錯誤";
     this.showModal(message);
   }
 
