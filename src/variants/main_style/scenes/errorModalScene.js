@@ -154,7 +154,11 @@ export class ErrorModalScene extends Phaser.Scene {
       if (!code.includes("THIRD_PARTY") && !code.includes("UNDER_CONSTRUCTION") && !code.includes("DUPLICATE_LOGIN")) return;
     }
 
-    const message = state?.lastError?.message || state?.lastError?.code || "未知錯誤";
+    const ERROR_CODE_MESSAGES = {
+      duplicate_login: "帳號被檢測到重複登入",
+    };
+    const rawCode = String(state?.lastError?.code ?? "").toLowerCase();
+    const message = state?.lastError?.message || ERROR_CODE_MESSAGES[rawCode] || state?.lastError?.code || "未知錯誤";
     this.showModal(message);
   }
 
