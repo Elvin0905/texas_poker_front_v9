@@ -2060,11 +2060,10 @@ window.__APP__ = {
     stopReplayPlayback(reason);
   },
   notifyReplayHandResultClosed: () => {
-    if (!replaySessionState.finishing) return;
-    const rp = replaySessionState.returnPage || "lobby";
-    replaySessionState.finishing = false;
-    replaySessionState.fromScene = null;
-    replaySessionState.returnPage = null;
+    if (!replaySessionState.active && !replaySessionState.finishing) return;
+    const rp = replaySessionState.returnPage
+      || (replaySessionState.fromScene === "gameLobby" ? "gameLobby" : "lobby");
+    stopReplayPlayback("hand_result_closed");
     store.openDailySettlementAfterReplay(rp);
   },
   persistAudioSettings: () => {
