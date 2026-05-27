@@ -521,7 +521,7 @@ export class BigTwoScene extends Phaser.Scene {
     if (this.tableImg) {
       const tp = sc(CX + TABLE_X_OFFSET, TABLE_Y);
       this.tableImg.setPosition(tp.x, tp.y)
-        .setDisplaySize(TABLE_DISPLAY_W * s, TABLE_DISPLAY_H * s);
+        .setDisplaySize(TABLE_DISPLAY_W, TABLE_DISPLAY_H);
     }
 
     // 座位（與德州撲克相同：先更新 posX/posY，再呼叫 updateSeatTextLayout）
