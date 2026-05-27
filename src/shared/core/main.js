@@ -1878,6 +1878,9 @@ function pageToScene(page) {
   if (page === "table") {
     return "table";
   }
+  if (page === "bigTwo") {
+    return "bigTwo";
+  }
   return "auth";
 }
 
@@ -2250,7 +2253,7 @@ function handlePacket(packet) {
   // 強制切回 gameLobby 並清掉牌桌狀態，避免畫面停留在舊桌。
   if (packetType === "game_lobby_state" && !replaySessionState.active) {
     const page = String(store.getState?.()?.page || "");
-    if (page === "table") {
+    if (page === "table" || page === "bigTwo") {
       store.pushLog("[ws] game_lobby_state -> force back to gameLobby");
       store.forceBackToGameLobby?.();
     }

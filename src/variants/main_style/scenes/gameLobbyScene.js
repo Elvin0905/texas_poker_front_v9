@@ -1297,8 +1297,9 @@ export class GameLobbyScene extends Phaser.Scene {
       return;
     }
     const buyin = this.normalizeBuyinSelectedAmount(this.buyinSelectedAmount, this.buyinModel);
+    const currentGameId = String(this.store.getState?.()?.gameLobby?.game_id || "texas_holdem");
     this.app.sendPacket("join_stakes", {
-      game_id: "texas_holdem",
+      game_id: currentGameId,
       stakes_id: stakesId,
       buyin,
     });
@@ -1894,10 +1895,12 @@ export class GameLobbyScene extends Phaser.Scene {
       nameText.setFill(ng);
       this.roomScrollContainer.add(nameText);
 
-      const smallBlind = this.formatAmount(stake.small_blind);
-      const bigBlind = this.formatAmount(stake.big_blind);
+      const currentGameId2 = String(this.store.getState?.()?.gameLobby?.game_id || "texas_holdem");
+      const blindLabel = currentGameId2 === "big_two"
+        ? `底分 ${this.formatAmount(stake.base_score ?? stake.small_blind ?? 0)}`
+        : `${this.formatAmount(stake.small_blind)} / ${this.formatAmount(stake.big_blind)}`;
       const blindText = this.add
-        .text(ROOM_CARD_CENTER_X - 150, cardY + 2, `${smallBlind} / ${bigBlind}`, {
+        .text(ROOM_CARD_CENTER_X - 150, cardY + 2, blindLabel, {
           fontFamily: UI_FONT_STACK,
           fontSize: "28px",
           fontStyle: "bold",

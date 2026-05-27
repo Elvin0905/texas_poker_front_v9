@@ -148,6 +148,13 @@ export class Store extends EventTarget {
       fpEventType: null, // 忘記密碼流程事件類型：'forgot_ok' | 'reset_code_ok' | 'reset_password_ok'
       pendingOpenDailySettlement: 0, // 回放結束後開啟當日明細（版本號遞增觸發）
       eventLog: [], // 前端事件簡易 log
+      // 大老二專屬狀態
+      bigTwoHeroCards: [], // 大老二英雄手牌（13張）
+      bigTwoHeroCardsVersion: 0, // 每次更新 +1
+      bigTwoLastPlay: null, // 最新出牌：{ seat, cards }
+      bigTwoLastPlayVersion: 0, // 每次出牌 +1
+      bigTwoHandResult: null, // 本局結果
+      bigTwoHandResultVersion: 0, // 每次結果 +1
     };
   }
 
@@ -533,7 +540,7 @@ export class Store extends EventTarget {
           this.state.rebuyOffer = null;
         }
         // 若已進桌，不要被 game lobby 封包拉回去（但離桌流程例外）
-        if (this.state.page !== "table") {
+        if (this.state.page !== "table" && this.state.page !== "bigTwo") {
           this.state.page = "gameLobby";
         }
         this.state.gameLobby = data;
@@ -542,7 +549,7 @@ export class Store extends EventTarget {
       // 入桌成功
       case "table_joined":
         this.endLeaveTableFlow();
-        this.state.page = "table";
+        this.state.page = String(data?.game_id || data?.table?.game_id || "texas_holdem") === "big_two" ? "bigTwo" : "table";
             this.state.lastLeftTableId = null;
         this.state.handResult = null;
         this.state.handResultEventKey = "";
@@ -581,6 +588,8 @@ export class Store extends EventTarget {
         this.state.handEndNextEventIn = 0;
         this.state.handResult = null;
         this.state.handResultEventKey = "";
+        this.state.bigTwoHeroCards = [];
+        this.state.bigTwoLastPlay = null;
         // 新一手開始，清除上一手的 sessionStorage 手牌快取
         try {
           sessionStorage.removeItem("ngame_hole_cards");
@@ -690,8 +699,9 @@ export class Store extends EventTarget {
         }
 
         if (!_isStaleAfterLeave) {
-          this.state.page = "table";
-              }
+          const _tsGameId = String(data?.game_id || data?.table?.game_id || "");
+          this.state.page = _tsGameId === "big_two" ? "bigTwo" : "table";
+        }
         if (hasValidHeroSeat) {
           this.state.heroSeat = nextHeroSeat;
         } else if (derivedHeroSeat !== null) {
@@ -974,11 +984,18 @@ export class Store extends EventTarget {
         if (heroSeat === null) {
           break;
         }
-        const cards = toCardArray(data.cards).slice(0, 2);
+        const isBigTwo = String(data.game_id || this.state.table?.game_id || "") === "big_two";
+        const allCards = toCardArray(data.cards);
+        const cards = isBigTwo ? allCards : allCards.slice(0, 2);
         if (cards.length <= 0) {
           break;
         }
-        this.setKnownHoleCards(heroSeat, cards, false);
+        if (isBigTwo) {
+          this.state.bigTwoHeroCards = cards;
+          this.state.bigTwoHeroCardsVersion += 1;
+        } else {
+          this.setKnownHoleCards(heroSeat, cards, false);
+        }
         const player = this.state.table.players?.find((item) => Number(item.seat) === heroSeat);
         if (player) {
           player.hole_count = Math.max(Number(player.hole_count ?? 0), cards.length);
@@ -1112,6 +1129,12 @@ export class Store extends EventTarget {
       case "check_username_ok":
         this.state.accountExists = true;
         this.state.accountCheckVersion += 1;
+        break;
+
+      // 大老二單局結束結果
+      case "hand_result":
+        this.state.bigTwoHandResult = data;
+        this.state.bigTwoHandResultVersion = (this.state.bigTwoHandResultVersion || 0) + 1;
         break;
 
       // 錯誤訊息
@@ -1260,6 +1283,22 @@ export class Store extends EventTarget {
       if (String(data.action || "").toLowerCase().startsWith("fold")) {
         player.in_hand = false;
       }
+      // 大老二：更新剩餘牌數
+      if (Number.isFinite(Number(data.remaining_count))) {
+        player.remaining_count = Number(data.remaining_count);
+      }
+    }
+    // 大老二：記錄最新出牌
+    const isBigTwoAction = String(data.game_id || this.state.table?.game_id || "") === "big_two";
+    if (isBigTwoAction && data.action === "play_cards" && Array.isArray(data.cards) && data.cards.length > 0) {
+      const playedCards = toCardArray(data.cards);
+      if (playedCards.length > 0) {
+        this.state.bigTwoLastPlay = { seat: seatNo, cards: playedCards };
+        this.state.bigTwoLastPlayVersion += 1;
+      }
+    }
+    if (isBigTwoAction && data.action === "pass") {
+      // pass 不清除 bigTwoLastPlay，讓中央繼續顯示上一次出的牌
     }
     if (paid > 0) {
       this.addHandContribForSeat(seat, paid);

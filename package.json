@@ -12,7 +12,7 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "vite": "^8.0.9"
+    "vite": "^8.0.9",
+    "ws": "^8.21.0"
   }
 }
-
