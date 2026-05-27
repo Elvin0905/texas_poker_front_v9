@@ -14,13 +14,13 @@ const SEAT_POS = [
   { x: 145, y: 320  },   // 3: top-left
 ];
 
-// 牌桌圖
-const TABLE_FRAME_W = 800;
-const TABLE_FRAME_H = 1200;
-const TABLE_DISPLAY_W = Math.round(VIEW_W * 1.05);
+// 牌桌圖（與德州撲克相同）
+const TABLE_FRAME_W = 743;
+const TABLE_FRAME_H = 1139;
+const TABLE_DISPLAY_W = Math.round(VIEW_W * 1.08);
 const TABLE_DISPLAY_H = Math.round((TABLE_DISPLAY_W * TABLE_FRAME_H) / TABLE_FRAME_W);
-const TABLE_X_OFFSET = 5;
-const TABLE_Y = 650;
+const TABLE_X_OFFSET = 10;
+const TABLE_Y = 680;
 
 // 頭像框（與德州撲克完全相同的常數）
 const PROFILE_FRAME_SCALE        = 1.72;
@@ -616,10 +616,10 @@ export class BigTwoScene extends Phaser.Scene {
 
     // 空座位提示定位
     const avatarCY = sv.posY + AVATAR_Y_OFFSET * s;
-    sv.sitPromptBg.setPosition(sv.posX, avatarCY).setScale(frameScale * s);
-    sv.sitPromptCircle.setPosition(sv.posX, avatarCY).setScale(frameScale * s);
-    sv.sitPromptPlus.setPosition(sv.posX, avatarCY).setFontSize(`${Math.round(34 * frameScale * s)}px`);
-    const sitLabelY = avatarCY + sv.sitPromptBgRadius * frameScale * s + 12 * s;
+    sv.sitPromptBg.setPosition(sv.posX, avatarCY).setScale(s);
+    sv.sitPromptCircle.setPosition(sv.posX, avatarCY).setScale(s);
+    sv.sitPromptPlus.setPosition(sv.posX, avatarCY).setFontSize(`${Math.round(34 * s)}px`);
+    const sitLabelY = avatarCY + (sv.sitPromptBgRadius / 0.78) * s + 12 * s;
     sv.sitPromptLabel.setPosition(sv.posX, sitLabelY).setFontSize(`${Math.round(18 * s)}px`);
 
     const frameHalfH     = sv.frameImg.displayHeight * 0.5;
