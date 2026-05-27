@@ -4490,7 +4490,25 @@ export class TableScene extends Phaser.Scene {
         return rNet > bNet ? r : best;
       }, null);
       if (winner && (Number(winner.net_amount ?? winner.win_amount ?? 0) > 0)) {
-        const winnerSeatView = this.findSeatViewBySeatNo(parseSeat(winner.seat));
+        let winnerSeatView = this.findSeatViewBySeatNo(parseSeat(winner.seat));
+        if (!winnerSeatView) {
+          // Fallback: seat may be absent from player_results — resolve via table.players
+          const tablePlayers = this.state?.table?.players;
+          if (Array.isArray(tablePlayers)) {
+            let resolvedSeat = null;
+            if (winner.user_id != null) {
+              const uid = Number(winner.user_id);
+              const p = tablePlayers.find((p) => Number(p.user_id) === uid);
+              if (p) resolvedSeat = parseSeat(p.seat);
+            }
+            if (resolvedSeat === null && winner.username) {
+              const uname = String(winner.username);
+              const p = tablePlayers.find((p) => String(p.username) === uname);
+              if (p) resolvedSeat = parseSeat(p.seat);
+            }
+            if (resolvedSeat !== null) winnerSeatView = this.findSeatViewBySeatNo(resolvedSeat);
+          }
+        }
         if (winnerSeatView) {
           worldX = winnerSeatView.posX;
           worldY = winnerSeatView.posY + AVATAR_Y_OFFSET;
@@ -4572,9 +4590,12 @@ export class TableScene extends Phaser.Scene {
         // Keep the card alive while its showdown flip is still pending — hiding it here
         // would cause the flip to animate an invisible sprite (race with hand_end in replay).
         if (holeCard.pendingShowdownFlip) return;
-        // Don't interrupt an in-progress deal fly animation — the flyCard onComplete will
-        // land the sprite; clearing inFlight here would orphan the fly card.
-        if (holeCard.inFlight) return;
+        if (holeCard.inFlight) {
+          // Cancel the landing: onComplete will see inFlight===false and skip setVisible(true).
+          // The sprite was already hidden when the deal started, so it stays hidden.
+          holeCard.inFlight = false;
+          return;
+        }
         holeCard.inFlight = false;
         holeCard.targetFaceFrameKey = null;
         this.stopHoleCardFlipAnimation(holeCard);
@@ -5262,7 +5283,7 @@ export class TableScene extends Phaser.Scene {
         seatView.profileFrame.setAlpha(1).setTint(dimTint);
         seatView.profileBg.setAlpha(1);
         seatView.foldOverlay.setVisible(isDimmed);
-        if (!replayHandEndFreeze) {
+        {
           const holeRenderOptions = this.resolveSeatHoleRenderOptions(player, isHero);
           if (isWaiting) holeRenderOptions.visibleCount = 0;
           this.setSeatHoleCardsVisibleCount(seatView, holeRenderOptions.visibleCount, holeRenderOptions);

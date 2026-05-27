@@ -860,17 +860,30 @@ function buildReplayPacketFromTimelineEvent(event, replay) {
   if (!Object.prototype.hasOwnProperty.call(data, "hand_id") && Number.isFinite(handId)) {
     data.hand_id = handId;
   }
-  // Always copy top-level event.seat into data if payload didn't include it —
-  // some server formats put seat at the event root, not inside payload.
+  // Always copy top-level event.seat / user_id into data if payload didn't include them —
+  // some server formats put these at the event root, not inside payload.
   const topLevelSeat = event?.seat ?? event?.payload?.seat;
   if (topLevelSeat != null && !Object.prototype.hasOwnProperty.call(data, "seat")) {
     data.seat = topLevelSeat;
   }
+  const topLevelUserId = event?.user_id ?? event?.payload?.user_id;
+  if (topLevelUserId != null && !Object.prototype.hasOwnProperty.call(data, "user_id")) {
+    data.user_id = topLevelUserId;
+  }
   // Normalize standalone action events to player_action so patchTableByAction runs.
-  const STANDALONE_ACTIONS = ["fold", "check", "call", "raise", "all_in", "allin", "bet"];
-  if (STANDALONE_ACTIONS.includes(type)) {
+  // Also handles "player_fold", "player_check", etc. and generic "action" events.
+  const STANDALONE_ACTION_SET = new Set(["fold", "check", "call", "raise", "all_in", "allin", "bet"]);
+  let resolvedAction = STANDALONE_ACTION_SET.has(type) ? type : null;
+  if (!resolvedAction && type.startsWith("player_")) {
+    const suffix = type.slice(7);
+    if (STANDALONE_ACTION_SET.has(suffix)) resolvedAction = suffix;
+  }
+  if (!resolvedAction && type === "action" && data.action) {
+    resolvedAction = String(data.action).toLowerCase();
+  }
+  if (resolvedAction) {
     if (!Object.prototype.hasOwnProperty.call(data, "action")) {
-      data.action = type;
+      data.action = resolvedAction;
     }
     return { type: "player_action", data };
   }
@@ -1165,7 +1178,8 @@ function finishReplayPlayback() {
   if (hasHandResult) {
     replaySessionState.finishing = true;
     replaySessionState.returnPage = returnPage;
-    // Exit is triggered by notifyReplayHandResultClosed when the modal countdown ends
+    // Emit so renderState fires and opens the latched pendingHandResult modal.
+    store.emit();
   } else {
     replaySessionState.fromScene = null;
     replaySessionState.returnPage = null;

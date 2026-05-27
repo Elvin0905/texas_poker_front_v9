@@ -1030,8 +1030,14 @@ export class Store extends EventTarget {
           // hand_end 後，上一手的私牌/攤牌資訊要清空，避免畫面殘留
           this.state.handEndSeq += 1;
           this.state.handContribBySeat = {};
-          this.state.holeCardsBySeat = {};
-          this.state.showdownRevealsBySeat = {};
+          // During replay keep hole cards and showdown reveals so resolveSeatHoleRenderOptions
+          // can still distinguish showdown players (visibleCount>0) from folded players (0).
+          // Cleared by the next table_joined when replay exits or a new replay starts.
+          const _replayActive = window.__APP__?.isHandReplayActive?.();
+          if (!_replayActive) {
+            this.state.holeCardsBySeat = {};
+            this.state.showdownRevealsBySeat = {};
+          }
           // 同時清除 sessionStorage 快取，防止後續 table_state 的 hand_id 比對成功後把手牌還原回來
           try {
             sessionStorage.removeItem("ngame_hole_cards");
@@ -1237,7 +1243,14 @@ export class Store extends EventTarget {
     const seat = data.seat;
     const seatNo = Number(seat);
     const paid = Number(data.paid ?? 0);
-    const player = this.state.table.players?.find((item) => Number(item.seat) === seatNo);
+    let player = this.state.table.players?.find((item) => Number(item.seat) === seatNo);
+    // Fallback: some server formats identify the actor by user_id instead of seat
+    if (!player && data.user_id != null) {
+      const userId = Number(data.user_id);
+      if (Number.isFinite(userId) && userId > 0) {
+        player = this.state.table.players?.find((item) => Number(item.user_id) === userId);
+      }
+    }
 
     if (player) {
       player.bet = Number(player.bet ?? 0) + paid;
