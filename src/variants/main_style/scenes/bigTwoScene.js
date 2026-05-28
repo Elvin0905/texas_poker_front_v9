@@ -519,8 +519,7 @@ export class BigTwoScene extends Phaser.Scene {
     // 背景 + 桌面
     this.bgImg?.setPosition(cx, cy).setDisplaySize(layout.width, layout.height);
     if (this.tableImg) {
-      const tp = sc(CX + TABLE_X_OFFSET, TABLE_Y);
-      this.tableImg.setPosition(tp.x, tp.y)
+      this.tableImg.setPosition(CX + TABLE_X_OFFSET, TABLE_Y)
         .setDisplaySize(TABLE_DISPLAY_W, TABLE_DISPLAY_H);
     }
 
