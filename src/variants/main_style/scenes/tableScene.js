@@ -2140,7 +2140,7 @@ export class TableScene extends Phaser.Scene {
       makeHeaderText(CENTER_X + HAND_RESULT_NAME_X_OFFSET, HAND_RESULT_HEADER_Y, "玩家", 0),
       makeHeaderText(CENTER_X + HAND_RESULT_CONTRIB_X_OFFSET, HAND_RESULT_HEADER_Y, "下注", 1),
       makeHeaderText(CENTER_X + HAND_RESULT_WIN_X_OFFSET, HAND_RESULT_HEADER_Y, "贏分", 1),
-      makeHeaderText(CENTER_X + HAND_RESULT_NET_X_OFFSET, HAND_RESULT_HEADER_Y, "輸贏", 1),
+      makeHeaderText(CENTER_X + HAND_RESULT_NET_X_OFFSET, HAND_RESULT_HEADER_Y, "結果", 1),
     ];
 
     // Items use LOCAL Y coordinates (container.y = scrollTopY + dy - scrollY)
@@ -2193,9 +2193,9 @@ export class TableScene extends Phaser.Scene {
         .setOrigin(1, 0.5);
 
       const netText = this.add
-        .text(CENTER_X + HAND_RESULT_NET_X_OFFSET, nameY, row.winText, {
+        .text(CENTER_X + HAND_RESULT_NET_X_OFFSET, nameY, row.netText, {
           fontSize: HAND_RESULT_ROW_FONT_SIZE,
-          color: row.isWinner ? HAND_RESULT_WIN_COLOR : HAND_RESULT_NEUTRAL_COLOR,
+          color: row.amountColor,
           fontStyle: "bold",
           fontFamily: UI_FONT_STACK,
         })
