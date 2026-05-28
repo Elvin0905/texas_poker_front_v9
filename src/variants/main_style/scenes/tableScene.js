@@ -2045,6 +2045,7 @@ export class TableScene extends Phaser.Scene {
       const netAmount = Number.isFinite(netRaw)
         ? netRaw
         : ((Number.isFinite(winAmount) ? winAmount : 0) - (Number.isFinite(contribAmount) ? contribAmount : 0));
+      const isWinner = Boolean(item?.is_winner);
       const cardFrames = extractBest5CardFrames(item?.best5);
       const rankText = resolveHandRankLabel(item?.hand_rank);
       const tablePlayer = seat === null ? null : playerBySeat.get(String(seat));
@@ -2055,12 +2056,13 @@ export class TableScene extends Phaser.Scene {
       const winText = formatAmount(winAmount);
       const netText = formatSignedAmount(netAmount);
       const resultText = isFold ? "棄牌" : (rankText || "--");
-      const amountColor = netAmount > 0
+      const amountColor = isWinner
         ? HAND_RESULT_WIN_COLOR
-        : (netAmount < 0 ? HAND_RESULT_LOSE_COLOR : HAND_RESULT_NEUTRAL_COLOR);
+        : (contribAmount > 0 ? HAND_RESULT_LOSE_COLOR : HAND_RESULT_NEUTRAL_COLOR);
       return {
         seat,
         username,
+        isWinner,
         netAmount,
         contribAmount,
         winAmount,
@@ -2138,7 +2140,7 @@ export class TableScene extends Phaser.Scene {
       makeHeaderText(CENTER_X + HAND_RESULT_NAME_X_OFFSET, HAND_RESULT_HEADER_Y, "玩家", 0),
       makeHeaderText(CENTER_X + HAND_RESULT_CONTRIB_X_OFFSET, HAND_RESULT_HEADER_Y, "下注", 1),
       makeHeaderText(CENTER_X + HAND_RESULT_WIN_X_OFFSET, HAND_RESULT_HEADER_Y, "贏分", 1),
-      makeHeaderText(CENTER_X + HAND_RESULT_NET_X_OFFSET, HAND_RESULT_HEADER_Y, "結果", 1),
+      makeHeaderText(CENTER_X + HAND_RESULT_NET_X_OFFSET, HAND_RESULT_HEADER_Y, "輸贏", 1),
     ];
 
     // Items use LOCAL Y coordinates (container.y = scrollTopY + dy - scrollY)
@@ -2191,9 +2193,9 @@ export class TableScene extends Phaser.Scene {
         .setOrigin(1, 0.5);
 
       const netText = this.add
-        .text(CENTER_X + HAND_RESULT_NET_X_OFFSET, nameY, row.netText, {
+        .text(CENTER_X + HAND_RESULT_NET_X_OFFSET, nameY, row.winText, {
           fontSize: HAND_RESULT_ROW_FONT_SIZE,
-          color: row.amountColor,
+          color: row.isWinner ? HAND_RESULT_WIN_COLOR : HAND_RESULT_NEUTRAL_COLOR,
           fontStyle: "bold",
           fontFamily: UI_FONT_STACK,
         })
@@ -4472,52 +4474,92 @@ export class TableScene extends Phaser.Scene {
     });
   }
 
+  _resolveSeatViewForResult(r) {
+    let seatView = this.findSeatViewBySeatNo(parseSeat(r?.seat));
+    if (!seatView) {
+      const tablePlayers = this.state?.table?.players;
+      if (Array.isArray(tablePlayers)) {
+        let resolvedSeat = null;
+        if (r?.user_id != null) {
+          const uid = Number(r.user_id);
+          const p = tablePlayers.find((p) => Number(p.user_id) === uid);
+          if (p) resolvedSeat = parseSeat(p.seat);
+        }
+        if (resolvedSeat === null && r?.username) {
+          const uname = String(r.username);
+          const p = tablePlayers.find((p) => String(p.username) === uname);
+          if (p) resolvedSeat = parseSeat(p.seat);
+        }
+        if (resolvedSeat !== null) seatView = this.findSeatViewBySeatNo(resolvedSeat);
+      }
+    }
+    return seatView;
+  }
+
+  _showExtraWinLightAt(worldX, worldY, refWidth) {
+    const size = refWidth * 2.0;
+    const img = this.add
+      .image(worldX, worldY, "light")
+      .setDepth(SEAT_WIN_LIGHT_DEPTH)
+      .setDisplaySize(size, size)
+      .setAlpha(0.88);
+    const tween = this.tweens.add({
+      targets: img,
+      angle: 360,
+      duration: 3200,
+      repeat: -1,
+      ease: "Linear",
+    });
+    this.time.delayedCall(WIN_LIGHT_DURATION_MS, () => {
+      this.tweens.add({
+        targets: img,
+        alpha: 0,
+        duration: 400,
+        onComplete: () => {
+          this.tweens.remove(tween);
+          img.destroy();
+        },
+      });
+    });
+  }
+
   // Hook: play voice when award animation starts.
   onAwardAnimationStart(cue) {
     const playerResults = cue?.packet?.data?.player_results;
-    let worldX = layout.centerX;
-    let worldY = layout.centerY;
-    let worldWidth = 180 * WIN_SPRITE_SIZE_FACTOR;
+    let primaryX = layout.centerX;
+    let primaryY = layout.centerY;
+    let primaryWidth = 180 * WIN_SPRITE_SIZE_FACTOR;
     if (Array.isArray(playerResults) && playerResults.length > 0) {
-      // Pick the player with the highest net_amount — same sort key as the result table.
-      const winner = playerResults.reduce((best, r) => {
-        const rNet = Number.isFinite(Number(r?.net_amount))
-          ? Number(r.net_amount)
-          : Number(r?.win_amount ?? 0) - Number(r?.contrib_amount ?? 0);
-        const bNet = best === null ? -Infinity : (Number.isFinite(Number(best?.net_amount))
-          ? Number(best.net_amount)
-          : Number(best?.win_amount ?? 0) - Number(best?.contrib_amount ?? 0));
-        return rNet > bNet ? r : best;
-      }, null);
-      if (winner && (Number(winner.net_amount ?? winner.win_amount ?? 0) > 0)) {
-        let winnerSeatView = this.findSeatViewBySeatNo(parseSeat(winner.seat));
-        if (!winnerSeatView) {
-          // Fallback: seat may be absent from player_results — resolve via table.players
-          const tablePlayers = this.state?.table?.players;
-          if (Array.isArray(tablePlayers)) {
-            let resolvedSeat = null;
-            if (winner.user_id != null) {
-              const uid = Number(winner.user_id);
-              const p = tablePlayers.find((p) => Number(p.user_id) === uid);
-              if (p) resolvedSeat = parseSeat(p.seat);
-            }
-            if (resolvedSeat === null && winner.username) {
-              const uname = String(winner.username);
-              const p = tablePlayers.find((p) => String(p.username) === uname);
-              if (p) resolvedSeat = parseSeat(p.seat);
-            }
-            if (resolvedSeat !== null) winnerSeatView = this.findSeatViewBySeatNo(resolvedSeat);
-          }
-        }
-        if (winnerSeatView) {
-          worldX = winnerSeatView.posX;
-          worldY = winnerSeatView.posY + AVATAR_Y_OFFSET;
-          const frameDisplayW = winnerSeatView.profileFrame?.displayWidth || 160;
-          worldWidth = frameDisplayW * 1.5 * WIN_SPRITE_SIZE_FACTOR;
-        }
+      // Find all is_winner players; fall back to highest-net if none flagged.
+      let winners = playerResults.filter((r) => r?.is_winner === true || r?.is_winner === 1);
+      if (winners.length === 0) {
+        const best = playerResults.reduce((b, r) => {
+          const rNet = Number.isFinite(Number(r?.net_amount)) ? Number(r.net_amount) : Number(r?.win_amount ?? 0) - Number(r?.contrib_amount ?? 0);
+          const bNet = b === null ? -Infinity : (Number.isFinite(Number(b?.net_amount)) ? Number(b.net_amount) : Number(b?.win_amount ?? 0) - Number(b?.contrib_amount ?? 0));
+          return rNet > bNet ? r : b;
+        }, null);
+        if (best && Number(best.net_amount ?? best.win_amount ?? 0) > 0) winners = [best];
       }
+      let primarySet = false;
+      winners.forEach((winner) => {
+        const sv = this._resolveSeatViewForResult(winner);
+        let wx = layout.centerX;
+        let wy = layout.centerY;
+        let ww = 180 * WIN_SPRITE_SIZE_FACTOR;
+        if (sv) {
+          wx = sv.posX;
+          wy = sv.posY + AVATAR_Y_OFFSET;
+          ww = (sv.profileFrame?.displayWidth || 160) * 1.5 * WIN_SPRITE_SIZE_FACTOR;
+        }
+        if (!primarySet) {
+          primaryX = wx; primaryY = wy; primaryWidth = ww;
+          primarySet = true;
+        } else {
+          this._showExtraWinLightAt(wx, wy, ww);
+        }
+      });
     }
-    this.showWinGif(worldX, worldY, worldWidth);
+    this.showWinGif(primaryX, primaryY, primaryWidth);
     if (!this.voiceHooks.award) {
       return;
     }

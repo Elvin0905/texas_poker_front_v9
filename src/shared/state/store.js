@@ -155,6 +155,7 @@ export class Store extends EventTarget {
       bigTwoLastPlayVersion: 0, // 每次出牌 +1
       bigTwoHandResult: null, // 本局結果
       bigTwoHandResultVersion: 0, // 每次結果 +1
+      bigTwoActionSeq: null, // 最新 action_seq（來自 turn 或 action_request）
     };
   }
 
@@ -224,6 +225,10 @@ export class Store extends EventTarget {
     this.state.handResult = null;
     this.state.handResultEventKey = "";
     this.state.nextHandCountdownSeconds = 0;
+    this.state.bigTwoHeroCards = [];
+    this.state.bigTwoLastPlay = null;
+    this.state.bigTwoHandResult = null;
+    this.state.bigTwoActionSeq = null;
     this.emit();
   }
 
@@ -291,6 +296,10 @@ export class Store extends EventTarget {
     this.state.fpEventType = null;
     this.state.pendingOpenDailySettlement = 0;
     this.state.eventLog = [];
+    this.state.bigTwoHeroCards = [];
+    this.state.bigTwoLastPlay = null;
+    this.state.bigTwoHandResult = null;
+    this.state.bigTwoActionSeq = null;
     this.emit();
   }
 
@@ -442,6 +451,10 @@ export class Store extends EventTarget {
     this.state.handResult = null;
     this.state.handResultEventKey = "";
     this.state.nextHandCountdownSeconds = 0;
+    this.state.bigTwoHeroCards = [];
+    this.state.bigTwoLastPlay = null;
+    this.state.bigTwoHandResult = null;
+    this.state.bigTwoActionSeq = null;
     this.emit();
   }
 
@@ -590,6 +603,8 @@ export class Store extends EventTarget {
         this.state.handResultEventKey = "";
         this.state.bigTwoHeroCards = [];
         this.state.bigTwoLastPlay = null;
+        this.state.bigTwoLastPlayVersion += 1; // 觸發場景清除上局中央牌面
+        this.state.bigTwoActionSeq = null;
         // 新一手開始，清除上一手的 sessionStorage 手牌快取
         try {
           sessionStorage.removeItem("ngame_hole_cards");
@@ -773,6 +788,10 @@ export class Store extends EventTarget {
       // 輪到我行動（可 check/call/raise...）
       case "action_request":
         this.state.actionRequest = data;
+        // 大老二：同步 action_seq（與 turn 封包的值相同，保持一致）
+        if (data.action_seq != null) {
+          this.state.bigTwoActionSeq = Number(data.action_seq);
+        }
         if (this.state.table) {
           const seatNo = Number(data.seat);
           if (Number.isFinite(seatNo)) {
@@ -809,6 +828,11 @@ export class Store extends EventTarget {
           this.state.table.current_turn_started_at = Date.now();
           if (data.round) {
             this.state.table.round = data.round;
+          }
+          // 大老二：turn 封包帶有 action_seq，存下來供出牌時使用
+          const isBigTwoTurn = String(data.game_id || this.state.table?.game_id || "") === "big_two";
+          if (isBigTwoTurn && data.action_seq != null) {
+            this.state.bigTwoActionSeq = Number(data.action_seq);
           }
         }
         break;
@@ -1289,7 +1313,8 @@ export class Store extends EventTarget {
       }
     }
     // 大老二：記錄最新出牌
-    const isBigTwoAction = String(data.game_id || this.state.table?.game_id || "") === "big_two";
+    const isBigTwoAction = this.state.page === "bigTwo"
+      || String(data.game_id || this.state.table?.game_id || "") === "big_two";
     if (isBigTwoAction && data.action === "play_cards" && Array.isArray(data.cards) && data.cards.length > 0) {
       const playedCards = toCardArray(data.cards);
       if (playedCards.length > 0) {
