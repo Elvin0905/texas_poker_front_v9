@@ -1725,6 +1725,10 @@ export class TableScene extends Phaser.Scene {
     onLayoutResize(this, () => this.applyLayout());
     this.applyLayout();
 
+    // 觀戰錯誤 toast 追蹤：用目前的 errorVersion 當基準，避免第一次 render 噴出舊錯誤。
+    this._lastSeenErrorVersion = Number(this.store.getState?.()?.errorVersion ?? 0);
+    this._spectatorToast = null;
+
     this.unsubscribe = this.store.subscribe((state) => {
       this.state = state;
       this.consumeVoiceCuesByAnimationHooks();
@@ -3807,6 +3811,25 @@ export class TableScene extends Phaser.Scene {
     }
   }
 
+  showSpectatorToast(message) {
+    if (!message) return;
+    if (this._spectatorToast) { this._spectatorToast.destroy(); this._spectatorToast = null; }
+    const toast = this.add
+      .text(CENTER_X, CENTER_Y - 120, message, {
+        fontSize: "26px", color: "#ffffff", fontStyle: "bold",
+        fontFamily: UI_FONT_STACK, backgroundColor: "#000000cc",
+        padding: { x: 18, y: 10 }, align: "center",
+      })
+      .setOrigin(0.5)
+      .setDepth(9999)
+      .setAlpha(0);
+    this._spectatorToast = toast;
+    this.tweens.add({
+      targets: toast, alpha: 1, duration: 160, yoyo: true, hold: 1600,
+      onComplete: () => { toast.destroy(); if (this._spectatorToast === toast) this._spectatorToast = null; },
+    });
+  }
+
   refreshHandEndMenu() {
     const seq = this.state?.handEndSeq ?? 0;
     const nextEventIn = this.state?.handEndNextEventIn ?? 0;
@@ -5154,6 +5177,18 @@ export class TableScene extends Phaser.Scene {
   renderState() {
     if (!this.state) {
       return;
+    }
+    {
+      const ev = Number(this.state?.errorVersion ?? 0);
+      if (ev !== this._lastSeenErrorVersion) {
+        this._lastSeenErrorVersion = ev;
+        const code = String(this.state?.lastError?.code ?? "").toUpperCase();
+        if (code === "TAKE_SEAT_CHIPS_TOO_LOW") {
+          this.showSpectatorToast("桌上籌碼不足，無法入座");
+        } else if (code === "STAND_UP_NOT_ALLOWED") {
+          this.showSpectatorToast("只能在牌局之間退座");
+        }
+      }
     }
     const isReplayActive = Boolean(this.app?.isHandReplayActive?.());
     const currentHandEndSeq = Number(this.state.handEndSeq ?? 0);
