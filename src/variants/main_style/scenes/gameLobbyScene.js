@@ -59,7 +59,7 @@ const BUYIN_HINT_Y = 820;
 const BUYIN_CONFIRM_X = 250;
 const BUYIN_CANCEL_X = 470;
 const BUYIN_BUTTON_Y = 905;
-const BUYIN_BUTTON_WIDTH = 150;
+const BUYIN_BUTTON_WIDTH = 180;
 const BUYIN_BUTTON_HEIGHT = 64;
 const BUYIN_TEXT_OUTLINE_STYLE = { stroke: "#000000", strokeThickness: 1 };
 const BUYIN_BUTTON_TEXT_STYLE = { color: BUYIN_TITLE_COLOR, ...BUYIN_TEXT_OUTLINE_STYLE };
@@ -743,7 +743,7 @@ export class GameLobbyScene extends Phaser.Scene {
       topColor: 0x3db428,
       bottomColor: 0x145018,
       borderColor: 0x1aed30,
-      label: "確認入桌",
+      label: "進入牌局",
       labelStyle: { fontSize: "26px", color: BUYIN_TITLE_COLOR, stroke: "#000000", strokeThickness: 1 },
       depth: BUYIN_TEXT_DEPTH + 0.4,
       onClick: () => this.confirmJoinStakes(),

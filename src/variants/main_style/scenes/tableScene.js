@@ -1194,6 +1194,8 @@ export class TableScene extends Phaser.Scene {
     // so forcing a repaint the moment we become visible / regain focus /
     // relayout snaps them straight to the correct value.
     this._forceCountdownRefresh = () => {
+      // 觀戰提示要隨視窗大小貼齊底部，這個不依賴 seatViews，先處理再做早退判斷。
+      this._positionSpectatorSitHint();
       if (!Array.isArray(this.seatViews) || this.seatViews.length === 0) return;
       this.refreshTurnCountdownOverlay();
       this.refreshNextHandCountdown();
@@ -1203,23 +1205,35 @@ export class TableScene extends Phaser.Scene {
       // 'update' frame (which may still be stalled right after resume).
       this.seatViews.forEach((sv) => sv._ringUpdateFn?.());
     };
-    this._onVisibleCountdownRefresh = () => {
-      // [COUNTDOWN-DIAG] temporary: snapshot the anchor when leaving AND returning.
-      const _entry = {
-        ev: document.hidden ? "became-hidden" : "became-visible",
-        now: Date.now(),
-        startedAt: this.currentTurnStartedAt,
-        timeout: this.currentTurnTimeout,
-        remain: this.getCurrentRemainSeconds(),
-      };
-      (window.__CD_DIAG = window.__CD_DIAG || []).push(_entry);
-      console.log("[COUNTDOWN-DIAG]", _entry);
-      if (!document.hidden) {
-        this._forceCountdownRefresh();
+    // 切到背景（最小化）或切換到別的視窗（alt-tab）時，Phaser 的畫面迴圈會凍結，
+    // 但牌局仍持續推進（mock 用 setTimeout 推進；真實伺服器更是即時不等人）。
+    // 回到前景時若把背景期間累積的發牌/收注動畫一次補播，就會看到「加速恢復」。
+    // 改為：偵測到曾離開前景一段時間，回前景時直接把牌桌 snap 到最新狀態、
+    // 丟棄動畫待播佇列。RESUME_SNAP_MIN_AWAY_MS 用來忽略短暫的焦點切換（例如點一下
+    // devtools 再點回來），避免把正常進行中的動畫硬切掉。
+    this.RESUME_SNAP_MIN_AWAY_MS = 600;
+    this._tableAwaySince = 0;
+    this._markTableAway = () => {
+      if (this._tableAwaySince === 0) {
+        this._tableAwaySince = Date.now();
       }
     };
+    this._onVisibleCountdownRefresh = () => {
+      if (document.hidden) {
+        this._markTableAway();
+        return;
+      }
+      const awayMs = this._tableAwaySince > 0 ? Date.now() - this._tableAwaySince : 0;
+      this._tableAwaySince = 0;
+      if (awayMs >= this.RESUME_SNAP_MIN_AWAY_MS) {
+        this._snapToLatestStateOnResume();
+      }
+      this._forceCountdownRefresh();
+    };
+    this._onWindowBlurAway = () => { this._markTableAway(); };
     document.addEventListener("visibilitychange", this._onVisibleCountdownRefresh);
-    window.addEventListener("focus", this._forceCountdownRefresh);
+    window.addEventListener("focus", this._onVisibleCountdownRefresh);
+    window.addEventListener("blur", this._onWindowBlurAway);
     window.addEventListener("canvas-layout-updated", this._forceCountdownRefresh);
     this.countdownSfxSound = this.cache.audio.exists(COUNTDOWN_TIMER_SFX_KEY)
       ? this.sound.add(COUNTDOWN_TIMER_SFX_KEY)
@@ -1777,10 +1791,14 @@ export class TableScene extends Phaser.Scene {
       }
       if (this._onVisibleCountdownRefresh) {
         document.removeEventListener("visibilitychange", this._onVisibleCountdownRefresh);
+        window.removeEventListener("focus", this._onVisibleCountdownRefresh);
         this._onVisibleCountdownRefresh = null;
       }
+      if (this._onWindowBlurAway) {
+        window.removeEventListener("blur", this._onWindowBlurAway);
+        this._onWindowBlurAway = null;
+      }
       if (this._forceCountdownRefresh) {
-        window.removeEventListener("focus", this._forceCountdownRefresh);
         window.removeEventListener("canvas-layout-updated", this._forceCountdownRefresh);
         this._forceCountdownRefresh = null;
       }
@@ -3797,9 +3815,9 @@ export class TableScene extends Phaser.Scene {
     const W = 300;
     const H = 64;
     const CR = 16;
-    const cx = VIEW_WIDTH - W / 2 - 20;
-    const cy = VIEW_HEIGHT - H / 2 - 26;
-    const container = this.add.container(cx, cy).setDepth(60).setVisible(false);
+    this._spectatorSitHintW = W;
+    this._spectatorSitHintH = H;
+    const container = this.add.container(0, 0).setDepth(60).setVisible(false);
 
     // 以 canvas 線性漸變產生平滑的橘色底（比頂點漸變更順），再裁成圓角。
     const texKey = "spectator_sit_hint_bg";
@@ -3839,7 +3857,27 @@ export class TableScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     container.add([bg, label]);
+    this._positionSpectatorSitHint(container);
     return container;
+  }
+
+  // 觀戰提示要貼齊「實際可見視窗的底部」，不能固定用設計高度 VIEW_HEIGHT(1440)：
+  // 手機/短比例視窗的可見高度（layout.bottom）會小於 1440，固定座標會被推到畫面外。
+  // 改以 layout.bottom 為基準，再扣掉 iOS home indicator 安全區。
+  _positionSpectatorSitHint(container = this.spectatorSitHint) {
+    if (!container) {
+      return;
+    }
+    const W = this._spectatorSitHintW || 300;
+    const H = this._spectatorSitHintH || 64;
+    const marginX = 20;
+    const marginY = 26;
+    const viewBottom = Number(layout?.bottom);
+    const bottom = Number.isFinite(viewBottom) && viewBottom > 0 ? viewBottom : VIEW_HEIGHT;
+    const safeBottom = Number(layout?.safeAreaBottom) > 0 ? Number(layout.safeAreaBottom) : 0;
+    const cx = VIEW_WIDTH - W / 2 - marginX;
+    const cy = bottom - safeBottom - H / 2 - marginY;
+    container.setPosition(cx, cy);
   }
 
   _refreshTopButtonsState() {
@@ -4996,6 +5034,30 @@ export class TableScene extends Phaser.Scene {
     return seatView.holeCards[dealIndex] || null;
   }
 
+  // 回到前景時呼叫：直接把牌桌 snap 到 store 內最新狀態，丟棄背景期間累積的
+  // 動畫待播佇列（發牌飛行、收注籌碼、公牌翻牌），避免一次補播造成「加速恢復」。
+  // renderState 會依最新狀態把手牌、籌碼、底池重畫到正確的靜止位置；由於背景期間
+  // 每收到一個封包 store.subscribe 都已同步跑過 renderState（推進過 snapshot 版本），
+  // 這次重畫不會再重新觸發任何收注/發牌動畫。
+  _snapToLatestStateOnResume() {
+    if (!this.scene?.isActive?.()) {
+      return;
+    }
+    const latest = this.store?.getState?.();
+    if (latest) {
+      this.state = latest;
+    }
+    // 1) 丟棄尚未播放的發牌飛行，並把發牌版本標記為已處理（renderState 不會再補播發牌）。
+    this._clearDealCardQueue();
+    this.lastSeenDealCardVersion = Number(this.state?.dealCardVersion ?? this.lastSeenDealCardVersion);
+    // 2) 停掉飛向底池的收注籌碼動畫。
+    this.clearRoundBetCollectFx();
+    // 3) 停掉公牌（翻牌/轉牌/河牌）翻牌動畫，改由 renderState 直接畫成靜止狀態。
+    this.communitySlots?.forEach((slot) => this.stopCommunitySlotAnimation?.(slot));
+    // 4) 立刻以最新狀態重繪。
+    this.renderState();
+  }
+
   _clearDealCardQueue() {
     // Release the pending-deal hold on any cards still waiting in the queue so a
     // stranded flag can't keep them hidden across the next render.
@@ -5941,6 +6003,7 @@ export class TableScene extends Phaser.Scene {
       this.layoutActionButtons([]);
       this.closeRaiseActionPanel();
       this.spectatorBadge?.setVisible(false);
+      this._positionSpectatorSitHint();
       this.spectatorSitHint?.setVisible(true);
     } else {
       this.layoutActionButtons(this._actionSentPending ? [] : allowed);
