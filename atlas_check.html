@@ -1,0 +1,38 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><title>game_table atlas 校对</title>
+<style>
+ body{margin:0;background:#222;color:#eee;font:14px/1.4 system-ui}
+ #bar{position:fixed;top:0;left:0;right:0;background:#111;padding:8px 12px;z-index:10;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+ #wrap{position:relative;margin-top:52px}
+ #wrap img{display:block;image-rendering:pixelated}
+ .box{position:absolute;border:1px solid rgba(0,255,170,.9);box-sizing:border-box;pointer-events:none}
+ .box b{position:absolute;left:0;top:-14px;font-size:11px;background:rgba(0,170,120,.85);color:#000;padding:0 3px;white-space:nowrap}
+ label{user-select:none}
+</style></head><body>
+<div id=bar>
+ <b>game_table atlas 校对</b>
+ <label>缩放 <input id=sc type=range min=10 max=100 value=40> <span id=scv>40%</span></label>
+ <label><input id=lb type=checkbox checked> 显示标签</label>
+ <label><input id=fillonly type=checkbox> 只看新图块(btn_standup_table/inview_hint)</label>
+ <span id=info></span>
+</div>
+<div id=wrap><img id=img src="assets/variants/main_style/images/game_table.webp"><div id=ov></div></div>
+<script>
+const D={"W":800,"H":4041,"frames":[{"k":"bb_seat","x":0,"y":0,"w":130,"h":67},{"k":"bg","x":0,"y":67,"w":720,"h":1440},{"k":"brand_allin","x":0,"y":1507,"w":250,"h":160},{"k":"brand_bet","x":250,"y":1507,"w":250,"h":160},{"k":"brand_call","x":500,"y":1507,"w":250,"h":160},{"k":"brand_check","x":0,"y":1667,"w":250,"h":160},{"k":"brand_fold","x":250,"y":1667,"w":250,"h":160},{"k":"brand_raise","x":500,"y":1667,"w":250,"h":160},{"k":"btn_allin","x":0,"y":1827,"w":200,"h":130},{"k":"btn_bet","x":200,"y":1827,"w":200,"h":130},{"k":"btn_call","x":400,"y":1827,"w":200,"h":130},{"k":"btn_change_table","x":600,"y":1827,"w":200,"h":80},{"k":"btn_check","x":0,"y":1957,"w":200,"h":130},{"k":"btn_exit_table","x":200,"y":1957,"w":200,"h":80},{"k":"btn_fold","x":400,"y":1957,"w":200,"h":130},{"k":"btn_raise","x":600,"y":1957,"w":200,"h":130},{"k":"btn_standup_table","x":0,"y":2087,"w":200,"h":80},{"k":"card_back","x":200,"y":2087,"w":130,"h":180},{"k":"dealer_seat","x":330,"y":2087,"w":130,"h":67},{"k":"icon_sound_off","x":460,"y":2087,"w":93,"h":92},{"k":"icon_sound_on","x":553,"y":2087,"w":93,"h":92},{"k":"inview_hint","x":0,"y":2267,"w":288,"h":87},{"k":"nametag","x":288,"y":2267,"w":100,"h":57},{"k":"nametag_glow","x":388,"y":2267,"w":100,"h":57},{"k":"profile_frame_off","x":488,"y":2267,"w":130,"h":130},{"k":"sb_seat","x":618,"y":2267,"w":130,"h":67},{"k":"tbale","x":0,"y":2397,"w":800,"h":1200},{"k":"title_label","x":0,"y":3597,"w":340,"h":120},{"k":"token_black","x":340,"y":3597,"w":180,"h":180},{"k":"token_blue","x":520,"y":3597,"w":180,"h":180},{"k":"token_green","x":0,"y":3777,"w":180,"h":180},{"k":"token_purple","x":180,"y":3777,"w":180,"h":180},{"k":"token_red","x":360,"y":3777,"w":180,"h":180},{"k":"token_yellow","x":540,"y":3777,"w":180,"h":180},{"k":"waiting","x":0,"y":3957,"w":200,"h":84}]};
+const img=document.getElementById('img'),ov=document.getElementById('ov'),sc=document.getElementById('sc'),scv=document.getElementById('scv'),lb=document.getElementById('lb'),fo=document.getElementById('fillonly');
+document.getElementById('info').textContent=D.frames.length+' frames | atlas '+D.W+'x'+D.H;
+const NEW=new Set(['btn_standup_table','inview_hint']);
+function render(){
+ const s=sc.value/100; scv.textContent=sc.value+'%';
+ img.style.width=(D.W*s)+'px'; img.style.height=(D.H*s)+'px';
+ ov.innerHTML='';
+ for(const f of D.frames){
+  if(fo.checked && !NEW.has(f.k)) continue;
+  const d=document.createElement('div'); d.className='box';
+  d.style.left=(f.x*s)+'px'; d.style.top=(f.y*s)+'px'; d.style.width=(f.w*s)+'px'; d.style.height=(f.h*s)+'px';
+  if(NEW.has(f.k)) d.style.borderColor='rgba(255,80,80,.95)';
+  if(lb.checked){ const b=document.createElement('b'); b.textContent=f.k+' ('+f.w+'x'+f.h+')'; if(NEW.has(f.k)) b.style.background='rgba(255,80,80,.9)'; d.appendChild(b); }
+  ov.appendChild(d);
+ }
+}
+sc.oninput=render; lb.onchange=render; fo.onchange=render; img.onload=render; if(img.complete)render();
+</script></body></html>

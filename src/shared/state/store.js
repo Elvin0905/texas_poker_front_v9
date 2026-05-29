@@ -236,6 +236,10 @@ export class Store extends EventTarget {
     this.state.heroSwitchPending = true;
     this.state.actionRequest = null;
     this.state.rebuyOffer = null;
+    // 換桌時立即清掉上一桌的「下一局倒數」與結算狀態，避免帶到新桌仍顯示倒數。
+    this.state.nextHandCountdownSeconds = 0;
+    this.state.handResult = null;
+    this.state.handResultEventKey = "";
     this.emit();
   }
 
@@ -620,6 +624,8 @@ export class Store extends EventTarget {
         this.state.handResultEventKey = "";
         this.state.actionRequest = null;
         this.state.rebuyOffer = null;
+        // 進桌/換桌：清掉可能殘留的「下一局倒數」，避免新桌（waiting）仍顯示舊倒數。
+        this.state.nextHandCountdownSeconds = 0;
         this.state.holeCardsBySeat = {};
         this.state.showdownRevealsBySeat = {};
         try {

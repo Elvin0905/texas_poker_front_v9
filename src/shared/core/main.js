@@ -45,6 +45,11 @@ const REPLAY_FIRST_STEP_DELAY_MS = 160;
 const REPLAY_FAST_TIME_SCALE = 0.35;
 const REPLAY_FAST_MIN_DELAY_MS = 80;
 const REPLAY_FAST_MAX_DELAY_MS = 1200;
+// Normal (non-fast) replay pacing bounds. Without an upper cap, a long recorded
+// think-time (real backend tank time) makes a step wait its full real-world
+// duration, so the replay looks frozen/stuck. Cap it so playback stays watchable.
+const REPLAY_NORMAL_MIN_DELAY_MS = 350;
+const REPLAY_NORMAL_MAX_DELAY_MS = 3500;
 const STARTUP_AUTH_GATE_TIMEOUT_MS = 12000;
 const LIVE_PACKET_SKIP_DURING_REPLAY = new Set([
   "table_joined",
@@ -853,16 +858,64 @@ function stopReplayPlayback(reason = "") {
   }
 }
 
+// Reset an end-of-hand table_snapshot back to the start-of-hand state so the
+// replay starts from a clean board and the timeline events drive it forward.
+// Without this, table_snapshot (round="river", full community, final chips,
+// fold/allin last_action) is rendered immediately and the replay looks frozen
+// on the finished board while the timeline replays from preflop.
+function buildPreHandTableFromSnapshot(snapshot, replay) {
+  const table = cloneSafe(snapshot);
+  // contrib_amount per seat (settlement) lets us reconstruct starting stacks.
+  const settlementPlayers = Array.isArray(replay?.players) ? replay.players : [];
+  const contribBySeat = {};
+  for (const p of settlementPlayers) {
+    const seat = parseSeatNumber(p?.seat);
+    if (seat === null) { continue; }
+    const contrib = Number(p?.contrib_amount);
+    if (Number.isFinite(contrib)) { contribBySeat[String(seat)] = contrib; }
+  }
+  // Reset per-hand board/pot/bet state to the start of the hand.
+  table.community = [];
+  table.round = "preflop";
+  table.status = "playing";
+  table.pot = 0;
+  table.bets = {};
+  table.current_bet = 0;
+  table.round_total_bet = 0;
+  if (Array.isArray(table.players)) {
+    table.players = table.players.map((player) => {
+      const next = { ...player };
+      const seat = parseSeatNumber(player?.seat);
+      next.bet = 0;
+      next.last_action = null;
+      next.last_action_at = null;
+      // Everyone dealt into the hand starts in_hand at the pre-hand canvas.
+      const holeCount = Number(player?.hole_count ?? 0);
+      next.in_hand = holeCount > 0 ? true : Boolean(player?.in_hand);
+      // Starting stack = end-of-hand chips + amount contributed this hand.
+      const endChips = Number(player?.chips);
+      const contrib = seat !== null ? Number(contribBySeat[String(seat)]) : NaN;
+      if (Number.isFinite(endChips) && Number.isFinite(contrib)) {
+        next.chips = endChips + contrib;
+      }
+      return next;
+    });
+  }
+  return table;
+}
+
 function buildReplayInitTable(replay) {
   const timeline = Array.isArray(replay?.timeline) ? replay.timeline : [];
   const handStartEvent = timeline.find((entry) => String(entry?.event || "").toLowerCase() === "hand_start");
   const tableFromHandStart = handStartEvent?.payload?.table;
   if (tableFromHandStart && typeof tableFromHandStart === "object") {
+    // hand_start.table is already a start-of-hand snapshot — use as-is.
     return cloneSafe(tableFromHandStart);
   }
   const tableSnapshot = replay?.table_snapshot;
   if (tableSnapshot && typeof tableSnapshot === "object") {
-    return cloneSafe(tableSnapshot);
+    // table_snapshot is the END-of-hand state — reset it to the pre-hand canvas.
+    return buildPreHandTableFromSnapshot(tableSnapshot, replay);
   }
   return null;
 }
@@ -1200,7 +1253,8 @@ function resolveReplayDelayMsForEvent(nextEvent, isFirstStep = false) {
   }
 
   if (!isReplayFastMode()) {
-    return Math.max(0, Math.round(rawGapMs));
+    const normalDelay = Math.round(rawGapMs);
+    return Math.max(REPLAY_NORMAL_MIN_DELAY_MS, Math.min(REPLAY_NORMAL_MAX_DELAY_MS, normalDelay));
   }
   const fastDelay = Math.round(rawGapMs * REPLAY_FAST_TIME_SCALE);
   return Math.max(REPLAY_FAST_MIN_DELAY_MS, Math.min(REPLAY_FAST_MAX_DELAY_MS, fastDelay));
@@ -1238,6 +1292,13 @@ function scheduleReplayStep(stepIndex, replayId) {
 
   const event = timeline[stepIndex];
   const replayPacket = buildReplayPacketFromTimelineEvent(event, replay);
+  console.log("[REPLAY-DBG] step", {
+    stepIndex,
+    eventType: event?.event,
+    builtPacketType: replayPacket?.type || "(null)",
+    eventAtMs: event?.event_at_ms,
+    elapsedMs: event?.elapsed_ms,
+  });
   if (replayPacket) {
     applyReplayPacket(replayPacket);
   }
@@ -1253,6 +1314,7 @@ function scheduleReplayStep(stepIndex, replayId) {
   const nextIndex = stepIndex + 1;
   const nextEvent = timeline[nextIndex];
   const delayMs = resolveReplayDelayMsForEvent(nextEvent, false);
+  console.log("[REPLAY-DBG] next step scheduled", { nextIndex, nextEventType: nextEvent?.event, delayMs });
   setReplayTimeout(() => {
     scheduleReplayStep(nextIndex, replayId);
   }, delayMs);
@@ -1266,7 +1328,17 @@ function startReplayPlayback(packet) {
     .filter((entry) => entry && typeof entry === "object")
     .sort((a, b) => Number(a?.event_no ?? 0) - Number(b?.event_no ?? 0));
 
+  console.log("[REPLAY-DBG] startReplayPlayback", {
+    ok: replayData?.ok,
+    hasReplay: !!replay,
+    rawTimelineLen: timelineRaw.length,
+    enrichedTimelineLen: timeline.length,
+    firstEvent: timeline[0]?.event,
+    tableId: replay?.table_id,
+    handId: replay?.hand_id,
+  });
   if (!replayData?.ok || !replay || timeline.length <= 0) {
+    console.warn("[REPLAY-DBG] aborting: REPLAY_EMPTY (ok/replay/timeline check failed)");
     store.applyPacket({
       type: "error",
       data: {
@@ -1278,6 +1350,18 @@ function startReplayPlayback(packet) {
   }
 
   const initTable = buildReplayInitTable(replay);
+  console.log("[REPLAY-DBG] initTable built", {
+    source: timeline.find((e) => String(e?.event || "").toLowerCase() === "hand_start")?.payload?.table
+      ? "hand_start.table"
+      : (replay?.table_snapshot ? "table_snapshot(reset)" : "none"),
+    round: initTable?.round,
+    community: initTable?.community,
+    status: initTable?.status,
+    pot: initTable?.pot,
+    playerChips: Array.isArray(initTable?.players)
+      ? initTable.players.map((p) => ({ seat: p?.seat, chips: p?.chips, last_action: p?.last_action }))
+      : null,
+  });
   if (!initTable) {
     store.applyPacket({
       type: "error",
@@ -2274,6 +2358,19 @@ function handlePacket(packet) {
   }
   if (startupAuthGateActive && isAuthRecoveryReadyPacket(packetType)) {
     releaseStartupAuthGate(`packet:${packetType}`);
+  }
+  if (packetType.includes("replay")) {
+    try {
+      const d = packet?.data || {};
+      const tl = d?.replay?.timeline;
+      console.log("[REPLAY-DBG] packet recv", {
+        type: packetType,
+        ok: d?.ok,
+        hasReplay: !!d?.replay,
+        timelineLen: Array.isArray(tl) ? tl.length : "(none)",
+        keys: Object.keys(d),
+      });
+    } catch (e) { /* noop */ }
   }
   if (packetType === "hand_replay_ok") {
     return startReplayPlayback(packet);

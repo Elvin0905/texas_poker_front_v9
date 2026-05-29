@@ -959,19 +959,10 @@ export class TableScene extends Phaser.Scene {
 
     // 已入座、但因人數不足無法開局時，右上角顯示「離座」按鈕：按下後送 stand_up，
     // 退座留桌轉為觀戰（席位釋出，仍可換桌/離桌/重新入座）。
-    this.standUpTopButton = createGradientButton(this, {
-      x: STAND_UP_BUTTON_X,
-      y: STAND_UP_BUTTON_Y,
-      width: 150,
-      height: 64,
-      cornerRadius: 10,
-      topColor: 0x1a5aaa,
-      bottomColor: 0x0a2855,
-      borderColor: 0x3d90f5,
-      label: "離座",
-      labelStyle: { fontSize: "28px", color: "#ecf3ff", fontStyle: "bold", stroke: "#06204a", strokeThickness: 3 },
-      depth: SWITCH_CONFIRM_TEXT_DEPTH + 10,
-      visible: false,
+    this.standUpTopButton = this.add.image(STAND_UP_BUTTON_X, STAND_UP_BUTTON_Y, "game_table", "btn_standup_table");
+    this.standUpTopButton.setDisplaySize(160, 64).setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10).setVisible(false);
+    bindImageButton(this, this.standUpTopButton, {
+      pressedScale: 0.96,
       onClick: () => {
         this.app.sendPacket("stand_up", {});
       },
@@ -3855,51 +3846,16 @@ export class TableScene extends Phaser.Scene {
   }
 
   buildSpectatorSitHint() {
-    const W = 380;
-    const H = 82;
-    const CR = 20;
+    // 觀戰提示直接用 atlas 圖（inview_hint，frame 540x246 高清，已含「觀戰中 請選位坐下」文字）。
+    const W = 360;
+    const H = Math.round(W * 87 / 191);
     this._spectatorSitHintW = W;
     this._spectatorSitHintH = H;
     const container = this.add.container(0, 0).setDepth(60).setVisible(false);
 
-    // 以 canvas 線性漸變產生平滑的橘色底（比頂點漸變更順），再裁成圓角。
-    const texKey = "spectator_sit_hint_bg";
-    if (this.textures.exists(texKey)) this.textures.remove(texKey);
-    const canvasTex = this.textures.createCanvas(texKey, W, H);
-    const ctx = canvasTex.getContext();
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, "#ffd54a");
-    grad.addColorStop(0.5, "#ff8a00");
-    grad.addColorStop(1, "#ff5e00");
-    const r = CR;
-    ctx.beginPath();
-    ctx.moveTo(r, 0);
-    ctx.arcTo(W, 0, W, H, r);
-    ctx.arcTo(W, H, 0, H, r);
-    ctx.arcTo(0, H, 0, 0, r);
-    ctx.arcTo(0, 0, W, 0, r);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "rgba(255,238,180,1)";
-    ctx.stroke();
-    canvasTex.refresh();
+    const bg = this.add.image(0, 0, "game_table", "inview_hint").setOrigin(0.5).setDisplaySize(W, H);
 
-    const bg = this.add.image(0, 0, texKey).setOrigin(0.5);
-
-    const label = this.add
-      .text(0, 0, "觀戰中  請選位坐下", {
-        fontSize: "32px",
-        color: "#ffffff",
-        fontStyle: "bold",
-        fontFamily: UI_FONT_STACK,
-        stroke: "#a83800",
-        strokeThickness: 4,
-      })
-      .setOrigin(0.5);
-
-    container.add([bg, label]);
+    container.add([bg]);
     this._positionSpectatorSitHint(container);
     return container;
   }

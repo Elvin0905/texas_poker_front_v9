@@ -116,65 +116,72 @@ btn_raise
   orig: 200, 130
   offset: 0, 0
   index: -1
-card_back
+btn_standup_table
   rotate: false
   xy: 0, 2087
+  size: 200, 80
+  orig: 200, 80
+  offset: 0, 0
+  index: -1
+card_back
+  rotate: false
+  xy: 200, 2087
   size: 130, 180
   orig: 130, 180
   offset: 0, 0
   index: -1
 dealer_seat
   rotate: false
-  xy: 130, 2087
+  xy: 330, 2087
   size: 130, 67
   orig: 130, 67
   offset: 0, 0
   index: -1
 icon_sound_off
   rotate: false
-  xy: 260, 2087
+  xy: 460, 2087
   size: 93, 92
   orig: 93, 92
   offset: 0, 0
   index: -1
 icon_sound_on
   rotate: false
-  xy: 353, 2087
+  xy: 553, 2087
   size: 93, 92
   orig: 93, 92
   offset: 0, 0
   index: -1
+inview_hint
+  rotate: false
+  xy: 0, 2267
+  size: 288, 87
+  orig: 288, 87
+  offset: 0, 0
+  index: -1
 nametag
   rotate: false
-  xy: 446, 2087
+  xy: 288, 2267
   size: 100, 57
   orig: 100, 57
   offset: 0, 0
   index: -1
 nametag_glow
   rotate: false
-  xy: 546, 2087
+  xy: 388, 2267
   size: 100, 57
   orig: 100, 57
   offset: 0, 0
   index: -1
 profile_frame_off
   rotate: false
-  xy: 646, 2087
-  size: 130, 130
-  orig: 130, 130
-  offset: 0, 0
-  index: -1
-profile_frame_on
-  rotate: false
-  xy: 0, 2267
+  xy: 488, 2267
   size: 130, 130
   orig: 130, 130
   offset: 0, 0
   index: -1
 sb_seat
   rotate: false
-  xy: 130, 2267
+  xy: 618, 2267
   size: 130, 67
   orig: 130, 67
   offset: 0, 0
