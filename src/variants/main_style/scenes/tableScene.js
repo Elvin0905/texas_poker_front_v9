@@ -640,6 +640,12 @@ function mergeSeatBetAmount(target, seatRaw, amountRaw) {
   target[key] = Math.max(Number.isFinite(prev) ? prev : 0, amount);
 }
 
+function lerpColor(a, b, t) {
+  const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
+  const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
+  return ((Math.round(ar + (br - ar) * t) << 16) | (Math.round(ag + (bg - ag) * t) << 8) | Math.round(ab + (bb - ab) * t));
+}
+
 function resolveRoundTotalBet(table) {
   const explicitRoundTotal = Number(table?.round_total_bet);
   if (Number.isFinite(explicitRoundTotal) && explicitRoundTotal >= 0) {
@@ -876,7 +882,10 @@ export class TableScene extends Phaser.Scene {
           const heroPlayer = heroSeat !== null && Array.isArray(this.state?.table?.players)
             ? this.state.table.players.find(p => isSameSeat(p?.seat, heroSeat))
             : null;
-          if (heroPlayer?.in_hand === true) {
+          const heroHasBet = heroPlayer?.in_hand === true
+            || Number(heroPlayer?.hole_count) > 0
+            || Number(this.state?.table?.bets?.[String(heroSeat)]) > 0;
+          if (heroHasBet) {
             this.openSwitchRoomConfirmDialog(() => this.queueLeaveAction("leave"));
             return;
           }
@@ -887,7 +896,6 @@ export class TableScene extends Phaser.Scene {
         this.store.beginLeaveTable?.(currentTableId);
         console.log("[EXIT] after beginLeaveTable, page=", this.store.getState?.()?.page);
         this.app.sendPacket("leave_room", {});
-        this.app.sendPacket("enter_game", { game_id: _gameId });
       },
     });
     // Override pixelPerfect with a plain rectangular hit area so the full display
@@ -2015,10 +2023,8 @@ export class TableScene extends Phaser.Scene {
     if (this._pendingLeaveAfterHandResult) {
       this._pendingLeaveAfterHandResult = false;
       const currentTableId = this.store.getState?.().table?.table_id ?? null;
-      const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
       this.store.beginLeaveTable?.(currentTableId);
       this.app.sendPacket("leave_room", {});
-      this.app.sendPacket("enter_game", { game_id: _gameId });
     }
 
     if (!this.winGifIsPlaying && !this._pendingSwitchAfterRebuy) {
@@ -2980,10 +2986,8 @@ export class TableScene extends Phaser.Scene {
       onClick: () => {
         this._handEndMenuEnd = 0;
         const currentTableId = this.store.getState?.().table?.table_id ?? null;
-        const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
         this.store.beginLeaveTable?.(currentTableId);
         this.app.sendPacket("leave_room", {});
-        this.app.sendPacket("enter_game", { game_id: _gameId });
       },
       visible: false,
     });
@@ -3213,6 +3217,7 @@ export class TableScene extends Phaser.Scene {
         item.nametagBreathTween.remove();
       }
       item.nametagGlow?.destroy();
+      item.turnRing?.destroy();
       item.sweepArc.destroy();
       item.glowOuter.destroy();
       item.glowInner.destroy();
@@ -3252,6 +3257,8 @@ export class TableScene extends Phaser.Scene {
         .setStrokeStyle(TURN_SWEEP_STROKE_WIDTH, TURN_GLOW_COLOR, TURN_SWEEP_STROKE_ALPHA)
         .setDepth(SEAT_FX_DEPTH)
         .setVisible(false);
+      const turnRing = this.add.graphics()
+        .setDepth(SEAT_PROFILE_FRAME_DEPTH + 1);
       const glowOuter = this.add
         .circle(pos.x, pos.y, TURN_GLOW_OUTER_RADIUS, TURN_GLOW_COLOR, TURN_GLOW_FILL_ALPHA_OUTER)
         .setStrokeStyle(TURN_GLOW_STROKE_WIDTH_OUTER, TURN_GLOW_COLOR, TURN_GLOW_OUTER_ALPHA)
@@ -3465,6 +3472,7 @@ export class TableScene extends Phaser.Scene {
         sitPromptCircle,
         sitPromptPlus,
         sitPromptLabel,
+        turnRing,
         sweepArc,
         glowOuter,
         glowInner,
@@ -3851,6 +3859,80 @@ export class TableScene extends Phaser.Scene {
         .setAlpha(alpha)
         .setText(String(remainSeconds))
         .setVisible(true);
+    }
+  }
+
+  refreshTurnRing() {
+    if (!Array.isArray(this.seatViews) || this.seatViews.length === 0) return;
+    const totalSeconds = Number(this.currentTurnTimeout);
+    const startedAt = Number(this.currentTurnStartedAt);
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+      this.seatViews.forEach(sv => sv.turnRing?.clear());
+      return;
+    }
+    const elapsed = (Number.isFinite(startedAt) && startedAt > 0)
+      ? (Date.now() - startedAt) / 1000
+      : 0;
+    const ratio = Math.min(1, Math.max(0, (totalSeconds - elapsed) / totalSeconds));
+    const isWarning = (totalSeconds - elapsed) <= TURN_COUNTDOWN_WARNING_SECONDS;
+    const isCritical = (totalSeconds - elapsed) <= TURN_COUNTDOWN_CRITICAL_SECONDS;
+    const blinkOn = Math.floor(Date.now() / TURN_COUNTDOWN_WARNING_BLINK_MS) % 2 === 0;
+    const strokeColor = (isWarning || isCritical) ? TURN_COUNTDOWN_RING_WARNING : TURN_GLOW_COLOR;
+    const alpha = isCritical ? (blinkOn ? 1 : 0.2) : 1;
+
+    for (const seatView of this.seatViews) {
+      const isActiveSeat = isSameSeat(seatView.displaySeatNo, this.currentActiveSeat);
+      if (!isActiveSeat || !seatView.avatar.visible || ratio <= 0.005 || !seatView.profileFrame?.displayWidth) {
+        seatView.turnRing.clear();
+        continue;
+      }
+      const frameVisibleR = Math.min(seatView.profileFrame.displayWidth, seatView.profileFrame.displayHeight) * 0.48;
+      const cx = seatView.posX;
+      const cy = seatView.posY + AVATAR_Y_OFFSET;
+      const startRad = -Math.PI / 2;
+      const endRad = startRad + 2 * Math.PI * ratio;
+      const sweep = endRad - startRad;
+      const SEGS = 16;
+      seatView.turnRing.clear();
+      for (let i = 0; i < SEGS; i++) {
+        const t = (i + 1) / SEGS;
+        const segColor = t < 0.5
+          ? lerpColor(0x00e5ff, 0xff7700, t * 2)
+          : lerpColor(0xff7700, 0xff2200, (t - 0.5) * 2);
+        seatView.turnRing
+          .lineStyle(9, segColor, alpha)
+          .beginPath()
+          .arc(cx, cy, frameVisibleR, startRad + sweep * (i / SEGS), startRad + sweep * ((i + 1) / SEGS), false)
+          .strokePath();
+      }
+    }
+  }
+
+  drawTurnRing(seatView, ratio) {
+    if (!seatView?.turnRing || !seatView.profileFrame?.displayWidth) return;
+    seatView.turnRing.clear();
+    if (ratio <= 0.005) return;
+    const totalSeconds = Number(this.currentTurnTimeout) || 20;
+    const remainSeconds = ratio * totalSeconds;
+    const isCritical = remainSeconds <= TURN_COUNTDOWN_CRITICAL_SECONDS;
+    const blinkOn = Math.floor(Date.now() / TURN_COUNTDOWN_WARNING_BLINK_MS) % 2 === 0;
+    const alpha = isCritical ? (blinkOn ? 1 : 0.2) : 1;
+    const frameVisibleR = Math.min(seatView.profileFrame.displayWidth, seatView.profileFrame.displayHeight) * 0.48;
+    const cx = seatView.posX;
+    const cy = seatView.posY + AVATAR_Y_OFFSET;
+    const startRad = -Math.PI / 2;
+    const sweep = 2 * Math.PI * ratio;
+    const SEGS = 16;
+    for (let i = 0; i < SEGS; i++) {
+      const t = (i + 1) / SEGS;
+      const segColor = t < 0.5
+        ? lerpColor(0x00e5ff, 0xff7700, t * 2)
+        : lerpColor(0xff7700, 0xff2200, (t - 0.5) * 2);
+      seatView.turnRing
+        .lineStyle(9, segColor, alpha)
+        .beginPath()
+        .arc(cx, cy, frameVisibleR, startRad + sweep * (i / SEGS), startRad + sweep * ((i + 1) / SEGS), false)
+        .strokePath();
     }
   }
 
@@ -4635,6 +4717,7 @@ export class TableScene extends Phaser.Scene {
         if (holeCard.inFlight) {
           // Cancel the landing: onComplete will see inFlight===false and skip setVisible(true).
           // The sprite was already hidden when the deal started, so it stays hidden.
+          console.log(`[DEAL_CANCEL] inFlight cancelled for seat=${seatView?.displaySeatNo} cardIdx=${cardIndex} visibleCount=${holeCount}`);
           holeCard.inFlight = false;
           return;
         }
@@ -4714,6 +4797,7 @@ export class TableScene extends Phaser.Scene {
       return;
     }
     const seatView = this.findSeatViewBySeatNo(dealCard.seat);
+    console.log(`[DEAL_FX] seat=${dealCard.seat} idx=${dealCard.card_index} seatView=${seatView ? seatView.displaySeatNo : "NULL"}`);
     if (!seatView) {
       return;
     }
@@ -4753,9 +4837,11 @@ export class TableScene extends Phaser.Scene {
       onComplete: () => {
         if (landingCard) {
           if (!landingCard.inFlight) {
+            console.log(`[DEAL_ONCOMPLETE] seat=${seatView?.displaySeatNo} idx=${dealIndex} — skipped (inFlight=false)`);
             flyCard.destroy();
             return;
           }
+          console.log(`[DEAL_ONCOMPLETE] seat=${seatView?.displaySeatNo} idx=${dealIndex} — landing`);
           landingCard.sprite
             .setPosition(target.x, target.y)
             .setVisible(true)
@@ -4790,31 +4876,35 @@ export class TableScene extends Phaser.Scene {
       this.updateSeatRoleBadgeLayout(seatView);
       this.updateSeatHoleCardPositions(seatView);
 
-      seatView.glowOuter
-        .setVisible(true)
-        .setPosition(seatView.posX, glowY)
-        .setScale(fxScale)
-        .setAlpha(1);
+      seatView.glowOuter.setVisible(false);
       seatView.glowInner.setVisible(false);
       seatView.sweepArc.setVisible(false);
 
-      seatView.glowOuterTween = this.tweens.add({
-        targets: seatView.glowOuter,
-        alpha: 0.65,
-        scaleX: fxScale * 1.08,
-        scaleY: fxScale * 1.08,
-        duration: 900,
-        ease: "Sine.InOut",
-        yoyo: true,
-        repeat: -1,
+      if (seatView.ringTween) { seatView.ringTween.remove(); seatView.ringTween = null; }
+      const totalMs = Math.max(100, (Number(this.currentTurnTimeout) || 20) * 1000);
+      const _startedAt = Number(this.currentTurnStartedAt);
+      const _elapsedMs = (Number.isFinite(_startedAt) && _startedAt > 0) ? (Date.now() - _startedAt) : 0;
+      const _remainMs = Math.max(0, totalMs - _elapsedMs);
+      const _startRatio = _remainMs / totalMs;
+      const _proxy = { ratio: _startRatio };
+      this.drawTurnRing(seatView, _startRatio);
+      seatView.ringTween = this.tweens.add({
+        targets: _proxy,
+        ratio: 0,
+        duration: _remainMs,
+        ease: 'Linear',
+        onUpdate: () => this.drawTurnRing(seatView, _proxy.ratio),
+        onComplete: () => { seatView.turnRing.clear(); seatView.ringTween = null; },
       });
       return;
     }
 
     if (!seatView.turnActive) {
+      if (seatView.ringTween) { seatView.ringTween.remove(); seatView.ringTween = null; }
       seatView.turnCountdownBg.setVisible(false);
       seatView.turnCountdown.setVisible(false);
       seatView.sweepArc.setVisible(false);
+      seatView.turnRing.clear();
       seatView.glowOuter.setVisible(false);
       seatView.glowInner.setVisible(false);
       seatView.avatar.setY(seatView.posY + AVATAR_Y_OFFSET);
@@ -4825,6 +4915,7 @@ export class TableScene extends Phaser.Scene {
     }
 
     seatView.turnActive = false;
+    if (seatView.ringTween) { seatView.ringTween.remove(); seatView.ringTween = null; }
     if (seatView.sweepTween) {
       seatView.sweepTween.remove();
       seatView.sweepTween = null;
@@ -4842,6 +4933,7 @@ export class TableScene extends Phaser.Scene {
       seatView.glowInnerTween = null;
     }
     seatView.sweepArc.setVisible(false).setScale(1).setAlpha(1).setAngle(0);
+    seatView.turnRing.clear();
     seatView.glowOuter.setVisible(false).setScale(1).setAlpha(1);
     seatView.glowInner.setVisible(false).setScale(1).setAlpha(1);
     seatView.avatar.setY(seatView.posY + AVATAR_Y_OFFSET);
@@ -4984,6 +5076,7 @@ export class TableScene extends Phaser.Scene {
         const _dealTableStatus = String(table?.status || "").toLowerCase();
         const _tableIsWaiting = _dealTableStatus === "waiting" || _dealTableStatus === "";
         const _heroWaiting = Boolean(this.state.heroJoinedWaiting);
+        console.log(`[DEAL] v=${dealCardVersion} seat=${this.state.lastDealCard?.seat} idx=${this.state.lastDealCard?.card_index} tableStatus="${_dealTableStatus}" isWaiting=${_tableIsWaiting} heroWaiting=${_heroWaiting} clearFlag=${this._clearCardsUntilNextHand}`);
         if (!_tableIsWaiting && !_heroWaiting) {
           this.playDealCardEffect(this.state.lastDealCard);
         }
@@ -5197,7 +5290,7 @@ export class TableScene extends Phaser.Scene {
         const bgScale = 0.83 * avatarScale / NORMAL_AVATAR_SCALE;
         const avatarTexture = this.resolveAvatarTexture(player.avatar);
         seatView.profileBg.setVisible(true).setScale(bgScale);
-        seatView.profileFrame.setVisible(true).setScale(frameScale).setFrame(isSameSeat(player.seat, activeSeat) ? "profile_frame_on" : "profile_frame_off");
+        seatView.profileFrame.setVisible(true).setScale(frameScale).setFrame("profile_frame_off");
         const frameSize = Math.min(seatView.profileFrame.displayWidth, seatView.profileFrame.displayHeight);
         const foldRadius = frameSize * 0.462;
         seatView.foldOverlay.setRadius(foldRadius).setPosition(seatView.posX, seatView.posY + AVATAR_Y_OFFSET);
@@ -5870,7 +5963,6 @@ export class TableScene extends Phaser.Scene {
     const currentTableId = this.store.getState?.().table?.table_id ?? null;
     this.store.beginLeaveTable?.(currentTableId);
     this.app.sendPacket("leave_room", {});
-    this.app.sendPacket("enter_game", { game_id: "texas_holdem" });
   }
 
   queueLeaveAction(type) {
@@ -5907,11 +5999,9 @@ export class TableScene extends Phaser.Scene {
       this.app.sendPacket("switch_room", { buyin, _heroWaiting: true });
     } else if (type === "leave") {
       const currentTableId = String(this.store.getState?.()?.table?.table_id ?? "");
-      const _gameId = this.store.getState?.()?.table?.game_id || this.store.getState?.()?.gameLobby?.game_id || "texas_holdem";
       this.app.setPendingTableExit?.("leave", currentTableId, 0);
       this.store.beginLeaveTable?.(currentTableId);
       this.app.sendPacket("leave_room", {});
-      this.app.sendPacket?.("enter_game", { game_id: _gameId });
     }
   }
 
