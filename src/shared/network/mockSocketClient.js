@@ -105,6 +105,8 @@ export class MockSocketClient {
     };
 
     this.table = null;
+    this.isSpectator = false;
+    this.spectatorTableChips = 0;
     this.walletBalance = 500000;
     this.currentRunId = 0;
 
@@ -278,17 +280,11 @@ export class MockSocketClient {
   handleJoinStakes(data = {}) {
     this.stopSimulation();
     this.handContribBySeat = {};
-    const requestedBuyin = Math.floor(Number(data?.buyin ?? MAX_BUYIN));
-    const clampedBuyin = Math.max(MIN_BUYIN, Math.min(MAX_BUYIN, Number.isFinite(requestedBuyin) ? requestedBuyin : MAX_BUYIN));
 
-    const heroSeed = PLAYER_SEEDS.find((item) => item.seat === this.heroSeat) || PLAYER_SEEDS[0];
-    const heroName = this.profile.username || heroSeed.username;
-
-    const heroPlayer = makeTablePlayer({
-      ...heroSeed,
-      username: heroName,
-      chips: clampedBuyin,
-    });
+    const wantSpectate = String(data?.mode ?? "").toLowerCase();
+    const isSpectator = data?.spectator === true
+      || ["spectator", "spectate", "observer", "watch"].includes(wantSpectate);
+    this.isSpectator = isSpectator;
 
     this.table = {
       table_id: TABLE_ID,
@@ -310,20 +306,48 @@ export class MockSocketClient {
       dealer_seat: null,
       sb_seat: null,
       bb_seat: null,
-      players: [heroPlayer],
+      players: [],
     };
 
-    this.emit("table_joined", {
-      hero_seat: this.heroSeat,
-      waiting_this_hand: false,
-      table: clone(this.table),
-    });
-
-    this.walletBalance = 492000;
-    this.emit("wallet_state", {
-      wallet_balance: this.walletBalance,
-      table_chips: heroPlayer.chips,
-    });
+    if (isSpectator) {
+      // 觀戰：不帶入籌碼也能進桌；take_seat 時才檢查。給足夠籌碼讓 happy-path 可測。
+      this.spectatorTableChips = MAX_BUYIN;
+      this.emit("table_joined", {
+        game_id: GAME_ID,
+        table_id: TABLE_ID,
+        stakes_id: STAKES_ID,
+        hero_seat: null,
+        is_spectator: true,
+        can_act: false,
+        table_chips: this.spectatorTableChips,
+        waiting_this_hand: false,
+        table: clone(this.table),
+      });
+      this.walletBalance = 492000;
+      this.emit("wallet_state", {
+        wallet_balance: this.walletBalance,
+        table_chips: this.spectatorTableChips,
+      });
+    } else {
+      const requestedBuyin = Math.floor(Number(data?.buyin ?? MAX_BUYIN));
+      const clampedBuyin = Math.max(MIN_BUYIN, Math.min(MAX_BUYIN, Number.isFinite(requestedBuyin) ? requestedBuyin : MAX_BUYIN));
+      const heroSeed = PLAYER_SEEDS.find((item) => item.seat === this.heroSeat) || PLAYER_SEEDS[0];
+      const heroName = this.profile.username || heroSeed.username;
+      const heroPlayer = makeTablePlayer({ ...heroSeed, username: heroName, chips: clampedBuyin });
+      this.table.players.push(heroPlayer);
+      this.emit("table_joined", {
+        hero_seat: this.heroSeat,
+        is_spectator: false,
+        can_act: false,
+        waiting_this_hand: false,
+        table: clone(this.table),
+      });
+      this.walletBalance = 492000;
+      this.emit("wallet_state", {
+        wallet_balance: this.walletBalance,
+        table_chips: heroPlayer.chips,
+      });
+    }
 
     const runId = ++this.currentRunId;
     this.runFlow(runId).catch(() => {});
@@ -1119,7 +1143,10 @@ export class MockSocketClient {
       return;
     }
     this.emit("table_state", {
-      hero_seat: this.heroSeat,
+      hero_seat: this.isSpectator ? null : this.heroSeat,
+      is_spectator: this.isSpectator,
+      can_act: false,
+      table_chips: this.isSpectator ? this.spectatorTableChips : undefined,
       table: clone(this.table),
     });
   }
