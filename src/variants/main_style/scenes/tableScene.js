@@ -5176,21 +5176,10 @@ export class TableScene extends Phaser.Scene {
   }
 
   buildDisplaySeatOrder(seatCount, seatStart, heroSeatRaw) {
+    // 座位鏡像/置底已關閉：直接照伺服器座位 index 原始順序顯示，
+    // hero 不再被旋轉固定到畫面最下方。
     const seatOrder = Array.from({ length: seatCount }, (_, idx) => seatStart + idx);
-    const heroSeat = parseSeat(heroSeatRaw);
-    if (heroSeat === null || seatCount <= 0) {
-      return seatOrder;
-    }
-
-    const heroOffset = ((heroSeat - seatStart) % seatCount + seatCount) % seatCount;
-    const normalizedHeroSeat = seatStart + heroOffset;
-    const mirroredOrder = [normalizedHeroSeat];
-
-    for (let offset = 1; offset < seatCount; offset += 1) {
-      const seatOffset = (heroOffset - offset + seatCount) % seatCount;
-      mirroredOrder.push(seatStart + seatOffset);
-    }
-    return mirroredOrder;
+    return seatOrder;
   }
 
   renderState() {
