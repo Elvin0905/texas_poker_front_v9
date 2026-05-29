@@ -154,6 +154,10 @@ export class Store extends EventTarget {
       leavingTableId: null, // 離桌中的 table_id（用來過濾封包）
       lastLeftTableId: null, // 最近一次主動離開的 table_id（防止延遲 table_state 把 page 拉回 "table"）
       heroSeat: null, // 我方座位號
+      isSpectator: false, // 是否處於觀戰模式（不佔座位、不能行動）
+      canAct: false, // 是否輪到 hero 且可操作（觀戰時永遠 false）
+      previousSeat: null, // 退座前的座位（供 UI 參考）
+      tableChips: 0, // 當前桌上籌碼（觀戰/入座檢查用）
       heroJoinedWaiting: false, // 英雄以等待狀態加入（換桌中途加入）
       heroSwitchPending: false, // 換桌流程進行中（等待舊局結束才能入座）
       handId: null, // 目前手牌編號（用來判斷新一手）
@@ -249,6 +253,8 @@ export class Store extends EventTarget {
     this.state.tableUpdateSource = "";
     this.state.tableId = null;
     this.state.heroSeat = null;
+    this.state.isSpectator = false;
+    this.state.canAct = false;
     this.state.heroJoinedWaiting = false;
     this.state.heroSwitchPending = false;
     this.state.handId = null;
@@ -305,6 +311,8 @@ export class Store extends EventTarget {
     this.state.isLeavingTable = false;
     this.state.leavingTableId = null;
     this.state.heroSeat = null;
+    this.state.isSpectator = false;
+    this.state.canAct = false;
     this.state.heroJoinedWaiting = false;
     this.state.heroSwitchPending = false;
     this.state.handId = null;
@@ -362,6 +370,8 @@ export class Store extends EventTarget {
     this.state.tableUpdateSource = "";
     this.state.tableId = null;
     this.state.heroSeat = null;
+    this.state.isSpectator = false;
+    this.state.canAct = false;
     this.state.heroJoinedWaiting = false;
     this.state.heroSwitchPending = false;
     this.state.handId = null;
@@ -475,6 +485,8 @@ export class Store extends EventTarget {
     this.state.tableUpdateSource = "";
     this.state.tableId = null;
     this.state.heroSeat = null;
+    this.state.isSpectator = false;
+    this.state.canAct = false;
     this.state.heroJoinedWaiting = false;
     this.state.heroSwitchPending = false;
     this.state.handId = null;
