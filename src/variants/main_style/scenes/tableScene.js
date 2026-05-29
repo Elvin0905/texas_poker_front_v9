@@ -1665,6 +1665,9 @@ export class TableScene extends Phaser.Scene {
         this.turnCountdownTicker.remove();
         this.turnCountdownTicker = null;
       }
+      this.seatViews?.forEach((sv) => {
+        if (sv._ringUpdateFn) { this.events.off('update', sv._ringUpdateFn); sv._ringUpdateFn = null; }
+      });
       this.communitySlots?.forEach((slot) => {
         this.stopCommunitySlotAnimation(slot);
       });
@@ -4876,27 +4879,28 @@ export class TableScene extends Phaser.Scene {
       seatView.glowInner.setVisible(false);
       seatView.sweepArc.setVisible(false);
 
-      if (seatView.ringTween) { seatView.ringTween.remove(); seatView.ringTween = null; }
+      if (seatView._ringUpdateFn) { this.events.off('update', seatView._ringUpdateFn); seatView._ringUpdateFn = null; }
       const totalMs = Math.max(100, (Number(this.currentTurnTimeout) || 20) * 1000);
       const _startedAt = Number(this.currentTurnStartedAt);
-      const _elapsedMs = (Number.isFinite(_startedAt) && _startedAt > 0) ? (Date.now() - _startedAt) : 0;
-      const _remainMs = Math.max(0, totalMs - _elapsedMs);
-      const _startRatio = _remainMs / totalMs;
-      const _proxy = { ratio: _startRatio };
-      this.drawTurnRing(seatView, _startRatio);
-      seatView.ringTween = this.tweens.add({
-        targets: _proxy,
-        ratio: 0,
-        duration: _remainMs,
-        ease: 'Linear',
-        onUpdate: () => this.drawTurnRing(seatView, _proxy.ratio),
-        onComplete: () => { seatView.turnRing.clear(); seatView.ringTween = null; },
-      });
+      // Wall-clock origin — not affected by game-loop pauses (resize drag, tab switch).
+      const _wallStart = (Number.isFinite(_startedAt) && _startedAt > 0) ? _startedAt : Date.now();
+      this.drawTurnRing(seatView, Math.max(0, (totalMs - (Date.now() - _wallStart)) / totalMs));
+      const _ringUpdateFn = () => {
+        const ratio = Math.max(0, (totalMs - (Date.now() - _wallStart)) / totalMs);
+        this.drawTurnRing(seatView, ratio);
+        if (ratio <= 0) {
+          this.events.off('update', _ringUpdateFn);
+          seatView._ringUpdateFn = null;
+          seatView.turnRing.clear();
+        }
+      };
+      this.events.on('update', _ringUpdateFn);
+      seatView._ringUpdateFn = _ringUpdateFn;
       return;
     }
 
     if (!seatView.turnActive) {
-      if (seatView.ringTween) { seatView.ringTween.remove(); seatView.ringTween = null; }
+      if (seatView._ringUpdateFn) { this.events.off('update', seatView._ringUpdateFn); seatView._ringUpdateFn = null; }
       seatView.turnCountdownBg.setVisible(false);
       seatView.turnCountdown.setVisible(false);
       seatView.sweepArc.setVisible(false);
@@ -4911,7 +4915,7 @@ export class TableScene extends Phaser.Scene {
     }
 
     seatView.turnActive = false;
-    if (seatView.ringTween) { seatView.ringTween.remove(); seatView.ringTween = null; }
+    if (seatView._ringUpdateFn) { this.events.off('update', seatView._ringUpdateFn); seatView._ringUpdateFn = null; }
     if (seatView.sweepTween) {
       seatView.sweepTween.remove();
       seatView.sweepTween = null;
