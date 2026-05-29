@@ -4284,8 +4284,11 @@ export class TableScene extends Phaser.Scene {
     const heroUpShift = 0;
     const offsetY = (isHeroSeat ? HERO_DEAL_CARD_TARGET_OFFSET_Y : DEAL_CARD_TARGET_OFFSET_Y) + heroUpShift;
     const slotXAdjust = 0;
+    // hero 自己的手牌再往右移 10px。
+    const isHeroNudge = isSameSeat(seatView?.displaySeatNo, this.resolveHeroSeatForDisplay(this.state?.table));
+    const heroNudgeX = isHeroNudge ? 10 : 0;
     return {
-      x: seatView.posX + offsetX + slotXAdjust,
+      x: seatView.posX + offsetX + slotXAdjust + heroNudgeX,
       y: seatView.posY + offsetY,
     };
   }
