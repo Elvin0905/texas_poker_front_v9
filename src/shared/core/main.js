@@ -703,11 +703,49 @@ function clearVoiceCueQueue() {
   voiceCueQueue.splice(0, voiceCueQueue.length);
 }
 
+// 跟注 / 加注 / 下注若把自己的籌碼下到 0（剛好跟完，或籌碼不足只能跟掉全部），
+// 語音也要念「梭哈」。後端有時只送 action:"call"，需依「行動前籌碼 - 本次投入」推導是否其實已全下。
+// 此時 store 尚未套用本封包（queueVoiceCueFromPacket 先於 store.applyPacket 執行），
+// 因此 store 內的 player.chips 仍是行動前的籌碼。
+function coerceVoicePacketForAllIn(packet) {
+  const type = String(packet?.type || "").toLowerCase();
+  if (type !== "player_action") {
+    return packet;
+  }
+  const data = packet?.data || {};
+  const action = String(data.action || "").toLowerCase();
+  const COMMIT_ACTIONS = new Set(["call", "raise", "bet", "call_timeout"]);
+  if (!COMMIT_ACTIONS.has(action)) {
+    return packet;
+  }
+  const seat = parseSeatNumber(data.seat);
+  if (seat === null) {
+    return packet;
+  }
+  const players = store.getState?.()?.table?.players;
+  const player = Array.isArray(players)
+    ? players.find((item) => parseSeatNumber(item?.seat) === seat)
+    : null;
+  if (!player) {
+    return packet;
+  }
+  const preChips = Number(player.chips ?? player.stack);
+  const paid = Number(data.paid);
+  if (!Number.isFinite(preChips) || !Number.isFinite(paid) || paid <= 0) {
+    return packet;
+  }
+  if (preChips - paid > 0) {
+    return packet;
+  }
+  return { ...packet, data: { ...data, action: "allin" } };
+}
+
 function queueVoiceCueFromPacket(packet) {
   if (!isDocumentVisible()) {
     return;
   }
-  const key = selectedVariant.voice?.resolveVoiceKeyByPacket?.(packet);
+  const voicePacket = coerceVoicePacketForAllIn(packet);
+  const key = selectedVariant.voice?.resolveVoiceKeyByPacket?.(voicePacket);
   if (!key) {
     return;
   }

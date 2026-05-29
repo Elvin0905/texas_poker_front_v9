@@ -1208,7 +1208,12 @@ export class MockSocketClient {
       return;
     }
 
-    player.chips = Math.max(0, Number(player.chips || 0) - paid);
+    const resultingChips = Math.max(0, Number(player.chips || 0) - paid);
+    // 跟注/加注/下注若剛好把所有籌碼下完（籌碼歸零）也算梭哈，補上 paid < toCall 漏掉的邊緣情況。
+    if (paid > 0 && resultingChips <= 0 && player.in_hand) {
+      finalAction = "allin";
+    }
+    player.chips = resultingChips;
     player.bet = Number(player.bet || 0) + paid;
     player.last_action = finalAction;
     player.last_action_at = Date.now();

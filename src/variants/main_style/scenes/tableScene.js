@@ -55,6 +55,9 @@ const CHANGE_TABLE_BUTTON_X = 625;
 const CHANGE_TABLE_BUTTON_Y = 160;
 const EXIT_TABLE_BUTTON_X = 625;
 const EXIT_TABLE_BUTTON_Y = 62;
+// 已入座但因人數不足無法開局時，右上角顯示「離座」按鈕（送 stand_up 轉為觀戰）。
+const STAND_UP_BUTTON_X = 625;
+const STAND_UP_BUTTON_Y = 62;
 const EXIT_REPLAY_BUTTON_X = 520;
 const EXIT_REPLAY_BUTTON_Y = 52;
 const EXIT_REPLAY_BUTTON_WIDTH = 170;
@@ -953,6 +956,26 @@ export class TableScene extends Phaser.Scene {
     if (!SHOW_TOPRIGHT_ROOM_BUTTONS) {
       this.exitTableButton.setVisible(false).disableInteractive();
     }
+
+    // 已入座、但因人數不足無法開局時，右上角顯示「離座」按鈕：按下後送 stand_up，
+    // 退座留桌轉為觀戰（席位釋出，仍可換桌/離桌/重新入座）。
+    this.standUpTopButton = createGradientButton(this, {
+      x: STAND_UP_BUTTON_X,
+      y: STAND_UP_BUTTON_Y,
+      width: 150,
+      height: 64,
+      cornerRadius: 10,
+      topColor: 0x1a5aaa,
+      bottomColor: 0x0a2855,
+      borderColor: 0x3d90f5,
+      label: "離座",
+      labelStyle: { fontSize: "28px", color: "#ecf3ff", fontStyle: "bold", stroke: "#06204a", strokeThickness: 3 },
+      depth: SWITCH_CONFIRM_TEXT_DEPTH + 10,
+      visible: false,
+      onClick: () => {
+        this.app.sendPacket("stand_up", {});
+      },
+    });
 
     this.exitReplayButton = createGradientButton(this, {
       x: EXIT_REPLAY_BUTTON_X,
@@ -3749,6 +3772,26 @@ export class TableScene extends Phaser.Scene {
     return null;
   }
 
+  // 跟注/加注/下注若讓玩家籌碼歸零（被迫全下），動作一律以「梭哈」呈現（含語音）。
+  // 真實伺服器可能送 last_action="call" 但玩家已全下，這裡用籌碼歸零/all_in 旗標統一判定，
+  // 讓 mock 與線上行為一致。仍有剩餘籌碼的單純跟注不受影響，維持顯示「跟注」。
+  coerceAllInActionForDisplay(player, actionRaw) {
+    const action = String(actionRaw || "").toLowerCase();
+    if (!action) {
+      return actionRaw;
+    }
+    const COMMIT_ACTIONS = new Set(["call", "raise", "bet", "allin", "call_timeout"]);
+    if (!COMMIT_ACTIONS.has(action)) {
+      return actionRaw;
+    }
+    const inHand = player?.in_hand !== false;
+    const chips = Number(player?.chips ?? player?.stack);
+    const isAllIn = player?.is_all_in === true
+      || player?.all_in === true
+      || (Number.isFinite(chips) && chips <= 0);
+    return (inHand && isAllIn) ? "allin" : actionRaw;
+  }
+
   resolveSeatActionBrandFrame(actionRaw) {
     const action = String(actionRaw || "").toLowerCase();
     if (!action) {
@@ -3812,9 +3855,9 @@ export class TableScene extends Phaser.Scene {
   }
 
   buildSpectatorSitHint() {
-    const W = 300;
-    const H = 64;
-    const CR = 16;
+    const W = 380;
+    const H = 82;
+    const CR = 20;
     this._spectatorSitHintW = W;
     this._spectatorSitHintH = H;
     const container = this.add.container(0, 0).setDepth(60).setVisible(false);
@@ -3825,9 +3868,9 @@ export class TableScene extends Phaser.Scene {
     const canvasTex = this.textures.createCanvas(texKey, W, H);
     const ctx = canvasTex.getContext();
     const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, "#ffc879");
-    grad.addColorStop(0.5, "#ff9a33");
-    grad.addColorStop(1, "#f57a12");
+    grad.addColorStop(0, "#ffd54a");
+    grad.addColorStop(0.5, "#ff8a00");
+    grad.addColorStop(1, "#ff5e00");
     const r = CR;
     ctx.beginPath();
     ctx.moveTo(r, 0);
@@ -3838,8 +3881,8 @@ export class TableScene extends Phaser.Scene {
     ctx.closePath();
     ctx.fillStyle = grad;
     ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255,224,176,0.9)";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255,238,180,1)";
     ctx.stroke();
     canvasTex.refresh();
 
@@ -3847,12 +3890,12 @@ export class TableScene extends Phaser.Scene {
 
     const label = this.add
       .text(0, 0, "觀戰中  請選位坐下", {
-        fontSize: "24px",
+        fontSize: "32px",
         color: "#ffffff",
         fontStyle: "bold",
         fontFamily: UI_FONT_STACK,
-        stroke: "#7a3000",
-        strokeThickness: 3,
+        stroke: "#a83800",
+        strokeThickness: 4,
       })
       .setOrigin(0.5);
 
@@ -3871,7 +3914,7 @@ export class TableScene extends Phaser.Scene {
     const W = this._spectatorSitHintW || 300;
     const H = this._spectatorSitHintH || 64;
     const marginX = 20;
-    const marginY = 26;
+    const marginY = 50;
     const viewBottom = Number(layout?.bottom);
     const bottom = Number.isFinite(viewBottom) && viewBottom > 0 ? viewBottom : VIEW_HEIGHT;
     const safeBottom = Number(layout?.safeAreaBottom) > 0 ? Number(layout.safeAreaBottom) : 0;
@@ -3891,6 +3934,19 @@ export class TableScene extends Phaser.Scene {
       && !isReplayActive && !fullyHide;
     this.changeTableButton?.setVisible(showButtons);
     this.exitTableButton?.setVisible(showButtons);
+
+    // 已入座（非觀戰）但因人數不足無法開局時，右上角顯示「離座」按鈕。
+    const heroSeated = !this.state?.isSpectator
+      && this.resolveHeroSeatForDisplay?.(this.state?.table) !== null;
+    const tableStatus = String(this.state?.table?.status || "").toLowerCase();
+    const isPlaying = tableStatus === "playing" || tableStatus === "preflop"
+      || tableStatus === "flop" || tableStatus === "turn" || tableStatus === "river"
+      || !!this.state?.actionRequest;
+    const seatedCount = Array.isArray(this.state?.table?.players) ? this.state.table.players.length : 0;
+    const showStandUp = heroSeated && !isPlaying && seatedCount < 3
+      && !isReplayActive && !fullyHide;
+    this.standUpTopButton?.setVisible(showStandUp);
+
     if (this.soundSettingsPanel?.triggerButton) {
       this.soundSettingsPanel.triggerButton.setVisible(!fullyHide);
     }
@@ -5728,7 +5784,8 @@ export class TableScene extends Phaser.Scene {
         const actionAt = Number(player.last_action_at);
         const baselineAt = Number(this.actionRoundBaselineAtBySeat?.[seatKey] ?? 0);
         const hasFreshAction = Number.isFinite(actionAt) && actionAt > baselineAt && seatKey === maxRecentActionSeat;
-        const actionForDisplay = (hasFreshAction && !isShowdownActive) ? player.last_action : null;
+        const rawActionForDisplay = (hasFreshAction && !isShowdownActive) ? player.last_action : null;
+        const actionForDisplay = this.coerceAllInActionForDisplay(player, rawActionForDisplay);
         this.trackSeatActionSfx(player.seat, actionForDisplay, nextSeatActionMap);
         const actionBrandFrame = this.resolveSeatActionBrandFrame(actionForDisplay);
         seatView.name.setVisible(true);
