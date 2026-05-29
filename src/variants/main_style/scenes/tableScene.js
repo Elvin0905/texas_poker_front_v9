@@ -3821,7 +3821,10 @@ export class TableScene extends Phaser.Scene {
     const fullyHide = this.isHandResultModalOpen || (this.handEndModalOverlay?.visible === true);
     const behindModal = !fullyHide && (this.rebuyOverlay?.visible === true);
 
-    const showButtons = SHOW_TOPRIGHT_ROOM_BUTTONS && !isReplayActive && !fullyHide;
+    // 右上角「換桌 / 結束」只在觀戰時出現，其他時候一律不顯示。
+    const showButtons = SHOW_TOPRIGHT_ROOM_BUTTONS
+      && Boolean(this.state?.isSpectator)
+      && !isReplayActive && !fullyHide;
     this.changeTableButton?.setVisible(showButtons);
     this.exitTableButton?.setVisible(showButtons);
     if (this.soundSettingsPanel?.triggerButton) {
