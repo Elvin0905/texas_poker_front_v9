@@ -119,10 +119,12 @@ const HAND_END_MODAL_OVERLAY_DEPTH = 145;
 const HAND_END_MODAL_PANEL_DEPTH = 146;
 const HAND_END_MODAL_TEXT_DEPTH = 147;
 const HAND_END_MODAL_WIDTH = 580;
-const HAND_END_MODAL_HEIGHT = 260;
+const HAND_END_MODAL_HEIGHT = 360;
 const HAND_END_MODAL_CORNER = 16;
 const HAND_END_MODAL_TITLE_Y = CENTER_Y - HAND_END_MODAL_HEIGHT / 2;
-const HAND_END_MODAL_BTN_Y = CENTER_Y + 75;
+const HAND_END_MODAL_BODY_Y = CENTER_Y - 55;
+const HAND_END_MODAL_BTN_Y = CENTER_Y + 25;
+const HAND_END_MODAL_STAND_GAP = 18;
 const HAND_END_MODAL_BTN_H = 72;
 const HAND_END_MODAL_JOIN_W = 200;
 const HAND_END_MODAL_ACT_W = 150;
@@ -1892,11 +1894,11 @@ export class TableScene extends Phaser.Scene {
     if (this.handEndModalMask) this.handEndModalMask.y = dy;
     this.handEndModalTitleLabel?.setPosition(CENTER_X, HAND_END_MODAL_TITLE_Y + dy);
     this.handEndModalTitle?.setPosition(CENTER_X, HAND_END_MODAL_TITLE_Y + 8 + dy);
-    this.handEndModalBody?.setPosition(CENTER_X, CENTER_Y - 20 + dy);
+    this.handEndModalBody?.setPosition(CENTER_X, HAND_END_MODAL_BODY_Y + dy);
     this.handEndMenuJoinBtn?.setPosition?.(HAND_END_MODAL_JOIN_X, HAND_END_MODAL_BTN_Y + dy);
     this.handEndMenuSwitchBtn?.setPosition?.(HAND_END_MODAL_SWITCH_X, HAND_END_MODAL_BTN_Y + dy);
     this.handEndMenuExitBtn?.setPosition?.(HAND_END_MODAL_EXIT_X, HAND_END_MODAL_BTN_Y + dy);
-    this.handEndMenuStandBtn?.setPosition?.(CENTER_X, HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + 18 + dy);
+    this.handEndMenuStandBtn?.setPosition?.(CENTER_X, HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + HAND_END_MODAL_STAND_GAP + dy);
 
     // Hero join wait text (fixed position, no dy — same as nextHandCountdown)
     this.heroJoinWaitText?.setPosition(CENTER_X, TABLE_HINT_TEXT_Y);
@@ -3038,7 +3040,7 @@ export class TableScene extends Phaser.Scene {
     applyGoldTitleGradient(this.handEndModalTitle);
 
     this.handEndModalBody = this.add
-      .text(CENTER_X, CENTER_Y - 20, "親愛的玩家，是否繼續遊戲？", {
+      .text(CENTER_X, HAND_END_MODAL_BODY_Y, "親愛的玩家，是否繼續遊戲？", {
         fontSize: "26px", color: "#e8d2ad", fontFamily: UI_FONT_STACK, align: "center",
       })
       .setOrigin(0.5)
@@ -3103,7 +3105,7 @@ export class TableScene extends Phaser.Scene {
       visible: false,
     });
     this.handEndMenuStandBtn = createGradientButton(this, {
-      x: CENTER_X, y: HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + 18,
+      x: CENTER_X, y: HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + HAND_END_MODAL_STAND_GAP,
       width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
       topColor: 0x6a4b1a, bottomColor: 0x3a2708, borderColor: 0xd0a23c,
       label: "退座觀戰", labelStyle: _btnStyle,
