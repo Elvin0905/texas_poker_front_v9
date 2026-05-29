@@ -4256,7 +4256,8 @@ export class TableScene extends Phaser.Scene {
   resolveDealTargetPosition(seatView, cardIndexRaw) {
     const cardIndex = Number(cardIndexRaw);
     const useRight = Number.isFinite(cardIndex) ? cardIndex % 2 === 1 : false;
-    const isHeroSeat = isSameSeat(seatView?.displaySeatNo, this.resolveHeroSeatForDisplay(this.state?.table));
+    // hero 手牌與其他玩家一致：用一般座位偏移貼在頭像上，不再用底部大牌位置。
+    const isHeroSeat = false;
     const heroLeftOffset = IS_TOUCH_DEVICE
       ? HERO_DEAL_CARD_TARGET_OFFSET_X_LEFT
       : HERO_DEAL_CARD_TARGET_OFFSET_X_LEFT_DESKTOP;
@@ -4289,9 +4290,7 @@ export class TableScene extends Phaser.Scene {
   }
 
   getSeatHoleCardScale(seatView) {
-    if (isSameSeat(seatView?.displaySeatNo, this.resolveHeroSeatForDisplay(this.state?.table))) {
-      return DEAL_CARD_HERO_SCALE;
-    }
+    // hero 手牌與其他玩家一致：使用一般尺寸（不再放大），貼在頭像上。
     return DEAL_CARD_NORMAL_SCALE;
   }
 
