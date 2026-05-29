@@ -3846,9 +3846,13 @@ export class TableScene extends Phaser.Scene {
   }
 
   buildSpectatorSitHint() {
-    // 觀戰提示直接用 atlas 圖（inview_hint，frame 540x246 高清，已含「觀戰中 請選位坐下」文字）。
+    // 觀戰提示直接用 atlas 圖（inview_hint，已含「觀戰中 請選位坐下」文字）。
+    // 高度依「該 frame 的實際寬高比」推算，不可寫死比例——否則重新打包圖集、
+    // inview_hint 換成不同長寬（例如 288×87）時會被 setDisplaySize 拉變形（走型）。
     const W = 360;
-    const H = Math.round(W * 87 / 191);
+    const frame = this.textures.getFrame("game_table", "inview_hint");
+    const aspect = (frame && frame.width && frame.height) ? (frame.height / frame.width) : (87 / 191);
+    const H = Math.round(W * aspect);
     this._spectatorSitHintW = W;
     this._spectatorSitHintH = H;
     const container = this.add.container(0, 0).setDepth(60).setVisible(false);
