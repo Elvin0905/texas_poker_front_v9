@@ -1,0 +1,90 @@
+
+game_table2.webp
+size: 720,2180
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+bg
+  rotate: false
+  xy: 0, 0
+  size: 720, 1440
+  orig: 720, 1440
+  offset: 0, 0
+  index: -1
+btn_change_table
+  rotate: false
+  xy: 0, 1440
+  size: 200, 80
+  orig: 200, 80
+  offset: 0, 0
+  index: -1
+btn_exit_table
+  rotate: false
+  xy: 200, 1440
+  size: 200, 80
+  orig: 200, 80
+  offset: 0, 0
+  index: -1
+btn_standup_table
+  rotate: false
+  xy: 400, 1440
+  size: 200, 80
+  orig: 200, 80
+  offset: 0, 0
+  index: -1
+inview_hint
+  rotate: false
+  xy: 0, 1520
+  size: 288, 87
+  orig: 288, 87
+  offset: 0, 0
+  index: -1
+light
+  rotate: false
+  xy: 288, 1520
+  size: 300, 300
+  orig: 300, 300
+  offset: 0, 0
+  index: -1
+token_black
+  rotate: false
+  xy: 0, 1820
+  size: 180, 180
+  orig: 180, 180
+  offset: 0, 0
+  index: -1
+token_blue
+  rotate: false
+  xy: 180, 1820
+  size: 180, 180
+  orig: 180, 180
+  offset: 0, 0
+  index: -1
+token_green
+  rotate: false
+  xy: 360, 1820
+  size: 180, 180
+  orig: 180, 180
+  offset: 0, 0
+  index: -1
+token_purple
+  rotate: false
+  xy: 540, 1820
+  size: 180, 180
+  orig: 180, 180
+  offset: 0, 0
+  index: -1
+token_red
+  rotate: false
+  xy: 0, 2000
+  size: 180, 180
+  orig: 180, 180
+  offset: 0, 0
+  index: -1
+token_yellow
+  rotate: false
+  xy: 180, 2000
+  size: 180, 180
+  orig: 180, 180
+  offset: 0, 0
+  index: -1

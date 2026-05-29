@@ -57,8 +57,15 @@ export class BootScene extends Phaser.Scene {
       this.load.atlas(key, `${imageBase}/${key}.webp`, `${imageBase}/${key}.json`);
     });
 
+    // game_table 拆成兩張圖集（解決 800×4287 高度超過部分手機 GPU 的 MAX_TEXTURE_SIZE=4096，
+    // 例如小米 MIX 3 整張 game_table 上傳失敗變空白）。game_table2 載入後會在 create()
+    // 把它的 frame 併進 game_table 紋理，因此所有 this.add.image(x,y,"game_table",...) 不需改。
+    // 注意：light 原本是獨立圖（this.load.image("light")），現已併入 game_table2，
+    // 因此改用 this.add.image(x, y, "game_table", "light") 取用，這裡不再單獨載入 light.webp。
+    // 若檔案尚未產生（404）只會發 loaderror，不影響其它資源；合併步驟會自動跳過。
+    this.load.atlas("game_table2", `${imageBase}/game_table2.webp`, `${imageBase}/game_table2.json`);
+
     this.load.atlas("win", `${imageBase}/win.webp`, `${imageBase}/win.json`);
-    this.load.image("light", `${imageBase}/light.webp`);
 
     // Audio
     const audioFileByKey = {
@@ -83,7 +90,35 @@ export class BootScene extends Phaser.Scene {
     });
   }
 
+  // 把 game_table2 的所有 frame 併入 game_table 紋理，指向 game_table2 的像素來源。
+  // 之後全專案的 this.add.image(x, y, "game_table", "<frame>") 不論該 frame 實際在哪張圖都能取到。
+  mergeGameTableAtlas() {
+    if (!this.textures.exists("game_table") || !this.textures.exists("game_table2")) {
+      return;
+    }
+    const base = this.textures.get("game_table");
+    const extra = this.textures.get("game_table2");
+    if (base.__gameTable2Merged) {
+      return;
+    }
+    const extraSource = extra.source?.[0];
+    if (!extraSource) {
+      return;
+    }
+    const sourceIndex = base.source.length;
+    base.source.push(extraSource);
+    Object.keys(extra.frames).forEach((name) => {
+      if (name === "__BASE" || base.has(name)) {
+        return;
+      }
+      const f = extra.frames[name];
+      base.add(name, sourceIndex, f.cutX, f.cutY, f.cutWidth, f.cutHeight);
+    });
+    base.__gameTable2Merged = true;
+  }
+
   create() {
+    this.mergeGameTableAtlas();
     window.__removePreloadBg?.();
     window.__removeLoadingBar?.();
     window.__removePreloadSpinner?.();

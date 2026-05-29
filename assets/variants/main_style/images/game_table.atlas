@@ -1,6 +1,6 @@
 
 game_table.webp
-size: 800,4041
+size: 976,1950
 format: RGBA8888
 filter: Linear,Linear
 repeat: none
@@ -11,240 +11,163 @@ bb_seat
   orig: 130, 67
   offset: 0, 0
   index: -1
-bg
-  rotate: false
-  xy: 0, 67
-  size: 720, 1440
-  orig: 720, 1440
-  offset: 0, 0
-  index: -1
 brand_allin
   rotate: false
-  xy: 0, 1507
+  xy: 130, 0
   size: 250, 160
   orig: 250, 160
   offset: 0, 0
   index: -1
 brand_bet
   rotate: false
-  xy: 250, 1507
+  xy: 380, 0
   size: 250, 160
   orig: 250, 160
   offset: 0, 0
   index: -1
 brand_call
   rotate: false
-  xy: 500, 1507
+  xy: 630, 0
   size: 250, 160
   orig: 250, 160
   offset: 0, 0
   index: -1
 brand_check
   rotate: false
-  xy: 0, 1667
+  xy: 0, 160
   size: 250, 160
   orig: 250, 160
   offset: 0, 0
   index: -1
 brand_fold
   rotate: false
-  xy: 250, 1667
+  xy: 250, 160
   size: 250, 160
   orig: 250, 160
   offset: 0, 0
   index: -1
 brand_raise
   rotate: false
-  xy: 500, 1667
+  xy: 500, 160
   size: 250, 160
   orig: 250, 160
   offset: 0, 0
   index: -1
 btn_allin
   rotate: false
-  xy: 0, 1827
+  xy: 750, 160
   size: 200, 130
   orig: 200, 130
   offset: 0, 0
   index: -1
 btn_bet
   rotate: false
-  xy: 200, 1827
+  xy: 0, 320
   size: 200, 130
   orig: 200, 130
   offset: 0, 0
   index: -1
 btn_call
   rotate: false
-  xy: 400, 1827
+  xy: 200, 320
   size: 200, 130
   orig: 200, 130
-  offset: 0, 0
-  index: -1
-btn_change_table
-  rotate: false
-  xy: 600, 1827
-  size: 200, 80
-  orig: 200, 80
   offset: 0, 0
   index: -1
 btn_check
   rotate: false
-  xy: 0, 1957
+  xy: 400, 320
   size: 200, 130
   orig: 200, 130
   offset: 0, 0
   index: -1
-btn_exit_table
-  rotate: false
-  xy: 200, 1957
-  size: 200, 80
-  orig: 200, 80
-  offset: 0, 0
-  index: -1
 btn_fold
   rotate: false
-  xy: 400, 1957
+  xy: 600, 320
   size: 200, 130
   orig: 200, 130
   offset: 0, 0
   index: -1
 btn_raise
   rotate: false
-  xy: 600, 1957
+  xy: 0, 450
   size: 200, 130
   orig: 200, 130
   offset: 0, 0
   index: -1
-btn_standup_table
-  rotate: false
-  xy: 0, 2087
-  size: 200, 80
-  orig: 200, 80
-  offset: 0, 0
-  index: -1
 card_back
   rotate: false
-  xy: 200, 2087
+  xy: 200, 450
   size: 130, 180
   orig: 130, 180
   offset: 0, 0
   index: -1
 dealer_seat
   rotate: false
-  xy: 330, 2087
+  xy: 330, 450
   size: 130, 67
   orig: 130, 67
   offset: 0, 0
   index: -1
 icon_sound_off
   rotate: false
-  xy: 460, 2087
+  xy: 460, 450
   size: 93, 92
   orig: 93, 92
   offset: 0, 0
   index: -1
 icon_sound_on
   rotate: false
-  xy: 553, 2087
+  xy: 553, 450
   size: 93, 92
   orig: 93, 92
   offset: 0, 0
   index: -1
-inview_hint
-  rotate: false
-  xy: 0, 2267
-  size: 288, 87
-  orig: 288, 87
-  offset: 0, 0
-  index: -1
 nametag
   rotate: false
-  xy: 288, 2267
+  xy: 646, 450
   size: 100, 57
   orig: 100, 57
   offset: 0, 0
   index: -1
 nametag_glow
   rotate: false
-  xy: 388, 2267
+  xy: 746, 450
   size: 100, 57
   orig: 100, 57
   offset: 0, 0
   index: -1
 profile_frame_off
   rotate: false
-  xy: 488, 2267
+  xy: 846, 450
   size: 130, 130
   orig: 130, 130
   offset: 0, 0
   index: -1
 sb_seat
   rotate: false
-  xy: 618, 2267
+  xy: 0, 630
   size: 130, 67
   orig: 130, 67
   offset: 0, 0
   index: -1
 tbale
   rotate: false
-  xy: 0, 2397
+  xy: 130, 630
   size: 800, 1200
   orig: 800, 1200
   offset: 0, 0
   index: -1
 title_label
   rotate: false
-  xy: 0, 3597
+  xy: 0, 1830
   size: 340, 120
   orig: 340, 120
   offset: 0, 0
   index: -1
-token_black
-  rotate: false
-  xy: 340, 3597
-  size: 180, 180
-  orig: 180, 180
-  offset: 0, 0
-  index: -1
-token_blue
-  rotate: false
-  xy: 520, 3597
-  size: 180, 180
-  orig: 180, 180
-  offset: 0, 0
-  index: -1
-token_green
-  rotate: false
-  xy: 0, 3777
-  size: 180, 180
-  orig: 180, 180
-  offset: 0, 0
-  index: -1
-token_purple
-  rotate: false
-  xy: 180, 3777
-  size: 180, 180
-  orig: 180, 180
-  offset: 0, 0
-  index: -1
-token_red
-  rotate: false
-  xy: 360, 3777
-  size: 180, 180
-  orig: 180, 180
-  offset: 0, 0
-  index: -1
-token_yellow
-  rotate: false
-  xy: 540, 3777
-  size: 180, 180
-  orig: 180, 180
-  offset: 0, 0
-  index: -1
 waiting
   rotate: false
-  xy: 0, 3957
+  xy: 340, 1830
   size: 200, 84
   orig: 200, 84
   offset: 0, 0

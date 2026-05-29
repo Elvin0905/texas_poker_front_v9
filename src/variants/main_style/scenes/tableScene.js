@@ -1144,7 +1144,7 @@ export class TableScene extends Phaser.Scene {
 
     // Light image shown behind winning seat (rotates, depth below profile bg/frame).
     this.winLightImage = this.add
-      .image(CENTER_X, CENTER_Y, "light")
+      .image(CENTER_X, CENTER_Y, "game_table", "light")
       .setDepth(SEAT_WIN_LIGHT_DEPTH)
       .setVisible(false)
       .setAlpha(0.88);
@@ -4836,7 +4836,7 @@ export class TableScene extends Phaser.Scene {
   _showExtraWinLightAt(worldX, worldY, refWidth) {
     const size = refWidth * 1.6;
     const img = this.add
-      .image(worldX, worldY, "light")
+      .image(worldX, worldY, "game_table", "light")
       .setDepth(SEAT_WIN_LIGHT_DEPTH)
       .setDisplaySize(size, size)
       .setAlpha(0.88);
