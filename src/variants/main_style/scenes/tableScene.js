@@ -130,6 +130,9 @@ const HAND_END_MODAL_JOIN_X = CENTER_X - 170;
 const HAND_END_MODAL_SWITCH_X = CENTER_X + 25;
 const HAND_END_MODAL_EXIT_X = CENTER_X + 195;
 
+// 暫時隱藏右上角常駐「換桌 / 結束」按鈕；需要時改回 true。
+const SHOW_TOPRIGHT_ROOM_BUTTONS = false;
+
 // 玩家操作列（棄牌/過牌/跟注/全下）
 const ACTION_ROW_Y = 1330;
 const ACTION_BUTTON_ORDER = ["bet", "raise", "check", "call", "allin", "fold"];
@@ -880,6 +883,9 @@ export class TableScene extends Phaser.Scene {
         this.app.sendPacket("switch_room", { buyin });
       },
     });
+    if (!SHOW_TOPRIGHT_ROOM_BUTTONS) {
+      this.changeTableButton.setVisible(false).disableInteractive();
+    }
 
     this.buildSwitchRoomConfirmDialog();
     this.buildHeroWaitingJoinPrompt();
@@ -918,6 +924,9 @@ export class TableScene extends Phaser.Scene {
     // Override pixelPerfect with a plain rectangular hit area so the full display
     // size is always clickable, regardless of transparent pixels in the texture.
     this.exitTableButton.setInteractive({ useHandCursor: true });
+    if (!SHOW_TOPRIGHT_ROOM_BUTTONS) {
+      this.exitTableButton.setVisible(false).disableInteractive();
+    }
 
     this.exitReplayButton = createGradientButton(this, {
       x: EXIT_REPLAY_BUTTON_X,
@@ -3780,7 +3789,7 @@ export class TableScene extends Phaser.Scene {
     const fullyHide = this.isHandResultModalOpen || (this.handEndModalOverlay?.visible === true);
     const behindModal = !fullyHide && (this.rebuyOverlay?.visible === true);
 
-    const showButtons = !isReplayActive && !fullyHide;
+    const showButtons = SHOW_TOPRIGHT_ROOM_BUTTONS && !isReplayActive && !fullyHide;
     this.changeTableButton?.setVisible(showButtons);
     this.exitTableButton?.setVisible(showButtons);
     if (this.soundSettingsPanel?.triggerButton) {
