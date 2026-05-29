@@ -362,7 +362,7 @@ const DEAL_CARD_START_ANGLE = -18;
 // origin (~214px nearest, ~612px farthest = 2.86x). A fixed duration makes near
 // cards crawl and far cards race. Deriving duration from distance keeps every
 // card flying at roughly the same visual speed; clamp keeps the extremes sane.
-const DEAL_CARD_FLY_SPEED_PX_PER_MS = 2.0;
+const DEAL_CARD_FLY_SPEED_PX_PER_MS = 2.6;
 const DEAL_CARD_FLY_MIN_MS = 150;
 const DEAL_CARD_FLY_MAX_MS = 300;
 // Rate limiter (not a free-running metronome): the server already emits cards
@@ -371,7 +371,7 @@ const DEAL_CARD_FLY_MAX_MS = 300;
 // source of truth) instead of an independent clock that drifts out of phase and
 // inserts spurious pauses. The min gap only kicks in to separate a burst (e.g.
 // two cards delivered back-to-back), so pick it below the server's emit gap.
-const DEAL_CARD_MIN_GAP_MS = 110;
+const DEAL_CARD_MIN_GAP_MS = 75;
 const DEAL_CARD_POP_DURATION = 80;
 const DEAL_CARD_DEPTH = 27;
 const DEAL_CARD_TARGET_OFFSET_X_LEFT = -28;
@@ -1152,7 +1152,19 @@ export class TableScene extends Phaser.Scene {
       this.seatViews.forEach((sv) => sv._ringUpdateFn?.());
     };
     this._onVisibleCountdownRefresh = () => {
-      if (!document.hidden) this._forceCountdownRefresh();
+      // [COUNTDOWN-DIAG] temporary: snapshot the anchor when leaving AND returning.
+      const _entry = {
+        ev: document.hidden ? "became-hidden" : "became-visible",
+        now: Date.now(),
+        startedAt: this.currentTurnStartedAt,
+        timeout: this.currentTurnTimeout,
+        remain: this.getCurrentRemainSeconds(),
+      };
+      (window.__CD_DIAG = window.__CD_DIAG || []).push(_entry);
+      console.log("[COUNTDOWN-DIAG]", _entry);
+      if (!document.hidden) {
+        this._forceCountdownRefresh();
+      }
     };
     document.addEventListener("visibilitychange", this._onVisibleCountdownRefresh);
     window.addEventListener("focus", this._forceCountdownRefresh);
@@ -4370,7 +4382,7 @@ export class TableScene extends Phaser.Scene {
     if (!holeCard?.sprite || !frameKey) {
       return;
     }
-    if (holeCard.inFlight) {
+    if (holeCard.inFlight || holeCard.pendingDeal) {
       return;
     }
     const expectedFrameKey = String(frameKey);
@@ -4567,7 +4579,7 @@ export class TableScene extends Phaser.Scene {
     this._winLightTimer = null;
     if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
 
-    const size = refWidth * 2.0;
+    const size = refWidth * 1.6;
     this.winLightImage
       .setPosition(worldX, worldY)
       .setDisplaySize(size, size)
@@ -4632,7 +4644,7 @@ export class TableScene extends Phaser.Scene {
   }
 
   _showExtraWinLightAt(worldX, worldY, refWidth) {
-    const size = refWidth * 2.0;
+    const size = refWidth * 1.6;
     const img = this.add
       .image(worldX, worldY, "light")
       .setDepth(SEAT_WIN_LIGHT_DEPTH)
@@ -4767,13 +4779,15 @@ export class TableScene extends Phaser.Scene {
         // Keep the card alive while its showdown flip is still pending — hiding it here
         // would cause the flip to animate an invisible sprite (race with hand_end in replay).
         if (holeCard.pendingShowdownFlip) return;
-        if (holeCard.inFlight) {
+        if (holeCard.inFlight || holeCard.pendingDeal) {
           // Cancel the landing: onComplete will see inFlight===false and skip setVisible(true).
           // The sprite was already hidden when the deal started, so it stays hidden.
           holeCard.inFlight = false;
+          holeCard.pendingDeal = false;
           return;
         }
         holeCard.inFlight = false;
+        holeCard.pendingDeal = false;
         holeCard.targetFaceFrameKey = null;
         this.stopHoleCardFlipAnimation(holeCard);
         this.setHoleCardBackImmediate(holeCard);
@@ -4784,7 +4798,9 @@ export class TableScene extends Phaser.Scene {
         return;
       }
 
-      if (holeCard.inFlight) {
+      if (holeCard.inFlight || holeCard.pendingDeal) {
+        // Card is mid-flight or still queued to be dealt — keep it hidden and do NOT
+        // reveal its face here; the deal animation's onComplete will reveal it on landing.
         holeCard.sprite
           .setVisible(false)
           .setAlpha(1)
@@ -4844,13 +4860,41 @@ export class TableScene extends Phaser.Scene {
     this.setSeatHoleCardsVisibleCount(seatView, holeRenderOptions.visibleCount, holeRenderOptions);
   }
 
+  // Resolve the resting hole-card sprite that a given deal-card event targets.
+  _resolveDealLandingCard(dealCard) {
+    const seatView = this.findSeatViewBySeatNo(dealCard?.seat);
+    if (!seatView?.holeCards?.length) return null;
+    const dealIndexRaw = Number(dealCard?.card_index);
+    const dealIndex = Number.isFinite(dealIndexRaw)
+      ? Math.max(0, Math.min(DEAL_CARD_MAX_HOLE_COUNT - 1, Math.floor(dealIndexRaw)))
+      : 0;
+    return seatView.holeCards[dealIndex] || null;
+  }
+
   _clearDealCardQueue() {
+    // Release the pending-deal hold on any cards still waiting in the queue so a
+    // stranded flag can't keep them hidden across the next render.
+    this.dealCardQueue.forEach((queued) => {
+      const landingCard = this._resolveDealLandingCard(queued);
+      if (landingCard) landingCard.pendingDeal = false;
+    });
     this.dealCardQueue = [];
     if (this.dealCardDrainTimer) { this.dealCardDrainTimer.remove(); this.dealCardDrainTimer = null; }
   }
 
   _enqueueDealCard(dealCard) {
     if (!dealCard) return;
+    // Mark the target card as pending-deal the moment it is queued (not just when it
+    // starts flying). The card's face data may already be in state, so without this the
+    // renderState seat loop would reveal/flip it before its fly animation even begins —
+    // i.e. "手牌在派牌動畫還沒到時就翻牌了". Keep it hidden until the fly lands.
+    const landingCard = this._resolveDealLandingCard(dealCard);
+    if (landingCard) {
+      this.stopHoleCardFlipAnimation(landingCard);
+      landingCard.pendingDeal = true;
+      this.setHoleCardBackImmediate(landingCard);
+      landingCard.sprite.setVisible(false);
+    }
     this.dealCardQueue.push({ ...dealCard });
     this._pumpDealCardQueue();
   }
@@ -4905,6 +4949,7 @@ export class TableScene extends Phaser.Scene {
     if (landingCard) {
       this.stopHoleCardFlipAnimation(landingCard);
       landingCard.inFlight = true;
+      landingCard.pendingDeal = false; // now actually in flight; inFlight covers the hold
       landingCard.baseScaleX = targetScale;
       landingCard.baseScaleY = targetScale;
       this.setHoleCardBackImmediate(landingCard);
@@ -5199,8 +5244,30 @@ export class TableScene extends Phaser.Scene {
 
       const activeSeat = this.findActiveSeat(table, actionRequest);
       this.currentActiveSeat = activeSeat;
+      const _prevTurnTimeout = this.currentTurnTimeout;
+      const _prevTurnStartedAt = this.currentTurnStartedAt;
       this.currentTurnTimeout = this.resolveActiveTimeout(table, actionRequest);
       this.currentTurnStartedAt = this.resolveActiveStartedAt(table);
+      // [COUNTDOWN-DIAG] temporary: trace when the turn anchor moves so we can see
+      // what re-stamps started_at on window switch (value jumping up).
+      if (this.currentTurnStartedAt !== _prevTurnStartedAt || this.currentTurnTimeout !== _prevTurnTimeout) {
+        const _now = Date.now();
+        const _sa = Number(this.currentTurnStartedAt);
+        const _remain = Number.isFinite(_sa) && _sa > 0
+          ? Math.ceil(Number(this.currentTurnTimeout) - (_now - _sa) / 1000)
+          : this.currentTurnTimeout;
+        const _entry = {
+          ev: "turn-anchor-change",
+          packet: this.state?.lastPacketType ?? "?",
+          seat: activeSeat,
+          timeoutFrom: _prevTurnTimeout, timeoutTo: this.currentTurnTimeout,
+          startedFrom: _prevTurnStartedAt, startedTo: this.currentTurnStartedAt,
+          deltaStartedMs: (Number(this.currentTurnStartedAt) || 0) - (Number(_prevTurnStartedAt) || 0),
+          now: _now, remain: _remain, hidden: document.hidden,
+        };
+        (window.__CD_DIAG = window.__CD_DIAG || []).push(_entry);
+        console.log("[COUNTDOWN-DIAG]", _entry);
+      }
       this.syncRoundBetCollectVisualState(table);
       let displayPot = resolveDisplayPot(table);
       if (

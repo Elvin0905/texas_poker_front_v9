@@ -3,6 +3,44 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+// 倒數計時錨點：判斷封包是否屬於「同一個回合」。
+//
+// 真實伺服器的 turn / action_request 封包會在同一個回合內被重複下發
+// （例如切換視窗回來觸發重連 reauth 時）。實測證據顯示：
+//   - 重送時 timeout 欄位「不一定」遞減，可能仍是原本的完整秒數（例如 8.218），
+//     也可能是當下剩餘秒數（例如 5.458）；無法靠 timeout 數值判斷是否為重送。
+//   - 伺服器封包沒有夾帶穩定的 started_at。
+// 若每次都把 started_at 重新蓋成 Date.now()，原本已經倒數到 6 的畫面會因為
+// remain = ceil(timeout) 往上跳。
+//
+// 真正穩定的判斷依據是「同一個座位是否仍在同一個 round 行動」：
+//   - 重送：seat 與 round 都不變 → 視為同一回合，完整保留原錨點（started_at + timeout），
+//     讓牆鐘倒數維持單調遞減，並忽略重送帶來的 timeout 變動。
+//   - 新回合：行動一定會先輪到別人再輪回來（seat 改變）或進入新的 round（round 改變），
+//     此時才重新下錨。
+// 換桌 / 新一手會走 table_state，把 current_turn_started_at 清成 null；只要錨點無效，
+// 即使 key 相同也會強制重新下錨，避免沿用上一手的舊錨點。
+function resolveTurnAnchor(table, timeoutSec, seatNo, round) {
+  const now = Date.now();
+  const key = `${Number.isFinite(seatNo) ? seatNo : "?"}|${round != null ? round : "?"}`;
+  if (!Number.isFinite(timeoutSec)) {
+    return { startedAt: now, timeout: null, key };
+  }
+  const prevStarted = Number(table.current_turn_started_at);
+  const prevTimeout = Number(table.current_turn_timeout);
+  const prevAnchorValid =
+    table.current_turn_started_at != null &&
+    table.current_turn_timeout != null &&
+    Number.isFinite(prevStarted) &&
+    prevStarted > 0 &&
+    Number.isFinite(prevTimeout);
+  if (table.current_turn_anchor_key === key && prevAnchorValid) {
+    // 同一座位、同一 round 的重送：保留原錨點，避免倒數往上跳。
+    return { startedAt: prevStarted, timeout: prevTimeout, key };
+  }
+  return { startedAt: now, timeout: timeoutSec, key };
+}
+
 function normalizeCardCode(cardRaw) {
   if (cardRaw === null || cardRaw === undefined || cardRaw === "") {
     return null;
@@ -810,8 +848,11 @@ export class Store extends EventTarget {
             this.state.table.round_total_bet = roundTotalBet;
           }
           const timeoutSec = Number(data.timeout);
-          this.state.table.current_turn_timeout = Number.isFinite(timeoutSec) ? timeoutSec : null;
-          this.state.table.current_turn_started_at = Date.now();
+          const round = data.round != null ? data.round : this.state.table.round;
+          const anchor = resolveTurnAnchor(this.state.table, timeoutSec, seatNo, round);
+          this.state.table.current_turn_timeout = anchor.timeout;
+          this.state.table.current_turn_started_at = anchor.startedAt;
+          this.state.table.current_turn_anchor_key = anchor.key;
         }
         break;
 
@@ -824,8 +865,11 @@ export class Store extends EventTarget {
           const seatNo = Number(data.seat);
           this.state.table.current_turn_seat = Number.isFinite(seatNo) ? seatNo : null;
           const timeoutSec = Number(data.timeout);
-          this.state.table.current_turn_timeout = Number.isFinite(timeoutSec) ? timeoutSec : null;
-          this.state.table.current_turn_started_at = Date.now();
+          const round = data.round != null ? data.round : this.state.table.round;
+          const anchor = resolveTurnAnchor(this.state.table, timeoutSec, seatNo, round);
+          this.state.table.current_turn_timeout = anchor.timeout;
+          this.state.table.current_turn_started_at = anchor.startedAt;
+          this.state.table.current_turn_anchor_key = anchor.key;
           if (data.round) {
             this.state.table.round = data.round;
           }
