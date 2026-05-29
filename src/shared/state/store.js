@@ -985,14 +985,25 @@ export class Store extends EventTarget {
           player.hole_count = Math.max(Number(player.hole_count ?? 0), cardIndex + 1);
         }
         this.setKnownHoleCardByIndex(seatNo, cardIndex, card);
-        this.state.lastDealCard = {
-          table_id: data.table_id,
-          hand_id: data.hand_id,
-          seat: seatNo,
-          card_index: cardIndex,
-          at: Date.now(),
-        };
-        this.state.dealCardVersion += 1;
+        // Only trigger a fly animation if deal_card hasn't already done so for this slot.
+        // In normal deal flow the server sends deal_card (public) then deal_private (private
+        // card value) for the hero — both would increment dealCardVersion and launch two
+        // concurrent fly tweens for the same slot.  Skip the version bump when lastDealCard
+        // already matches this seat+card_index so the tween fires exactly once.
+        const _prev = this.state.lastDealCard;
+        const _alreadyAnimated = _prev
+          && Number(_prev.seat) === seatNo
+          && Number(_prev.card_index) === cardIndex;
+        if (!_alreadyAnimated) {
+          this.state.lastDealCard = {
+            table_id: data.table_id,
+            hand_id: data.hand_id,
+            seat: seatNo,
+            card_index: cardIndex,
+            at: Date.now(),
+          };
+          this.state.dealCardVersion += 1;
+        }
         break;
       }
 

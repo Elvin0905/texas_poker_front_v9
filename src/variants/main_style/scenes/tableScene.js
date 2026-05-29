@@ -4808,11 +4808,6 @@ export class TableScene extends Phaser.Scene {
     const targetScale = this.getSeatHoleCardScale(seatView);
     const landingCard = seatView.holeCards?.[dealIndex] || null;
     if (landingCard) {
-      if (landingCard.inFlight) {
-        // deal_card + deal_private both increment dealCardVersion for the hero's slot;
-        // the first packet already started the fly animation — skip the duplicate.
-        return;
-      }
       this.stopHoleCardFlipAnimation(landingCard);
       landingCard.inFlight = true;
       landingCard.baseScaleX = targetScale;
