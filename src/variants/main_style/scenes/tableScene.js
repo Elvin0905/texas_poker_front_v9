@@ -5544,7 +5544,9 @@ export class TableScene extends Phaser.Scene {
           seatView.sitPromptPlus.setVisible(true);
           seatView.sitPromptLabel.setVisible(true);
           seatView.sitPromptBg.off("pointerdown");
-          if (this.state?.isSpectator) {
+          // 觀戰態：不可點空位入座（觀戰只能透過退座/換桌流程，不直接搶座）。
+          // 可入座（可點擊空位 → take_seat）只開放給「可玩但尚未入座」的玩家。
+          if (!this.state?.isSpectator) {
             const seatToTake = Number(displaySeatNo);
             // sitPromptBg 是 Graphics，必須顯式給圓形命中區 + callback，
             // 否則 setInteractive({useHandCursor}) 會讓 hitAreaCallback=undefined 而每次指針事件報錯。
