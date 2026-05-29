@@ -1,0 +1,175 @@
+﻿  <pre>#1
+[2026-05-28T06:42:08.337Z] RECV table_state
+{
+  &quot;type&quot;: &quot;table_state&quot;,
+  &quot;data&quot;: {
+    &quot;hero_seat&quot;: 3,
+    &quot;table&quot;: {
+      &quot;table_id&quot;: &quot;texas_holdem_t25_50_d037a145&quot;,
+      &quot;game_id&quot;: &quot;texas_holdem&quot;,
+      &quot;stakes_id&quot;: &quot;t25_50&quot;,
+      &quot;small_blind&quot;: 25,
+      &quot;big_blind&quot;: 50,
+      &quot;min_buyin&quot;: 1000,
+      &quot;max_buyin&quot;: 20000,
+      &quot;max_players&quot;: 6,
+      &quot;status&quot;: &quot;playing&quot;,
+      &quot;round&quot;: &quot;turn&quot;,
+      &quot;hand_id&quot;: 125,
+      &quot;community&quot;: [
+        &quot;2c&quot;,
+        &quot;Ks&quot;,
+        &quot;5d&quot;,
+        &quot;Qd&quot;
+      ],
+      &quot;pot&quot;: 500,
+      &quot;current_bet&quot;: 100,
+      &quot;bets&quot;: {
+        &quot;0&quot;: 100,
+        &quot;1&quot;: 0,
+        &quot;2&quot;: 0,
+        &quot;3&quot;: 100,
+        &quot;4&quot;: 100
+      },
+      &quot;round_total_bet&quot;: 300,
+      &quot;dealer_seat&quot;: 3,
+      &quot;sb_seat&quot;: 4,
+      &quot;bb_seat&quot;: 0,
+      &quot;players&quot;: [
+        {
+          &quot;user_id&quot;: 18557,
+          &quot;username&quot;: &quot;chovwlejrnux&quot;,
+          &quot;avatar&quot;: &quot;avatar_007&quot;,
+          &quot;seat&quot;: 1,
+          &quot;chips&quot;: 8935,
+          &quot;bet&quot;: 0,
+          &quot;is_sitting_out&quot;: false,
+          &quot;is_bot&quot;: false,
+          &quot;is_guest&quot;: true,
+          &quot;is_companion&quot;: true,
+          &quot;is_disconnected&quot;: false,
+          &quot;in_hand&quot;: false,
+          &quot;hole_count&quot;: 2,
+          &quot;last_action&quot;: &quot;fold&quot;,
+          &quot;last_action_at&quot;: 1779950528189
+        },
+        {
+          &quot;user_id&quot;: 18605,
+          &quot;username&quot;: &quot;ojzvysnisuyi&quot;,
+          &quot;avatar&quot;: &quot;avatar_007&quot;,
+          &quot;seat&quot;: 0,
+          &quot;chips&quot;: 9554,
+          &quot;bet&quot;: 100,
+          &quot;is_sitting_out&quot;: false,
+          &quot;is_bot&quot;: false,
+          &quot;is_guest&quot;: true,
+          &quot;is_companion&quot;: true,
+          &quot;is_disconnected&quot;: false,
+          &quot;in_hand&quot;: true,
+          &quot;hole_count&quot;: 2,
+          &quot;last_action&quot;: &quot;call&quot;,
+          &quot;last_action_at&quot;: 1779950525299
+        },
+        {
+          &quot;user_id&quot;: 18621,
+          &quot;username&quot;: &quot;pymfcepgwrfv&quot;,
+          &quot;avatar&quot;: &quot;avatar_014&quot;,
+          &quot;seat&quot;: 2,
+          &quot;chips&quot;: 17561,
+          &quot;bet&quot;: 0,
+          &quot;is_sitting_out&quot;: false,
+          &quot;is_bot&quot;: false,
+          &quot;is_guest&quot;: true,
+          &quot;is_companion&quot;: true,
+          &quot;is_disconnected&quot;: false,
+          &quot;in_hand&quot;: false,
+          &quot;hole_count&quot;: 2,
+          &quot;last_action&quot;: &quot;fold&quot;,
+          &quot;last_action_at&quot;: 1779950486269
+        },
+        {
+          &quot;user_id&quot;: 362,
+          &quot;username&quot;: &quot;二老鼠&quot;,
+          &quot;avatar&quot;: &quot;avatar_011&quot;,
+          &quot;seat&quot;: 3,
+          &quot;chips&quot;: 7298,
+          &quot;bet&quot;: 100,
+          &quot;is_sitting_out&quot;: false,
+          &quot;is_bot&quot;: false,
+          &quot;is_guest&quot;: false,
+          &quot;is_companion&quot;: false,
+          &quot;is_disconnected&quot;: false,
+          &quot;in_hand&quot;: true,
+          &quot;hole_count&quot;: 2,
+          &quot;last_action&quot;: &quot;bet&quot;,
+          &quot;last_action_at&quot;: 1779950519812
+        },
+        {
+          &quot;user_id&quot;: 18589,
+          &quot;username&quot;: &quot;xjupwkodnkku&quot;,
+          &quot;avatar&quot;: &quot;avatar_019&quot;,
+          &quot;seat&quot;: 4,
+          &quot;chips&quot;: 10052,
+          &quot;bet&quot;: 100,
+          &quot;is_sitting_out&quot;: false,
+          &quot;is_bot&quot;: false,
+          &quot;is_guest&quot;: true,
+          &quot;is_companion&quot;: true,
+          &quot;is_disconnected&quot;: false,
+          &quot;in_hand&quot;: true,
+          &quot;hole_count&quot;: 2,
+          &quot;last_action&quot;: &quot;call&quot;,
+          &quot;last_action_at&quot;: 1779950522489
+        }
+      ]
+    },
+    &quot;game_id&quot;: &quot;texas_holdem&quot;
+  }
+}
+
+#2
+[2026-05-28T06:42:09.835Z] RECV betting_complete
+{
+  &quot;type&quot;: &quot;betting_complete&quot;,
+  &quot;data&quot;: {
+    &quot;table_id&quot;: &quot;texas_holdem_t25_50_d037a145&quot;,
+    &quot;hand_id&quot;: 125,
+    &quot;pot&quot;: 500,
+    &quot;bets&quot;: {
+      &quot;0&quot;: 100,
+      &quot;1&quot;: 0,
+      &quot;2&quot;: 0,
+      &quot;3&quot;: 100,
+      &quot;4&quot;: 100
+    },
+    &quot;current_bet&quot;: 100,
+    &quot;game_id&quot;: &quot;texas_holdem&quot;
+  }
+}
+
+#3
+[2026-05-28T06:42:09.841Z] RECV table_state
+{
+  &quot;type&quot;: &quot;table_state&quot;,
+  &quot;data&quot;: {
+    &quot;hero_seat&quot;: 3,
+    &quot;table&quot;: {
+      &quot;table_id&quot;: &quot;texas_holdem_t25_50_d037a145&quot;,
+      &quot;game_id&quot;: &quot;texas_holdem&quot;,
+      &quot;stakes_id&quot;: &quot;t25_50&quot;,
+      &quot;small_blind&quot;: 25,
+      &quot;big_blind&quot;: 50,
+      &quot;min_buyin&quot;: 1000,
+      &quot;max_buyin&quot;: 20000,
+      &quot;max_players&quot;: 6,
+      &quot;status&quot;: &quot;playing&quot;,
+      &quot;round&quot;: &quot;turn&quot;,
+      &quot;hand_id&quot;: 125,
+      &quot;community&quot;: [
+        &quot;2c&quot;,
+        &quot;Ks&quot;,
+        &quot;5d&quot;,
+        &quot;Qd&quot;
+      ],
+      &quot;pot&quot;: 500,
+      &quot;current_bet&quot;: 100,

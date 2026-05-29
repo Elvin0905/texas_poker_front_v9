@@ -360,6 +360,13 @@ const DEAL_CARD_HERO_SCALE = 1.06;
 const DEAL_CARD_START_ANGLE = -18;
 const DEAL_CARD_FLY_DURATION = 280;
 const DEAL_CARD_QUEUE_INTERVAL_MS = 140;
+// Jitter buffer: wait one interval before the first card so a small buffer
+// accumulates, then the timer drives a steady cadence immune to server-emit /
+// render-frame jitter.
+const DEAL_CARD_QUEUE_LEAD_MS = 140;
+// Keep the metronome alive for a few empty ticks so a slightly-late card stays
+// phase-locked to the steady cadence instead of playing the instant it arrives.
+const DEAL_CARD_QUEUE_GRACE_TICKS = 2;
 const DEAL_CARD_POP_DURATION = 80;
 const DEAL_CARD_DEPTH = 27;
 const DEAL_CARD_TARGET_OFFSET_X_LEFT = -28;
@@ -697,6 +704,7 @@ export class TableScene extends Phaser.Scene {
     this.lastSeenDealCardVersion = 0;
     this.dealCardQueue = [];
     this.dealCardDrainTimer = null;
+    this._dealEmptyTicks = 0;
     this.tableContainer = null;
     this.tableLayoutListener = null;
     this.communitySlots = [];
@@ -4800,27 +4808,50 @@ export class TableScene extends Phaser.Scene {
 
   _clearDealCardQueue() {
     this.dealCardQueue = [];
+    this._dealEmptyTicks = 0;
     if (this.dealCardDrainTimer) { this.dealCardDrainTimer.remove(); this.dealCardDrainTimer = null; }
+  }
+
+  _scheduleDealDrain(delay) {
+    this.dealCardDrainTimer = this.time.delayedCall(delay, () => {
+      this.dealCardDrainTimer = null;
+      this._drainDealCardQueue();
+    });
   }
 
   _enqueueDealCard(dealCard) {
     if (!dealCard) return;
     this.dealCardQueue.push({ ...dealCard });
-    if (!this.dealCardDrainTimer) this._drainDealCardQueue();
+    // Don't play on arrival — wait one lead interval so a jitter buffer builds,
+    // then the steady-cadence timer drives playback.
+    if (!this.dealCardDrainTimer) {
+      this._dealEmptyTicks = 0;
+      this._scheduleDealDrain(DEAL_CARD_QUEUE_LEAD_MS);
+    }
   }
 
   _drainDealCardQueue() {
-    if (this._clearCardsUntilNextHand || this.dealCardQueue.length === 0) {
-      this.dealCardQueue = [];
+    if (this._clearCardsUntilNextHand) {
+      this._clearDealCardQueue();
+      return;
+    }
+    if (this.dealCardQueue.length === 0) {
+      // Queue ran dry: keep the metronome ticking for a few beats so a slightly
+      // late card stays phase-locked to the steady cadence. Only stop once the
+      // gap is clearly a real pause (server done, or a genuine long server gap).
+      this._dealEmptyTicks += 1;
+      if (this._dealEmptyTicks <= DEAL_CARD_QUEUE_GRACE_TICKS) {
+        this._scheduleDealDrain(DEAL_CARD_QUEUE_INTERVAL_MS);
+        return;
+      }
+      this._dealEmptyTicks = 0;
       this.dealCardDrainTimer = null;
       return;
     }
+    this._dealEmptyTicks = 0;
     const dealCard = this.dealCardQueue.shift();
     this.playDealCardEffect(dealCard);
-    this.dealCardDrainTimer = this.time.delayedCall(DEAL_CARD_QUEUE_INTERVAL_MS, () => {
-      this.dealCardDrainTimer = null;
-      this._drainDealCardQueue();
-    });
+    this._scheduleDealDrain(DEAL_CARD_QUEUE_INTERVAL_MS);
   }
 
   playDealCardEffect(dealCard) {
@@ -4860,7 +4891,11 @@ export class TableScene extends Phaser.Scene {
       x: target.x,
       y: target.y,
       duration: DEAL_CARD_FLY_DURATION,
-      ease: "Cubic.Out",
+      // Sine.easeOut (not Cubic.Out): with camera roundPixels + 0.618 zoom, Cubic's
+      // hard deceleration makes the last ~3 frames move <1px, so they snap to the same
+      // integer pixel and the card visibly freezes-then-jumps on landing. Sine keeps
+      // every frame moving >=1px, so the flight stays smooth.
+      ease: "Sine.easeOut",
       onUpdate: (tween) => {
         flyCard.setAngle(DEAL_CARD_START_ANGLE + (targetAngle - DEAL_CARD_START_ANGLE) * tween.progress);
       },

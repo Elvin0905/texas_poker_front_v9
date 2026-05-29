@@ -2210,12 +2210,8 @@ function checkAndExecutePendingTableExit(data) {
   }
   pendingTableExit = null;
   if (pending.type === "leave") {
-    const _gameId = String(
-      store.getState?.()?.table?.game_id || store.getState?.()?.gameLobby?.game_id || "texas_holdem",
-    );
     store.beginLeaveTable(pending.tableId);
     sendPacket("leave_room", {});
-    sendPacket("enter_game", { game_id: _gameId });
     return;
   }
   if (pending.type === "switch") {
