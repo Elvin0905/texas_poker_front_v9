@@ -322,8 +322,12 @@ export class MockSocketClient {
     };
 
     if (isSpectator) {
-      // 觀戰：不帶入籌碼也能進桌；take_seat 時才檢查。給足夠籌碼讓 happy-path 可測。
-      this.spectatorTableChips = MAX_BUYIN;
+      // 觀戰：可選擇帶入籌碼（join_stakes.buyin）。帶了就用帶入額（夾在 min/max），
+      // 沒帶就 0；take_seat 時才檢查是否達到最低帶入。
+      const rawSpectatorBuyin = Math.floor(Number(data?.buyin ?? 0));
+      this.spectatorTableChips = Number.isFinite(rawSpectatorBuyin) && rawSpectatorBuyin > 0
+        ? Math.max(MIN_BUYIN, Math.min(MAX_BUYIN, rawSpectatorBuyin))
+        : 0;
       this.emit("table_joined", {
         game_id: GAME_ID,
         table_id: TABLE_ID,

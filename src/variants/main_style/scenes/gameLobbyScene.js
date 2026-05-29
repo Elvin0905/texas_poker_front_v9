@@ -1334,11 +1334,16 @@ export class GameLobbyScene extends Phaser.Scene {
       return;
     }
     const currentGameId = String(this.store.getState?.()?.gameLobby?.game_id || "texas_holdem");
-    this.app.sendPacket("join_stakes", {
+    const packet = {
       game_id: currentGameId,
       stakes_id: stakesId,
       mode: "spectator",
-    });
+    };
+    // 觀戰也帶入籌碼：拉條金額足夠時一併帶入，之後 take_seat 就有籌碼可坐下。
+    if (this.buyinModel?.canAffordMin) {
+      packet.buyin = this.normalizeBuyinSelectedAmount(this.buyinSelectedAmount, this.buyinModel);
+    }
+    this.app.sendPacket("join_stakes", packet);
     this.closeBuyinModal();
   }
 
