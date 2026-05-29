@@ -123,14 +123,17 @@ const HAND_END_MODAL_HEIGHT = 360;
 const HAND_END_MODAL_CORNER = 16;
 const HAND_END_MODAL_TITLE_Y = CENTER_Y - HAND_END_MODAL_HEIGHT / 2;
 const HAND_END_MODAL_BODY_Y = CENTER_Y - 55;
-const HAND_END_MODAL_BTN_Y = CENTER_Y + 25;
+const HAND_END_MODAL_BTN_Y = CENTER_Y + 25; // 第一排：進入下局（長按鈕）
 const HAND_END_MODAL_STAND_GAP = 18;
 const HAND_END_MODAL_BTN_H = 72;
-const HAND_END_MODAL_JOIN_W = 200;
+const HAND_END_MODAL_ROW2_Y = HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + HAND_END_MODAL_STAND_GAP; // 第二排
+const HAND_END_MODAL_JOIN_W = 480; // 進入下局：第一排加長置中
 const HAND_END_MODAL_ACT_W = 150;
-const HAND_END_MODAL_JOIN_X = CENTER_X - 170;
-const HAND_END_MODAL_SWITCH_X = CENTER_X + 25;
-const HAND_END_MODAL_EXIT_X = CENTER_X + 195;
+const HAND_END_MODAL_JOIN_X = CENTER_X;
+// 第二排三顆：換桌 / 結束 / 退座觀戰
+const HAND_END_MODAL_SWITCH_X = CENTER_X - 185;
+const HAND_END_MODAL_EXIT_X = CENTER_X;
+const HAND_END_MODAL_STAND_X = CENTER_X + 185;
 
 // 暫時隱藏右上角常駐「換桌 / 結束」按鈕；需要時改回 true。
 const SHOW_TOPRIGHT_ROOM_BUTTONS = true;
@@ -1896,9 +1899,9 @@ export class TableScene extends Phaser.Scene {
     this.handEndModalTitle?.setPosition(CENTER_X, HAND_END_MODAL_TITLE_Y + 8 + dy);
     this.handEndModalBody?.setPosition(CENTER_X, HAND_END_MODAL_BODY_Y + dy);
     this.handEndMenuJoinBtn?.setPosition?.(HAND_END_MODAL_JOIN_X, HAND_END_MODAL_BTN_Y + dy);
-    this.handEndMenuSwitchBtn?.setPosition?.(HAND_END_MODAL_SWITCH_X, HAND_END_MODAL_BTN_Y + dy);
-    this.handEndMenuExitBtn?.setPosition?.(HAND_END_MODAL_EXIT_X, HAND_END_MODAL_BTN_Y + dy);
-    this.handEndMenuStandBtn?.setPosition?.(CENTER_X, HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + HAND_END_MODAL_STAND_GAP + dy);
+    this.handEndMenuSwitchBtn?.setPosition?.(HAND_END_MODAL_SWITCH_X, HAND_END_MODAL_ROW2_Y + dy);
+    this.handEndMenuExitBtn?.setPosition?.(HAND_END_MODAL_EXIT_X, HAND_END_MODAL_ROW2_Y + dy);
+    this.handEndMenuStandBtn?.setPosition?.(HAND_END_MODAL_STAND_X, HAND_END_MODAL_ROW2_Y + dy);
 
     // Hero join wait text (fixed position, no dy — same as nextHandCountdown)
     this.heroJoinWaitText?.setPosition(CENTER_X, TABLE_HINT_TEXT_Y);
@@ -3058,7 +3061,7 @@ export class TableScene extends Phaser.Scene {
       visible: false,
     });
     this.handEndMenuSwitchBtn = createGradientButton(this, {
-      x: HAND_END_MODAL_SWITCH_X, y: HAND_END_MODAL_BTN_Y,
+      x: HAND_END_MODAL_SWITCH_X, y: HAND_END_MODAL_ROW2_Y,
       width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
       topColor: 0x1a5aaa, bottomColor: 0x0a2855, borderColor: 0x3d90f5,
       label: "換桌", labelStyle: _btnStyle,
@@ -3091,7 +3094,7 @@ export class TableScene extends Phaser.Scene {
       visible: false,
     });
     this.handEndMenuExitBtn = createGradientButton(this, {
-      x: HAND_END_MODAL_EXIT_X, y: HAND_END_MODAL_BTN_Y,
+      x: HAND_END_MODAL_EXIT_X, y: HAND_END_MODAL_ROW2_Y,
       width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
       topColor: 0xc02828, bottomColor: 0x6a1010, borderColor: 0xd43535,
       label: "結束", labelStyle: _btnStyle,
@@ -3105,7 +3108,7 @@ export class TableScene extends Phaser.Scene {
       visible: false,
     });
     this.handEndMenuStandBtn = createGradientButton(this, {
-      x: CENTER_X, y: HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + HAND_END_MODAL_STAND_GAP,
+      x: HAND_END_MODAL_STAND_X, y: HAND_END_MODAL_ROW2_Y,
       width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
       topColor: 0x6a4b1a, bottomColor: 0x3a2708, borderColor: 0xd0a23c,
       label: "退座觀戰", labelStyle: _btnStyle,
