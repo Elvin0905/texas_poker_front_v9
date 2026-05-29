@@ -3,6 +3,31 @@
 版本：v2026-05-20 07:48
 用途：玩家前端 WebSocket 串接規格，涵蓋平台大廳、帳號、錢包、報表、德州撲克、大老二。
 
+## 0. 文件維護固定流程
+
+這一章是維護文件的人要遵守的流程，不是前端串接流程。
+
+1. 本文件與所有 `.md` 規格文件一律使用 UTF-8 編碼；每次更新本文件前後都要執行 `python tools\ws_spec_audit.py`。
+2. 第 3 章必須完整對齊玩家前端會使用的 Client -> Server `type`；合作商 `partner_*` 與管理端 `admin_*` 訊息不列在本文件。
+3. 第 4 章必須完整對齊玩家前端會收到的 Server -> Client `type`；合作商 `partner_*_ok` 與管理端 `admin_*_ok` 訊息不列在本文件。
+4. 合作商 WebSocket 規格固定維護在 `docs/PARTNER_WS_SPEC_zh-TW.md`。
+5. 管理端 WebSocket 規格固定維護在 `docs/ADMIN_WS_SPEC_zh-TW.md`。
+6. 每個訊息細項標題必須使用「英文 type + 中文名稱」，例如 `### 5.1 login 會員登入`、`### 5.2 guest_login 訪客登入`。
+7. 每個 `type` 都必須有獨立訊息細項；不得把多個 Client -> Server 或 Server -> Client type 合併成同一小節說明。
+8. 訊息細項源檔固定維護在 `docs/frontend_ws_messages/client/` 與 `docs/frontend_ws_messages/server/`；例如 `guest_login` 固定寫在 `docs/frontend_ws_messages/client/guest_login.md`。
+9. 修改任一訊息細項時，先改該訊息自己的 `.md` 源檔，再執行 `python tools\merge_frontend_ws_spec.py` 合併回本文件；不要直接手改本文件中已合併出的細項內容。
+10. 每個訊息細項固定包含：用途、方向、`data` 欄位、成功回應、失敗回應、前端處理、請求範例、成功範例、失敗範例。
+11. 範例必須以實測封包或程式碼實際 payload 為依據；可替換 token、table_id、hand_id、username、金額、牌面等動態值，但不得編造不存在的欄位、事件或資料結構。
+12. 通用訊息的範例必須同時提供德州撲克與大老二，不可只放其中一個遊戲讓前端猜另一個 payload。
+13. 錯誤統一收到 `error`，前端請使用 `data.code` 分流，不要用 `message` 判斷流程。
+14. 文件若新增遊戲或訊息，需同步維持「總表、正文細項、範例索引」三處排序一致。
+
+維護檢查指令：
+
+```powershell
+python tools\merge_frontend_ws_spec.py
+python tools\ws_spec_audit.py
+```
 
 ## 1. WebSocket 基本封包格式
 
@@ -99,6 +124,8 @@ Ts, Th, Td, Tc
 | type | 分類 | 說明 |
 |---|---|---|
 | `login` | 帳號 | 會員登入。 |
+| `google_login` | 帳號 | 使用 Google ID token 登入。 |
+| `line_login` | 帳號 | 使用 LINE ID token 或 authorization code 登入。 |
 | `guest_login` | 帳號 | 訪客登入，可選是否為陪玩員。 |
 | `auth_token` | 帳號 | 使用 token 驗證與重連。 |
 | `register_verification_request` | 帳號 | 註冊前請求信箱或手機驗證碼。 |
@@ -111,11 +138,15 @@ Ts, Th, Td, Tc
 | `enter_lobby` | 通用 | 要求伺服器回傳平台大廳狀態。 |
 | `enter_game` | 通用 | 進入指定遊戲大廳。 |
 | `join_stakes` | 通用 | 依 `game_id` 與 `stakes_id` 系統配桌。 |
+| `take_seat` | 通用 | 觀戰者在目前桌選擇座位坐下。 |
+| `stand_up` | 通用 | 玩家退座並留在原桌觀戰。 |
 | `leave_room` | 通用 | 離開目前遊戲桌。 |
 | `switch_room` | 通用 | 同場次換桌。 |
 | `get_table_state` | 通用 | 要求伺服器回傳目前遊戲桌狀態。 |
 | `player_action` | 通用 | 送出目前遊戲桌的回合操作。 |
 | `rebuy_decision` | 通用 | 送出目前遊戲桌的補籌回覆。 |
+| `hand_ready` | 通用 | 玩家確認準備進入下一手。 |
+| `ready_for_next_hand` | 通用 | `hand_ready` 的別名，效果相同。 |
 | `hand_replay` | 報表 | 查詢自己參與過的牌局回放。 |
 | `hand_reports` | 報表 | 查詢自己的手牌報表。 |
 | `daily_settlement_14d` | 報表 | 查詢自己的近 14 天每日結算。 |
@@ -137,6 +168,8 @@ Ts, Th, Td, Tc
 | `game_lobby_state` | 通用 | 指定遊戲大廳狀態。 |
 | `wallet_state` | 通用 | 錢包與桌上籌碼狀態。 |
 | `table_joined` | 通用 | 入桌成功。 |
+| `seat_taken` | 通用 | 觀戰者選座成功。 |
+| `spectator_mode` | 通用 | 玩家已切換為觀戰模式。 |
 | `table_player_joined` | 通用 | 有玩家加入目前桌。 |
 | `table_countdown` | 通用 | 遊戲桌開局倒數。 |
 | `hand_start` | 通用 | 新一手或新一局開始。 |
@@ -152,6 +185,7 @@ Ts, Th, Td, Tc
 | `player_action` | 通用 | 廣播玩家操作結果。 |
 | `award` | 通用 | 派彩結果。 |
 | `hand_end` | 通用 | 牌局結束結果。 |
+| `hand_ready_ack` | 通用 | 玩家準備下一手的確認結果。 |
 | `hand_replay_ok` | 報表 | 手牌回放查詢成功。 |
 | `hand_reports_ok` | 報表 | 手牌報表查詢成功。 |
 | `daily_settlement_14d_ok` | 報表 | 近 14 天每日結算查詢成功。 |
@@ -642,61 +676,141 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"ENTER_GAME_MISSING_ID","message":"缺少遊戲 id"}}
 ```
 
-### 6.4 join_stakes 系統配桌
+### 6.4 join_stakes 加入盲注場
 
-用途：依遊戲與場次加入桌子。玩家不能指定桌號。
+Client -> Server
 
-方向：Client -> Server
+用來加入指定遊戲與盲注場。一般模式會坐進桌上成為玩家；觀戰模式會進入指定桌觀戰，但不會佔座位。
 
 `data` 欄位：
 
-| 欄位 | 型別 | 必填 | 限制 | 說明 |
+| 欄位 | 型別 | 必填 | 範例 | 說明 |
 |---|---|---|---|---|
-| `game_id` | string | 是 | 見第 2 章 game_id 表 | 要加入的遊戲。 |
-| `stakes_id` | string | 是 | 來自 `game_lobby_state.stakes[].id` | 要加入的場次。 |
-| `buyin` | integer | 是 | 場次允許範圍內 | 帶入籌碼。 |
+| `game_id` | string | 是 | `texas_holdem`、`big_two` | 要加入的遊戲 ID。 |
+| `stakes_id` | string | 是 | `t25_50`、`b10` | 要加入的盲注/場次 ID，來源為 `game_lobby_state.stakes[].id`。 |
+| `buyin` | integer | 否 | `1000` | 帶入籌碼。一般入座未帶時會使用該場預設/最低帶入；觀戰模式未帶時不會先轉入籌碼，之後 `take_seat` 會檢查目前 game wallet / table chips 是否達到最低帶入。 |
+| `mode` | string | 否 | `spectator` | 帶 `"spectator"` 時進入觀戰模式。也支援 `spectate`、`observer`、`watch`。 |
+| `spectator` | boolean | 否 | `true` | 另一種進入觀戰模式的寫法；效果等同 `mode:"spectator"`。 |
+| `table_id` | string | 否 | `texas_holdem_t25_50_xxxx` | 指定要觀戰的桌。只有觀戰模式可以帶 `table_id`；觀戰模式未帶時會隨機挑同遊戲同場次的桌；一般入座模式帶 `table_id` 會回錯誤。 |
 
 成功回應：`table_joined`，後續可能收到 `wallet_state`、`table_countdown`、`hand_start`。
 
-失敗回應：`error`，常見 `JOIN_STAKES_UNKNOWN_STAKES`、`BUYIN_TOO_LOW`、`JOIN_STAKES_TABLE_FULL`。
+失敗回應：`error`，常見錯誤碼包含 `JOIN_STAKES_UNKNOWN_STAKES`、`BUYIN_TOO_LOW`、`JOIN_STAKES_TABLE_FULL`、`JOIN_STAKES_TABLE_SELECTION_NOT_ALLOWED`。
 
-前端處理：收到 `table_joined` 後切到遊戲桌畫面。
-
-請求範例：
-
-德州範例:
+一般入座範例：
 
 ```json
 {"type":"join_stakes","data":{"game_id":"texas_holdem","stakes_id":"t25_50","buyin":1000}}
 ```
 
-大老二範例:
+觀戰模式範例：
+
+```json
+{"type":"join_stakes","data":{"game_id":"texas_holdem","stakes_id":"t25_50","table_id":"texas_holdem_t25_50_xxxx","mode":"spectator","buyin":1000}}
+```
+
+當 `mode` 為 `"spectator"` 時，可以帶 `table_id` 指定要觀戰的桌；未帶 `table_id` 時會隨機挑同遊戲同場次的桌。玩家會收到公開桌況事件，但不會被加入 `table.players`，也不能操作。之後可送 `take_seat` 在同一桌選擇空位坐下。`buyin` 可選；如果沒有帶入籌碼，之後 `take_seat` 會檢查玩家目前 game wallet / table chips 是否達到該桌最低帶入。
+
+Big Two 一般入座範例：
 
 ```json
 {"type":"join_stakes","data":{"game_id":"big_two","stakes_id":"b10","buyin":1000}}
 ```
 
-成功範例：
-
-德州範例:
+Texas 成功範例：
 
 ```json
 {"type":"table_joined","data":{"game_id":"texas_holdem","hero_seat":5,"table":{"table_id":"texas_holdem_t25_50_xxxx","game_id":"texas_holdem","stakes_id":"t25_50","players":[]},"waiting_this_hand":true}}
 ```
 
-大老二範例:
+觀戰成功範例：
+
+```json
+{"type":"table_joined","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","hero_seat":null,"is_spectator":true,"can_act":false,"table_chips":1000,"table":{"table_id":"texas_holdem_t25_50_xxxx","game_id":"texas_holdem","stakes_id":"t25_50","players":[]},"waiting_this_hand":false}}
+```
+
+Big Two 成功範例：
 
 ```json
 {"type":"table_joined","data":{"game_id":"big_two","hero_seat":0,"table":{"table_id":"big_two_b10_xxxx","game_id":"big_two","stakes_id":"b10","players":[]},"waiting_this_hand":false}}
 ```
 
-失敗範例：
+錯誤範例：
 
 ```json
 {"type":"error","data":{"code":"BUYIN_TOO_LOW","message":"帶入金額低於下限"}}
 ```
 
-### 6.5 leave_room 離開目前遊戲桌
+### 6.5 take_seat 選擇目前觀戰桌的座位
+
+Client -> Server.
+
+在使用 `join_stakes` 並帶 `mode:"spectator"` 進入觀戰桌後，如果玩家要坐下指定座位，就送這個訊息。
+
+`data` 欄位：
+| 欄位 | 型別 | 必填 | 說明 |
+|---|---|---|---|
+| `seat` | integer | 是 | 要坐下的座位 index，必須是目前觀戰桌上的空位。 |
+
+成功回應：`seat_taken`，接著桌上會廣播 `table_player_joined`、`table_state` 等更新。
+
+送出範例：
+
+```json
+{"type":"take_seat","data":{"seat":2}}
+```
+
+成功範例：
+
+```json
+{"type":"seat_taken","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","hero_seat":2,"is_spectator":false,"can_act":false,"table_chips":1000,"waiting_this_hand":true,"table":{}}}
+```
+
+常見錯誤：
+
+```json
+{"type":"error","data":{"code":"TAKE_SEAT_CHIPS_TOO_LOW","message":"table chips must be >= 1000","table_chips":0,"min_buyin":1000}}
+```
+
+### 6.6 stand_up 退座並留在原桌觀戰
+
+Client -> Server
+
+玩家已坐在桌上時，若在派彩/結算後到下一局開始前想退座，但仍留在同一桌觀戰，就送這個訊息。
+
+`data` 欄位：
+
+| 欄位 | 型別 | 必填 | 說明 |
+|---|---|---|---|
+| 無 | object | 否 | 送 `{}` 即可。 |
+
+成功回應：`spectator_mode`，接著會收到公開的 `table_state` 更新。
+
+送出範例：
+
+```json
+{"type":"stand_up","data":{}}
+```
+
+成功範例：
+
+```json
+{"type":"spectator_mode","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","previous_seat":2,"hero_seat":null,"is_spectator":true,"can_act":false,"table_chips":1500,"table":{}}}
+```
+
+錯誤範例：
+
+```json
+{"type":"error","data":{"code":"STAND_UP_NOT_ALLOWED","message":"stand up is only allowed between hands"}}
+```
+
+注意事項：
+
+- `stand_up` 不會把 game wallet / table chips 轉回主錢包。
+- 玩家會留在目前桌上，並持續收到公開桌況事件。
+- 玩家之後可以再送 `take_seat` 坐回座位；`take_seat` 會檢查目前 table chips 是否達到該桌最低帶入。
+
+### 6.7 leave_room 離開目前遊戲桌
 
 用途：離開目前遊戲桌並返回遊戲大廳。
 
@@ -748,59 +862,62 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"LEAVE_ROOM_FAILED","message":"離開桌子失敗"}}
 ```
 
-### 6.6 switch_room 同場次換桌
+### 6.8 switch_room 換桌
 
-用途：同場次重新系統配桌。
+Client -> Server
 
-方向：Client -> Server
+用來切換到同遊戲、同場次的另一張桌。
+
+一般玩家換桌會離開目前座位，重新坐到另一張可入座的桌。觀戰者換桌會維持觀戰模式，不會坐下、不會佔位，也不需要帶入籌碼。
 
 `data` 欄位：
 
-| 欄位 | 型別 | 必填 | 限制 | 說明 |
+| 欄位 | 型別 | 必填 | 範例 | 說明 |
 |---|---|---|---|---|
-| `buyin` | integer | 否 | 正整數 | 換桌時帶入籌碼；未填通常沿用桌上籌碼。 |
+| `buyin` | integer | 否 | `1000` | 一般玩家換桌時的帶入籌碼。未帶時會依目前 game wallet / table chips 與該場上下限決定。觀戰模式會忽略此欄位。 |
+| `table_id` | string | 否 | `texas_holdem_t25_50_yyyy` | 只有觀戰模式可帶。帶入時切到指定桌觀戰；未帶時隨機切到同遊戲同場次的另一桌。 |
 
-成功回應：`table_joined`。
+成功回應：`table_joined`，接著可能收到 `wallet_state`、`table_state`、`table_countdown`、`hand_start`。
 
-失敗回應：`error`，常見 `SWITCH_ROOM_NOT_SUPPORTED`、`SWITCH_ROOM_TABLE_FULL`。
+失敗回應：`error`，常見錯誤碼包含 `SWITCH_ROOM_NOT_SUPPORTED`、`SWITCH_ROOM_TABLE_FULL`、`SWITCH_ROOM_TABLE_SELECTION_NOT_ALLOWED`。
 
-前端處理：收到 `table_joined` 後更新桌面。
-
-請求範例：
-
-德州範例:
+一般玩家換桌範例：
 
 ```json
 {"type":"switch_room","data":{"buyin":1000}}
 ```
 
-大老二範例:
+觀戰者隨機換桌範例：
 
 ```json
-{"type":"switch_room","data":{"buyin":1000}}
+{"type":"switch_room","data":{}}
 ```
 
-成功範例：
+觀戰者指定換桌範例：
 
-德州範例:
+```json
+{"type":"switch_room","data":{"table_id":"texas_holdem_t25_50_yyyy"}}
+```
+
+一般玩家成功範例：
 
 ```json
 {"type":"table_joined","data":{"game_id":"texas_holdem","hero_seat":5,"table":{"table_id":"texas_holdem_t25_50_yyyy","game_id":"texas_holdem","stakes_id":"t25_50"},"waiting_this_hand":true}}
 ```
 
-大老二範例:
+觀戰者成功範例：
 
 ```json
-{"type":"table_joined","data":{"game_id":"big_two","hero_seat":0,"table":{"table_id":"big_two_b10_xxxx","game_id":"big_two","stakes_id":"b10"},"waiting_this_hand":false}}
+{"type":"table_joined","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_yyyy","stakes_id":"t25_50","hero_seat":null,"is_spectator":true,"can_act":false,"table_chips":1000,"table":{"table_id":"texas_holdem_t25_50_yyyy","game_id":"texas_holdem","stakes_id":"t25_50","players":[]},"waiting_this_hand":false}}
 ```
 
-失敗範例：
+錯誤範例：
 
 ```json
-{"type":"error","data":{"code":"SWITCH_ROOM_TABLE_FULL","message":"換桌失敗，目標桌位已滿"}}
+{"type":"error","data":{"code":"SWITCH_ROOM_TABLE_SELECTION_NOT_ALLOWED","message":"table_id is only allowed while spectating"}}
 ```
 
-### 6.7 get_table_state 同步目前遊戲桌狀態
+### 6.9 get_table_state 同步目前遊戲桌狀態
 
 用途：要求伺服器回傳目前遊戲桌狀態。
 
@@ -844,7 +961,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"NOT_IN_TABLE","message":"目前不在遊戲桌內"}}
 ```
 
-### 6.8 player_action 送出回合操作
+### 6.10 player_action 送出回合操作
 
 用途：送出目前遊戲桌的回合操作。德州與大老二共用同一個 Client -> Server type。
 
@@ -899,7 +1016,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"ACTION_REJECTED","message":"動作不合法"}}
 ```
 
-### 6.9 rebuy_decision 補籌回覆
+### 6.11 rebuy_decision 補籌回覆
 
 用途：送出目前遊戲桌的補籌回覆。
 
@@ -1309,7 +1426,31 @@ Ts, Th, Td, Tc
 {"type":"table_joined","data":{"game_id":"big_two","hero_seat":0,"waiting_this_hand":false,"table":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","players":[]}}}
 ```
 
-### 10.14 table_player_joined 玩家加入桌子
+### 10.14 seat_taken 選座成功
+
+Server -> Client.
+
+`take_seat` 成功後送給該玩家。
+
+範例：
+
+```json
+{"type":"seat_taken","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","hero_seat":2,"is_spectator":false,"can_act":false,"table_chips":1000,"waiting_this_hand":true,"table":{}}}
+```
+
+### 10.15 spectator_mode 已切換為觀戰模式
+
+Server -> Client
+
+`stand_up` 成功後送給該玩家；如果玩家本來就已經在觀戰，重複送 `stand_up` 時也可能收到這個回應。
+
+範例：
+
+```json
+{"type":"spectator_mode","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","previous_seat":2,"hero_seat":null,"is_spectator":true,"can_act":false,"table_chips":1500,"table":{}}}
+```
+
+### 10.16 table_player_joined 玩家加入桌子
 
 用途：通知有玩家加入目前桌。
 
@@ -1329,7 +1470,7 @@ Ts, Th, Td, Tc
 {"type":"table_player_joined","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","player":{"seat":0,"chips":1000,"in_hand":true}}}
 ```
 
-### 10.15 table_countdown 開局倒數
+### 10.17 table_countdown 開局倒數
 
 用途：通知遊戲桌開局倒數。
 
@@ -1349,7 +1490,7 @@ Ts, Th, Td, Tc
 {"type":"table_countdown","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","seconds":3}}
 ```
 
-### 10.16 hand_start 牌局開始
+### 10.18 hand_start 牌局開始
 
 用途：通知新一手或新一局開始。
 
@@ -1369,7 +1510,7 @@ Ts, Th, Td, Tc
 {"type":"hand_start","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"table":{}}}
 ```
 
-### 10.17 table_state 遊戲桌狀態
+### 10.19 table_state 遊戲桌狀態
 
 用途：同步目前遊戲桌完整狀態。
 
@@ -1389,7 +1530,7 @@ Ts, Th, Td, Tc
 {"type":"table_state","data":{"game_id":"big_two","hero_seat":0,"table":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","players":[]}}}
 ```
 
-### 10.18 rebuy_offer 補籌提示
+### 10.20 rebuy_offer 補籌提示
 
 用途：提示玩家可以補籌。
 
@@ -1409,7 +1550,7 @@ Ts, Th, Td, Tc
 {"type":"rebuy_offer","data":{"game_id":"big_two","amount":1000}}
 ```
 
-### 10.19 rebuy_ack 補籌回覆已收到
+### 10.21 rebuy_ack 補籌回覆已收到
 
 用途：通知補籌回覆已收到。
 
@@ -1429,7 +1570,7 @@ Ts, Th, Td, Tc
 {"type":"rebuy_ack","data":{"accepted":true}}
 ```
 
-### 10.20 rebuy_result 補籌結果
+### 10.22 rebuy_result 補籌結果
 
 用途：通知補籌是否成功。
 
@@ -1449,7 +1590,7 @@ Ts, Th, Td, Tc
 {"type":"rebuy_result","data":{"success":true,"table_chips":1000}}
 ```
 
-### 10.21 action_request 請求操作
+### 10.23 action_request 請求操作
 
 用途：通知目前玩家可以做哪些操作。
 
@@ -1469,7 +1610,7 @@ Ts, Th, Td, Tc
 {"type":"action_request","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"allowed":["play_cards","pass"],"timeout":10,"action_seq":12}}
 ```
 
-### 10.22 deal_card 公開派牌動畫
+### 10.24 deal_card 公開派牌動畫
 
 用途：通知前端播放派牌動畫。
 
@@ -1489,7 +1630,7 @@ Ts, Th, Td, Tc
 {"type":"deal_card","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"card_index":0}}
 ```
 
-### 10.23 deal_private 自己的私牌
+### 10.25 deal_private 自己的私牌
 
 用途：把實際牌面只送給該玩家本人。
 
@@ -1509,7 +1650,7 @@ Ts, Th, Td, Tc
 {"type":"deal_private","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"card_index":0,"card":"3d"}}
 ```
 
-### 10.24 hole_cards 同步自己的手牌
+### 10.26 hole_cards 同步自己的手牌
 
 用途：同步自己的完整手牌。
 
@@ -1529,7 +1670,7 @@ Ts, Th, Td, Tc
 {"type":"hole_cards","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"cards":["3d","4d","5d"]}}
 ```
 
-### 10.25 turn 輪到座位
+### 10.27 turn 輪到座位
 
 用途：通知目前輪到哪個座位。
 
@@ -1549,7 +1690,7 @@ Ts, Th, Td, Tc
 {"type":"turn","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"timeout":10,"action_seq":12}}
 ```
 
-### 10.26 player_action 玩家操作結果
+### 10.28 player_action 玩家操作結果
 
 用途：廣播玩家操作結果。
 
@@ -1569,7 +1710,7 @@ Ts, Th, Td, Tc
 {"type":"player_action","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"action":"pass","remaining_count":12}}
 ```
 
-### 10.27 award 派彩結果
+### 10.29 award 派彩結果
 
 用途：通知派彩結果。
 
@@ -1589,7 +1730,7 @@ Ts, Th, Td, Tc
 {"type":"award","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"awards":[],"player_results":[]}}
 ```
 
-### 10.28 hand_end 牌局結束
+### 10.30 hand_end 牌局結束
 
 用途：通知牌局結束與結果。
 
@@ -1609,7 +1750,7 @@ Ts, Th, Td, Tc
 {"type":"hand_end","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"reason":"completed","player_results":[]}}
 ```
 
-### 10.29 hand_replay_ok 手牌回放查詢成功
+### 10.31 hand_replay_ok 手牌回放查詢成功
 
 用途：回傳手牌回放資料。
 
@@ -1621,7 +1762,7 @@ Ts, Th, Td, Tc
 {"type":"hand_replay_ok","data":{"hero_seat":0,"hero_hole_cards":[],"replay":{}}}
 ```
 
-### 10.30 hand_reports_ok 手牌報表查詢成功
+### 10.32 hand_reports_ok 手牌報表查詢成功
 
 用途：回傳手牌報表列表。
 
@@ -1633,7 +1774,7 @@ Ts, Th, Td, Tc
 {"type":"hand_reports_ok","data":{"user_id":362,"items":[]}}
 ```
 
-### 10.31 daily_settlement_14d_ok 14 天結算查詢成功
+### 10.33 daily_settlement_14d_ok 14 天結算查詢成功
 
 用途：回傳近 14 天每日結算。
 
@@ -1645,7 +1786,7 @@ Ts, Th, Td, Tc
 {"type":"daily_settlement_14d_ok","data":{"user_id":362,"items":[]}}
 ```
 
-### 10.32 error 錯誤訊息
+### 10.34 error 錯誤訊息
 
 用途：通知請求失敗或狀態不允許。
 
