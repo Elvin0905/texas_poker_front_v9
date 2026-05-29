@@ -628,6 +628,18 @@ export class Store extends EventTarget {
           sessionStorage.removeItem("ngame_hole_cards_seat");
         } catch (_) {}
         this.state.heroJoinedWaiting = Boolean(data.waiting_this_hand);
+        if (Object.prototype.hasOwnProperty.call(data, "is_spectator")) {
+          this.state.isSpectator = Boolean(data.is_spectator);
+        }
+        if (Object.prototype.hasOwnProperty.call(data, "can_act")) {
+          this.state.canAct = Boolean(data.can_act);
+        }
+        if (this.state.isSpectator) {
+          this.state.heroSeat = null;
+        }
+        if (Number.isFinite(Number(data.table_chips))) {
+          this.state.tableChips = Number(data.table_chips);
+        }
         if (this.state.heroSwitchPending && !data.waiting_this_hand) {
           this.state.heroSwitchPending = false;
         }
@@ -788,7 +800,7 @@ export class Store extends EventTarget {
         // 斷線重連後，若後端回傳 hero_seat=null，代表玩家已不在牌桌內（通常被系統視為離桌/放棄）
         // 前端要立刻退回遊戲大廳，避免畫面卡在牌桌但操作都失敗。
         // 但若 table.players 仍能對應到自己（例如後端暫時漏掉 hero_seat），就留在牌桌並沿用推導座位。
-        if (hasHeroSeatField && !hasValidHeroSeat && derivedHeroSeat === null) {
+        if (!this.state.isSpectator && hasHeroSeatField && !hasValidHeroSeat && derivedHeroSeat === null) {
           this.state.page = "gameLobby";
           this.state.heroSeat = null;
           this.state.table = null;
@@ -812,6 +824,18 @@ export class Store extends EventTarget {
           this.state.heroSeat = nextHeroSeat;
         } else if (derivedHeroSeat !== null) {
           this.state.heroSeat = derivedHeroSeat;
+        }
+        if (Object.prototype.hasOwnProperty.call(data, "is_spectator")) {
+          this.state.isSpectator = Boolean(data.is_spectator);
+        }
+        if (Object.prototype.hasOwnProperty.call(data, "can_act")) {
+          this.state.canAct = Boolean(data.can_act);
+        }
+        if (this.state.isSpectator) {
+          this.state.heroSeat = null;
+        }
+        if (Number.isFinite(Number(data.table_chips))) {
+          this.state.tableChips = Number(data.table_chips);
         }
         if (data.table) {
           normalizeTableRoundTotalBet(data.table);
