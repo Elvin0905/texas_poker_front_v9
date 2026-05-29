@@ -4717,7 +4717,6 @@ export class TableScene extends Phaser.Scene {
         if (holeCard.inFlight) {
           // Cancel the landing: onComplete will see inFlight===false and skip setVisible(true).
           // The sprite was already hidden when the deal started, so it stays hidden.
-          console.log(`[DEAL_CANCEL] inFlight cancelled for seat=${seatView?.displaySeatNo} cardIdx=${cardIndex} visibleCount=${holeCount}`);
           holeCard.inFlight = false;
           return;
         }
@@ -4797,7 +4796,6 @@ export class TableScene extends Phaser.Scene {
       return;
     }
     const seatView = this.findSeatViewBySeatNo(dealCard.seat);
-    console.log(`[DEAL_FX] seat=${dealCard.seat} idx=${dealCard.card_index} seatView=${seatView ? seatView.displaySeatNo : "NULL"}`);
     if (!seatView) {
       return;
     }
@@ -4810,6 +4808,11 @@ export class TableScene extends Phaser.Scene {
     const targetScale = this.getSeatHoleCardScale(seatView);
     const landingCard = seatView.holeCards?.[dealIndex] || null;
     if (landingCard) {
+      if (landingCard.inFlight) {
+        // deal_card + deal_private both increment dealCardVersion for the hero's slot;
+        // the first packet already started the fly animation — skip the duplicate.
+        return;
+      }
       this.stopHoleCardFlipAnimation(landingCard);
       landingCard.inFlight = true;
       landingCard.baseScaleX = targetScale;
@@ -4837,11 +4840,9 @@ export class TableScene extends Phaser.Scene {
       onComplete: () => {
         if (landingCard) {
           if (!landingCard.inFlight) {
-            console.log(`[DEAL_ONCOMPLETE] seat=${seatView?.displaySeatNo} idx=${dealIndex} — skipped (inFlight=false)`);
             flyCard.destroy();
             return;
           }
-          console.log(`[DEAL_ONCOMPLETE] seat=${seatView?.displaySeatNo} idx=${dealIndex} — landing`);
           landingCard.sprite
             .setPosition(target.x, target.y)
             .setVisible(true)
@@ -5076,7 +5077,6 @@ export class TableScene extends Phaser.Scene {
         const _dealTableStatus = String(table?.status || "").toLowerCase();
         const _tableIsWaiting = _dealTableStatus === "waiting" || _dealTableStatus === "";
         const _heroWaiting = Boolean(this.state.heroJoinedWaiting);
-        console.log(`[DEAL] v=${dealCardVersion} seat=${this.state.lastDealCard?.seat} idx=${this.state.lastDealCard?.card_index} tableStatus="${_dealTableStatus}" isWaiting=${_tableIsWaiting} heroWaiting=${_heroWaiting} clearFlag=${this._clearCardsUntilNextHand}`);
         if (!_tableIsWaiting && !_heroWaiting) {
           this.playDealCardEffect(this.state.lastDealCard);
         }
