@@ -190,12 +190,24 @@ export class MockSocketClient {
         this.handleJoinStakes(data);
         break;
 
+      case "take_seat":
+        this.handleTakeSeat(data);
+        break;
+
+      case "stand_up":
+        this.handleStandUp(data);
+        break;
+
       case "switch_room":
-        this.handleJoinStakes({
-          game_id: GAME_ID,
-          stakes_id: STAKES_ID,
-          buyin: Number(data.buyin ?? MAX_BUYIN),
-        });
+        if (this.isSpectator) {
+          this.handleJoinStakes({ game_id: GAME_ID, stakes_id: STAKES_ID, mode: "spectator" });
+        } else {
+          this.handleJoinStakes({
+            game_id: GAME_ID,
+            stakes_id: STAKES_ID,
+            buyin: Number(data.buyin ?? MAX_BUYIN),
+          });
+        }
         break;
 
       case "player_action":
@@ -351,6 +363,92 @@ export class MockSocketClient {
 
     const runId = ++this.currentRunId;
     this.runFlow(runId).catch(() => {});
+  }
+
+  handleTakeSeat(data = {}) {
+    const seat = Number(data?.seat);
+    if (!this.table || !Number.isInteger(seat)) {
+      this.emit("error", { code: "TAKE_SEAT_INVALID", message: "invalid seat" });
+      return;
+    }
+    if (this.findPlayer(seat)) {
+      this.emit("error", { code: "TAKE_SEAT_OCCUPIED", message: "seat is taken" });
+      return;
+    }
+    if (this.spectatorTableChips < MIN_BUYIN) {
+      this.emit("error", {
+        code: "TAKE_SEAT_CHIPS_TOO_LOW",
+        message: `table chips must be >= ${MIN_BUYIN}`,
+        table_chips: this.spectatorTableChips,
+        min_buyin: MIN_BUYIN,
+      });
+      return;
+    }
+
+    this.heroSeat = seat;
+    this.isSpectator = false;
+    const heroSeed = PLAYER_SEEDS.find((item) => item.seat === seat) || PLAYER_SEEDS[0];
+    const heroName = this.profile.username || heroSeed.username;
+    const heroPlayer = makeTablePlayer({
+      ...heroSeed,
+      seat,
+      username: heroName,
+      chips: this.spectatorTableChips,
+    });
+    heroPlayer.in_hand = false;
+    this.table.players.push(heroPlayer);
+
+    this.emit("seat_taken", {
+      game_id: GAME_ID,
+      table_id: TABLE_ID,
+      hero_seat: seat,
+      is_spectator: false,
+      can_act: false,
+      table_chips: this.spectatorTableChips,
+      waiting_this_hand: true,
+      table: clone(this.table),
+    });
+    this.emit("table_player_joined", {
+      table_id: TABLE_ID,
+      player: makeJoinedPayload({ ...heroSeed, seat, username: heroName }),
+    });
+    this.emitTableState();
+  }
+
+  handleStandUp() {
+    if (!this.table) {
+      this.emit("error", { code: "STAND_UP_NOT_ALLOWED", message: "not at table" });
+      return;
+    }
+    // 只允許在牌局之間（非進行中）退座
+    if (this.table.status === "playing") {
+      this.emit("error", {
+        code: "STAND_UP_NOT_ALLOWED",
+        message: "stand up is only allowed between hands",
+      });
+      return;
+    }
+    const previousSeat = Number.isInteger(this.heroSeat) ? this.heroSeat : null;
+    if (previousSeat !== null) {
+      this.table.players = this.table.players.filter((p) => Number(p.seat) !== previousSeat);
+    }
+    this.isSpectator = true;
+    // 內部用 -1 哨兵（不是 null）避免 findPlayer(Number(null)===0) 誤命中座位 0；
+    // 對外送出的封包仍帶 hero_seat:null。
+    this.heroSeat = -1;
+
+    this.emit("spectator_mode", {
+      game_id: GAME_ID,
+      table_id: TABLE_ID,
+      stakes_id: STAKES_ID,
+      previous_seat: previousSeat,
+      hero_seat: null,
+      is_spectator: true,
+      can_act: false,
+      table_chips: this.spectatorTableChips,
+      table: clone(this.table),
+    });
+    this.emitTableState();
   }
 
   async runFlow(runId) {
