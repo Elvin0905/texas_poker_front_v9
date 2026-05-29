@@ -1093,6 +1093,9 @@ export class TableScene extends Phaser.Scene {
       .setDepth(50)
       .setVisible(false);
 
+    // 觀戰提示：右下角橘色漸變長方塊「觀戰中 請選位坐下」，僅觀戰狀態顯示。
+    this.spectatorSitHint = this.buildSpectatorSitHint();
+
     this.heroJoinWaitText = this.add
       .text(CENTER_X, TABLE_HINT_TEXT_Y, "等待其他玩家確認中", {
         fontSize: "30px",
@@ -1758,6 +1761,7 @@ export class TableScene extends Phaser.Scene {
     this.events.once("shutdown", () => {
       this.unsubscribe?.();
       this.spectatorBadge?.destroy(); this.spectatorBadge = null;
+      this.spectatorSitHint?.destroy(); this.spectatorSitHint = null;
       this._winLightTimer?.remove(); this._winLightTimer = null;
       if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
       if (this.winLightImage) { this.winLightImage.destroy(); this.winLightImage = null; }
@@ -3814,6 +3818,36 @@ export class TableScene extends Phaser.Scene {
       }
     }
     return null;
+  }
+
+  buildSpectatorSitHint() {
+    const W = 300;
+    const H = 64;
+    const CR = 14;
+    const cx = VIEW_WIDTH - W / 2 - 20;
+    const cy = VIEW_HEIGHT - H / 2 - 26;
+    const container = this.add.container(cx, cy).setDepth(60).setVisible(false);
+
+    const gfx = this.add.graphics();
+    // 橘色由上而下漸變
+    gfx.fillGradientStyle(0xffb24a, 0xffb24a, 0xff7a00, 0xff7a00, 1);
+    gfx.fillRoundedRect(-W / 2, -H / 2, W, H, CR);
+    gfx.lineStyle(2, 0xffe0b0, 1);
+    gfx.strokeRoundedRect(-W / 2, -H / 2, W, H, CR);
+
+    const label = this.add
+      .text(0, 0, "觀戰中  請選位坐下", {
+        fontSize: "24px",
+        color: "#ffffff",
+        fontStyle: "bold",
+        fontFamily: UI_FONT_STACK,
+        stroke: "#7a3000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
+
+    container.add([gfx, label]);
+    return container;
   }
 
   _refreshTopButtonsState() {
@@ -5917,9 +5951,11 @@ export class TableScene extends Phaser.Scene {
       this.layoutActionButtons([]);
       this.closeRaiseActionPanel();
       this.spectatorBadge?.setVisible(true);
+      this.spectatorSitHint?.setVisible(true);
     } else {
       this.layoutActionButtons(this._actionSentPending ? [] : allowed);
       this.spectatorBadge?.setVisible(false);
+      this.spectatorSitHint?.setVisible(false);
     }
 
     const handResultVersion = Number(this.state.handResultVersion ?? 0);

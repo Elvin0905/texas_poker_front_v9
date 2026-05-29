@@ -55,9 +55,9 @@ const BUYIN_SLIDER_HIT_HEIGHT = 48;
 const BUYIN_SLIDER_KNOB_RADIUS = 17;
 const BUYIN_HINT_X = 360;
 const BUYIN_HINT_Y = 820;
-const BUYIN_CONFIRM_X = 175;
-const BUYIN_SPECTATE_X = 360;
-const BUYIN_CANCEL_X = 545;
+// 取消觀戰按鈕後，確認入桌 / 取消 兩顆置中分佈。
+const BUYIN_CONFIRM_X = 250;
+const BUYIN_CANCEL_X = 470;
 const BUYIN_BUTTON_Y = 905;
 const BUYIN_BUTTON_WIDTH = 150;
 const BUYIN_BUTTON_HEIGHT = 64;
@@ -766,22 +766,6 @@ export class GameLobbyScene extends Phaser.Scene {
       visible: false,
     });
 
-    this.buyinSpectateButton = createGradientButton(this, {
-      x: BUYIN_SPECTATE_X,
-      y: BUYIN_BUTTON_Y,
-      width: BUYIN_BUTTON_WIDTH,
-      height: BUYIN_BUTTON_HEIGHT,
-      cornerRadius: 8,
-      topColor: 0x1a5aaa,
-      bottomColor: 0x0a2855,
-      borderColor: 0x3d90f5,
-      label: "觀戰",
-      labelStyle: { fontSize: "26px", color: BUYIN_TITLE_COLOR, stroke: "#000000", strokeThickness: 1 },
-      depth: BUYIN_TEXT_DEPTH + 0.4,
-      onClick: () => this.joinSpectator(),
-      visible: false,
-    });
-
     this._roomPointerDown = (ptr) => {
       if (this.buyinModalVisible || this.handReportsModalVisible || this.settingsModalVisible) return;
       const py = ptr.y;
@@ -874,7 +858,6 @@ export class GameLobbyScene extends Phaser.Scene {
       this.buyinPlusBtn?.destroy?.();
       this.buyinConfirmButton?.destroy?.();
       this.buyinCancelButton?.destroy?.();
-      this.buyinSpectateButton?.destroy?.();
       this.reportsPanelBorder?.destroy?.();
       this.reportsTitleLabel?.destroy?.();
       this.reportsScrollContainer?.removeAll(true);
@@ -1081,7 +1064,6 @@ export class GameLobbyScene extends Phaser.Scene {
     this.buyinPlusBtn?.setPosition?.(BUYIN_AMOUNT_X + BUYIN_STEP_BTN_OFFSET_X, BUYIN_AMOUNT_Y + dy);
     this.buyinConfirmButton?.setPosition?.(BUYIN_CONFIRM_X, BUYIN_BUTTON_Y + dy);
     this.buyinCancelButton?.setPosition?.(BUYIN_CANCEL_X, BUYIN_BUTTON_Y + dy);
-    this.buyinSpectateButton?.setPosition?.(BUYIN_SPECTATE_X, BUYIN_BUTTON_Y + dy);
   }
 
   _updateReportsScrollbar() {
@@ -1317,33 +1299,14 @@ export class GameLobbyScene extends Phaser.Scene {
     }
     const buyin = this.normalizeBuyinSelectedAmount(this.buyinSelectedAmount, this.buyinModel);
     const currentGameId = String(this.store.getState?.()?.gameLobby?.game_id || "texas_holdem");
+    // 流程：確認入桌後先進入「觀戰」狀態（帶入籌碼），不直接入座開局；
+    // 玩家進桌後可任選空位 take_seat 坐下。
     this.app.sendPacket("join_stakes", {
       game_id: currentGameId,
       stakes_id: stakesId,
+      mode: "spectator",
       buyin,
     });
-    this.closeBuyinModal();
-  }
-
-  joinSpectator() {
-    if (!this.buyinModalVisible || !this.buyinStake) {
-      return;
-    }
-    const stakesId = String(this.buyinStake.stakes_id || this.buyinStake.id || "");
-    if (!stakesId) {
-      return;
-    }
-    const currentGameId = String(this.store.getState?.()?.gameLobby?.game_id || "texas_holdem");
-    const packet = {
-      game_id: currentGameId,
-      stakes_id: stakesId,
-      mode: "spectator",
-    };
-    // 觀戰也帶入籌碼：拉條金額足夠時一併帶入，之後 take_seat 就有籌碼可坐下。
-    if (this.buyinModel?.canAffordMin) {
-      packet.buyin = this.normalizeBuyinSelectedAmount(this.buyinSelectedAmount, this.buyinModel);
-    }
-    this.app.sendPacket("join_stakes", packet);
     this.closeBuyinModal();
   }
 
@@ -1366,7 +1329,6 @@ export class GameLobbyScene extends Phaser.Scene {
     this.buyinHintText.setVisible(visible);
     this.buyinConfirmButton.setVisible(visible);
     this.buyinCancelButton.setVisible(visible);
-    this.buyinSpectateButton?.setVisible(visible);
 
     if (!visible) {
       this.setBuyinSliderInteractive(false);
