@@ -3899,8 +3899,13 @@ export class TableScene extends Phaser.Scene {
       || tableStatus === "flop" || tableStatus === "turn" || tableStatus === "river"
       || !!this.state?.actionRequest;
     const seatedCount = Array.isArray(this.state?.table?.players) ? this.state.table.players.length : 0;
+    // 手局結束「是否繼續遊戲 / 退座 / 結束」彈窗倒數進行中時，右上角離座一律隱藏：
+    // 讓玩家先在彈窗裡決定（繼續等人 or 退座 or 結束）。點「進入下局」後 _handEndMenuEnd 歸 0，
+    // 彈窗關閉，這裡才會放行顯示離座——此時人數仍不足，玩家可改用離座按鈕轉觀戰換桌。
+    // 反之「剛入座、沒打過半局」不會觸發此彈窗（_handEndMenuEnd=0），離座按鈕直接顯示。
+    const handEndMenuActive = this._handEndMenuEnd > 0 && this._handEndMenuEnd > Date.now();
     const showStandUp = heroSeated && !isPlaying && seatedCount < 3
-      && !isReplayActive && !fullyHide;
+      && !isReplayActive && !fullyHide && !handEndMenuActive;
     this.standUpTopButton?.setVisible(showStandUp);
 
     if (this.soundSettingsPanel?.triggerButton) {
