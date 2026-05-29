@@ -359,6 +359,7 @@ const DEAL_CARD_NORMAL_SCALE = 0.58;
 const DEAL_CARD_HERO_SCALE = 1.06;
 const DEAL_CARD_START_ANGLE = -18;
 const DEAL_CARD_FLY_DURATION = 280;
+const DEAL_CARD_QUEUE_INTERVAL_MS = 140;
 const DEAL_CARD_POP_DURATION = 80;
 const DEAL_CARD_DEPTH = 27;
 const DEAL_CARD_TARGET_OFFSET_X_LEFT = -28;
@@ -694,6 +695,8 @@ export class TableScene extends Phaser.Scene {
     this.lastCountdownBeepSecond = null;
     this.countdownSfxInstance = null;
     this.lastSeenDealCardVersion = 0;
+    this.dealCardQueue = [];
+    this.dealCardDrainTimer = null;
     this.tableContainer = null;
     this.tableLayoutListener = null;
     this.communitySlots = [];
@@ -1668,6 +1671,7 @@ export class TableScene extends Phaser.Scene {
       this.seatViews?.forEach((sv) => {
         if (sv._ringUpdateFn) { this.events.off('update', sv._ringUpdateFn); sv._ringUpdateFn = null; }
       });
+      this._clearDealCardQueue?.();
       this.communitySlots?.forEach((slot) => {
         this.stopCommunitySlotAnimation(slot);
       });
@@ -4794,6 +4798,31 @@ export class TableScene extends Phaser.Scene {
     this.setSeatHoleCardsVisibleCount(seatView, holeRenderOptions.visibleCount, holeRenderOptions);
   }
 
+  _clearDealCardQueue() {
+    this.dealCardQueue = [];
+    if (this.dealCardDrainTimer) { this.dealCardDrainTimer.remove(); this.dealCardDrainTimer = null; }
+  }
+
+  _enqueueDealCard(dealCard) {
+    if (!dealCard) return;
+    this.dealCardQueue.push({ ...dealCard });
+    if (!this.dealCardDrainTimer) this._drainDealCardQueue();
+  }
+
+  _drainDealCardQueue() {
+    if (this._clearCardsUntilNextHand || this.dealCardQueue.length === 0) {
+      this.dealCardQueue = [];
+      this.dealCardDrainTimer = null;
+      return;
+    }
+    const dealCard = this.dealCardQueue.shift();
+    this.playDealCardEffect(dealCard);
+    this.dealCardDrainTimer = this.time.delayedCall(DEAL_CARD_QUEUE_INTERVAL_MS, () => {
+      this.dealCardDrainTimer = null;
+      this._drainDealCardQueue();
+    });
+  }
+
   playDealCardEffect(dealCard) {
     if (!dealCard) {
       return;
@@ -5069,6 +5098,7 @@ export class TableScene extends Phaser.Scene {
       if (dealCardVersion < this.lastSeenDealCardVersion) {
         this.lastSeenDealCardVersion = dealCardVersion;
         this._clearCardsUntilNextHand = false;
+        this._clearDealCardQueue();
       }
       if (dealCardVersion > this.lastSeenDealCardVersion) {
         this.lastSeenDealCardVersion = dealCardVersion;
@@ -5077,7 +5107,7 @@ export class TableScene extends Phaser.Scene {
         const _tableIsWaiting = _dealTableStatus === "waiting" || _dealTableStatus === "";
         const _heroWaiting = Boolean(this.state.heroJoinedWaiting);
         if (!_tableIsWaiting && !_heroWaiting) {
-          this.playDealCardEffect(this.state.lastDealCard);
+          this._enqueueDealCard(this.state.lastDealCard);
         }
       }
       // Pre-check: if the hand-result modal countdown has expired, set the clear flag NOW
