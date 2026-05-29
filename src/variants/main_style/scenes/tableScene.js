@@ -748,6 +748,7 @@ export class TableScene extends Phaser.Scene {
     this.handEndMenuJoinBtn = null;
     this.handEndMenuSwitchBtn = null;
     this.handEndMenuExitBtn = null;
+    this.handEndMenuStandBtn = null;
     this.handEndModalOverlay = null;
     this.handEndModalPanelGrad = null;
     this.handEndModalPanel = null;
@@ -1772,6 +1773,7 @@ export class TableScene extends Phaser.Scene {
       this.handEndMenuJoinBtn?.destroy();
       this.handEndMenuSwitchBtn?.destroy();
       this.handEndMenuExitBtn?.destroy();
+      this.handEndMenuStandBtn?.destroy();
       this.input.off("pointerdown", this._hrPointerDown, this);
       this.input.off("pointermove", this._hrPointerMove, this);
       this.input.off("pointerup", this._hrPointerUp, this);
@@ -1866,6 +1868,7 @@ export class TableScene extends Phaser.Scene {
     this.handEndMenuJoinBtn?.setPosition?.(HAND_END_MODAL_JOIN_X, HAND_END_MODAL_BTN_Y + dy);
     this.handEndMenuSwitchBtn?.setPosition?.(HAND_END_MODAL_SWITCH_X, HAND_END_MODAL_BTN_Y + dy);
     this.handEndMenuExitBtn?.setPosition?.(HAND_END_MODAL_EXIT_X, HAND_END_MODAL_BTN_Y + dy);
+    this.handEndMenuStandBtn?.setPosition?.(CENTER_X, HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + 18 + dy);
 
     // Hero join wait text (fixed position, no dy — same as nextHandCountdown)
     this.heroJoinWaitText?.setPosition(CENTER_X, TABLE_HINT_TEXT_Y);
@@ -3071,6 +3074,19 @@ export class TableScene extends Phaser.Scene {
       },
       visible: false,
     });
+    this.handEndMenuStandBtn = createGradientButton(this, {
+      x: CENTER_X, y: HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + 18,
+      width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
+      topColor: 0x6a4b1a, bottomColor: 0x3a2708, borderColor: 0xd0a23c,
+      label: "退座觀戰", labelStyle: _btnStyle,
+      depth: HAND_END_MODAL_TEXT_DEPTH,
+      onClick: () => {
+        this._handEndMenuEnd = 0;
+        this.refreshHandEndMenu();
+        this.app.sendPacket("stand_up", {});
+      },
+      visible: false,
+    });
   }
 
   buildHeroWaitingJoinPrompt() {
@@ -3808,6 +3824,7 @@ export class TableScene extends Phaser.Scene {
       this.handEndMenuJoinBtn?.setVisible(false);
       this.handEndMenuSwitchBtn?.setVisible(false);
       this.handEndMenuExitBtn?.setVisible(false);
+      this.handEndMenuStandBtn?.setVisible(false);
       this._refreshTopButtonsState();
       // If menu just closed, start next hand countdown now if server still has seconds
       if (_wasVisible && this.nextHandCountdownEnd <= 0) {
@@ -3831,6 +3848,7 @@ export class TableScene extends Phaser.Scene {
     this.handEndMenuJoinBtn?.setVisible(true);
     this.handEndMenuSwitchBtn?.setVisible(true);
     this.handEndMenuExitBtn?.setVisible(true);
+    this.handEndMenuStandBtn?.setVisible(!this.state?.isSpectator);
 
     // Hide the plain text countdown while menu is showing
     this.nextHandCountdownLabel?.setVisible(false);
