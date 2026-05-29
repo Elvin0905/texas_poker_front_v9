@@ -361,7 +361,7 @@ const DEAL_CARD_FRAME = "card_back";
 const DEAL_CARD_NORMAL_SCALE = 0.58;
 const DEAL_CARD_HERO_SCALE = 1.06;
 // hero 手牌貼在頭像上時，比一般玩家稍大一點點。
-const DEAL_CARD_HERO_ON_AVATAR_SCALE = 0.72;
+const DEAL_CARD_HERO_ON_AVATAR_SCALE = 0.70;
 const DEAL_CARD_START_ANGLE = -18;
 // Constant-speed flight: seats sit at very different distances from the deal
 // origin (~214px nearest, ~612px farthest = 2.86x). A fixed duration makes near
