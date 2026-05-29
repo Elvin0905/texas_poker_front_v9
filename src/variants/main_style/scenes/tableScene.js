@@ -360,6 +360,8 @@ const DEAL_CARD_ATLAS_KEY = "game_table";
 const DEAL_CARD_FRAME = "card_back";
 const DEAL_CARD_NORMAL_SCALE = 0.58;
 const DEAL_CARD_HERO_SCALE = 1.06;
+// hero 手牌貼在頭像上時，比一般玩家稍大一點點。
+const DEAL_CARD_HERO_ON_AVATAR_SCALE = 0.72;
 const DEAL_CARD_START_ANGLE = -18;
 // Constant-speed flight: seats sit at very different distances from the deal
 // origin (~214px nearest, ~612px farthest = 2.86x). A fixed duration makes near
@@ -4290,7 +4292,10 @@ export class TableScene extends Phaser.Scene {
   }
 
   getSeatHoleCardScale(seatView) {
-    // hero 手牌與其他玩家一致：使用一般尺寸（不再放大），貼在頭像上。
+    // hero 手牌貼在頭像上，但比其他玩家稍大一點點。
+    if (isSameSeat(seatView?.displaySeatNo, this.resolveHeroSeatForDisplay(this.state?.table))) {
+      return DEAL_CARD_HERO_ON_AVATAR_SCALE;
+    }
     return DEAL_CARD_NORMAL_SCALE;
   }
 
