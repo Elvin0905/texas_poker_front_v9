@@ -902,6 +902,11 @@ export class Store extends EventTarget {
 
       // 輪到我行動（可 check/call/raise...）
       case "action_request":
+        if (this.state.isSpectator) {
+          this.state.actionRequest = null;
+          this.state.canAct = false;
+          break;
+        }
         this.state.actionRequest = data;
         // 大老二：同步 action_seq（與 turn 封包的值相同，保持一致）
         if (data.action_seq != null) {
@@ -931,10 +936,19 @@ export class Store extends EventTarget {
           this.state.table.current_turn_started_at = anchor.startedAt;
           this.state.table.current_turn_anchor_key = anchor.key;
         }
+        {
+          const reqSeat = Number(data.seat);
+          this.state.canAct = Number.isInteger(reqSeat)
+            && Number.isInteger(Number(this.state.heroSeat))
+            && reqSeat === Number(this.state.heroSeat);
+        }
         break;
 
       // 輪到某個座位行動（全桌廣播）
       case "turn":
+        if (this.state.isSpectator) {
+          this.state.canAct = false;
+        }
         if (this.state.table) {
           if (data.table_id && this.state.table.table_id && data.table_id !== this.state.table.table_id) {
             break;
