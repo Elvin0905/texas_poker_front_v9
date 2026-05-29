@@ -358,15 +358,20 @@ const DEAL_CARD_FRAME = "card_back";
 const DEAL_CARD_NORMAL_SCALE = 0.58;
 const DEAL_CARD_HERO_SCALE = 1.06;
 const DEAL_CARD_START_ANGLE = -18;
-const DEAL_CARD_FLY_DURATION = 280;
-const DEAL_CARD_QUEUE_INTERVAL_MS = 140;
-// Jitter buffer: wait one interval before the first card so a small buffer
-// accumulates, then the timer drives a steady cadence immune to server-emit /
-// render-frame jitter.
-const DEAL_CARD_QUEUE_LEAD_MS = 140;
-// Keep the metronome alive for a few empty ticks so a slightly-late card stays
-// phase-locked to the steady cadence instead of playing the instant it arrives.
-const DEAL_CARD_QUEUE_GRACE_TICKS = 2;
+// Constant-speed flight: seats sit at very different distances from the deal
+// origin (~214px nearest, ~612px farthest = 2.86x). A fixed duration makes near
+// cards crawl and far cards race. Deriving duration from distance keeps every
+// card flying at roughly the same visual speed; clamp keeps the extremes sane.
+const DEAL_CARD_FLY_SPEED_PX_PER_MS = 2.0;
+const DEAL_CARD_FLY_MIN_MS = 150;
+const DEAL_CARD_FLY_MAX_MS = 300;
+// Rate limiter (not a free-running metronome): the server already emits cards
+// one-by-one at an even cadence, so we play each card the moment it arrives and
+// only enforce a minimum spacing. This keeps pacing driven by arrival time (the
+// source of truth) instead of an independent clock that drifts out of phase and
+// inserts spurious pauses. The min gap only kicks in to separate a burst (e.g.
+// two cards delivered back-to-back), so pick it below the server's emit gap.
+const DEAL_CARD_MIN_GAP_MS = 110;
 const DEAL_CARD_POP_DURATION = 80;
 const DEAL_CARD_DEPTH = 27;
 const DEAL_CARD_TARGET_OFFSET_X_LEFT = -28;
@@ -704,7 +709,7 @@ export class TableScene extends Phaser.Scene {
     this.lastSeenDealCardVersion = 0;
     this.dealCardQueue = [];
     this.dealCardDrainTimer = null;
-    this._dealEmptyTicks = 0;
+    this._lastDealPlayAt = 0;
     this.tableContainer = null;
     this.tableLayoutListener = null;
     this.communitySlots = [];
@@ -1128,6 +1133,30 @@ export class TableScene extends Phaser.Scene {
         this.refreshHeroJoinWaitText();
       },
     });
+
+    // The countdown number (above ticker) and the turn ring (the per-seat
+    // _ringUpdateFn on the scene 'update' event) both repaint via the Phaser
+    // game loop. The browser throttles/stalls rAF when the tab is backgrounded
+    // or busy with a resize/zoom reflow, so the loop stops stepping and both
+    // visuals freeze (then jump on return). Their VALUES are wall-clock based,
+    // so forcing a repaint the moment we become visible / regain focus /
+    // relayout snaps them straight to the correct value.
+    this._forceCountdownRefresh = () => {
+      if (!Array.isArray(this.seatViews) || this.seatViews.length === 0) return;
+      this.refreshTurnCountdownOverlay();
+      this.refreshNextHandCountdown();
+      this.refreshHandEndMenu();
+      this.refreshHeroJoinWaitText();
+      // Redraw any active turn ring immediately instead of waiting for the next
+      // 'update' frame (which may still be stalled right after resume).
+      this.seatViews.forEach((sv) => sv._ringUpdateFn?.());
+    };
+    this._onVisibleCountdownRefresh = () => {
+      if (!document.hidden) this._forceCountdownRefresh();
+    };
+    document.addEventListener("visibilitychange", this._onVisibleCountdownRefresh);
+    window.addEventListener("focus", this._forceCountdownRefresh);
+    window.addEventListener("canvas-layout-updated", this._forceCountdownRefresh);
     this.countdownSfxSound = this.cache.audio.exists(COUNTDOWN_TIMER_SFX_KEY)
       ? this.sound.add(COUNTDOWN_TIMER_SFX_KEY)
       : null;
@@ -1675,6 +1704,15 @@ export class TableScene extends Phaser.Scene {
       if (this.turnCountdownTicker) {
         this.turnCountdownTicker.remove();
         this.turnCountdownTicker = null;
+      }
+      if (this._onVisibleCountdownRefresh) {
+        document.removeEventListener("visibilitychange", this._onVisibleCountdownRefresh);
+        this._onVisibleCountdownRefresh = null;
+      }
+      if (this._forceCountdownRefresh) {
+        window.removeEventListener("focus", this._forceCountdownRefresh);
+        window.removeEventListener("canvas-layout-updated", this._forceCountdownRefresh);
+        this._forceCountdownRefresh = null;
       }
       this.seatViews?.forEach((sv) => {
         if (sv._ringUpdateFn) { this.events.off('update', sv._ringUpdateFn); sv._ringUpdateFn = null; }
@@ -4808,50 +4846,44 @@ export class TableScene extends Phaser.Scene {
 
   _clearDealCardQueue() {
     this.dealCardQueue = [];
-    this._dealEmptyTicks = 0;
     if (this.dealCardDrainTimer) { this.dealCardDrainTimer.remove(); this.dealCardDrainTimer = null; }
-  }
-
-  _scheduleDealDrain(delay) {
-    this.dealCardDrainTimer = this.time.delayedCall(delay, () => {
-      this.dealCardDrainTimer = null;
-      this._drainDealCardQueue();
-    });
   }
 
   _enqueueDealCard(dealCard) {
     if (!dealCard) return;
     this.dealCardQueue.push({ ...dealCard });
-    // Don't play on arrival — wait one lead interval so a jitter buffer builds,
-    // then the steady-cadence timer drives playback.
-    if (!this.dealCardDrainTimer) {
-      this._dealEmptyTicks = 0;
-      this._scheduleDealDrain(DEAL_CARD_QUEUE_LEAD_MS);
-    }
+    this._pumpDealCardQueue();
   }
 
-  _drainDealCardQueue() {
+  // Play the next queued card if the minimum spacing since the last one has
+  // elapsed; otherwise schedule a single pump for exactly the remaining gap.
+  // Pacing follows arrival time, with the min gap only spacing out bursts.
+  _pumpDealCardQueue() {
+    if (this.dealCardDrainTimer) return;
     if (this._clearCardsUntilNextHand) {
       this._clearDealCardQueue();
       return;
     }
-    if (this.dealCardQueue.length === 0) {
-      // Queue ran dry: keep the metronome ticking for a few beats so a slightly
-      // late card stays phase-locked to the steady cadence. Only stop once the
-      // gap is clearly a real pause (server done, or a genuine long server gap).
-      this._dealEmptyTicks += 1;
-      if (this._dealEmptyTicks <= DEAL_CARD_QUEUE_GRACE_TICKS) {
-        this._scheduleDealDrain(DEAL_CARD_QUEUE_INTERVAL_MS);
-        return;
-      }
-      this._dealEmptyTicks = 0;
-      this.dealCardDrainTimer = null;
+    if (this.dealCardQueue.length === 0) return;
+
+    const sinceLast = this.time.now - this._lastDealPlayAt;
+    if (sinceLast < DEAL_CARD_MIN_GAP_MS) {
+      this.dealCardDrainTimer = this.time.delayedCall(DEAL_CARD_MIN_GAP_MS - sinceLast, () => {
+        this.dealCardDrainTimer = null;
+        this._pumpDealCardQueue();
+      });
       return;
     }
-    this._dealEmptyTicks = 0;
+
+    this._lastDealPlayAt = this.time.now;
     const dealCard = this.dealCardQueue.shift();
     this.playDealCardEffect(dealCard);
-    this._scheduleDealDrain(DEAL_CARD_QUEUE_INTERVAL_MS);
+    if (this.dealCardQueue.length > 0) {
+      this.dealCardDrainTimer = this.time.delayedCall(DEAL_CARD_MIN_GAP_MS, () => {
+        this.dealCardDrainTimer = null;
+        this._pumpDealCardQueue();
+      });
+    }
   }
 
   playDealCardEffect(dealCard) {
@@ -4886,11 +4918,17 @@ export class TableScene extends Phaser.Scene {
     const flyBaseScaleX = flyCard.scaleX;
     const flyBaseScaleY = flyCard.scaleY;
 
+    const flyDist = Math.hypot(target.x - DEAL_CARD_FROM_X, target.y - DEAL_CARD_FROM_Y);
+    const flyDuration = Math.max(
+      DEAL_CARD_FLY_MIN_MS,
+      Math.min(DEAL_CARD_FLY_MAX_MS, Math.round(flyDist / DEAL_CARD_FLY_SPEED_PX_PER_MS))
+    );
+
     this.tweens.add({
       targets: flyCard,
       x: target.x,
       y: target.y,
-      duration: DEAL_CARD_FLY_DURATION,
+      duration: flyDuration,
       // Sine.easeOut (not Cubic.Out): with camera roundPixels + 0.618 zoom, Cubic's
       // hard deceleration makes the last ~3 frames move <1px, so they snap to the same
       // integer pixel and the card visibly freezes-then-jumps on landing. Sine keeps
