@@ -462,11 +462,17 @@ export class MockSocketClient {
 
     await this.wait(FLOW_JOIN_START_DELAY_MS, runId);
 
+    // 觀戰時保留多個空位，讓玩家可任意選位坐下（其餘座位才安排機器人）。
+    // 非觀戰時僅保留 hero 自己的座位。
+    const reservedSeats = this.isSpectator
+      ? new Set([0, 2, 4])
+      : new Set([this.heroSeat]);
+
     for (const seed of PLAYER_SEEDS) {
       if (!this.isRunActive(runId)) {
         return;
       }
-      if (seed.seat === this.heroSeat) {
+      if (reservedSeats.has(seed.seat)) {
         continue;
       }
       if (!this.findPlayer(seed.seat)) {

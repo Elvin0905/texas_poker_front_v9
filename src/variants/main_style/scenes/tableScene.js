@@ -114,26 +114,23 @@ const HAND_END_MENU_SWITCH_X = 393;
 const HAND_END_MENU_EXIT_X = 558;
 const HAND_END_MENU_DEPTH = 129;
 
-// 手局結束彈窗（進入下局 / 換桌 / 結束）
+// 手局結束彈窗（進入下局 / 退座 / 結束）—— 三顆同一排
 const HAND_END_MODAL_OVERLAY_DEPTH = 145;
 const HAND_END_MODAL_PANEL_DEPTH = 146;
 const HAND_END_MODAL_TEXT_DEPTH = 147;
 const HAND_END_MODAL_WIDTH = 580;
-const HAND_END_MODAL_HEIGHT = 360;
+const HAND_END_MODAL_HEIGHT = 232;
 const HAND_END_MODAL_CORNER = 16;
 const HAND_END_MODAL_TITLE_Y = CENTER_Y - HAND_END_MODAL_HEIGHT / 2;
-const HAND_END_MODAL_BODY_Y = CENTER_Y - 55;
-const HAND_END_MODAL_BTN_Y = CENTER_Y + 25; // 第一排：進入下局（長按鈕）
-const HAND_END_MODAL_STAND_GAP = 18;
-const HAND_END_MODAL_BTN_H = 72;
-const HAND_END_MODAL_ROW2_Y = HAND_END_MODAL_BTN_Y + HAND_END_MODAL_BTN_H + HAND_END_MODAL_STAND_GAP; // 第二排
-const HAND_END_MODAL_JOIN_W = 480; // 進入下局：第一排加長置中
-const HAND_END_MODAL_ACT_W = 150;
-const HAND_END_MODAL_JOIN_X = CENTER_X;
-// 第二排三顆：換桌 / 結束 / 退座觀戰
-const HAND_END_MODAL_SWITCH_X = CENTER_X - 185;
-const HAND_END_MODAL_EXIT_X = CENTER_X;
-const HAND_END_MODAL_STAND_X = CENTER_X + 185;
+const HAND_END_MODAL_BODY_Y = CENTER_Y - 15;
+const HAND_END_MODAL_BTN_Y = CENTER_Y + 55; // 單排按鈕
+const HAND_END_MODAL_BTN_H = 64;
+const HAND_END_MODAL_JOIN_W = 196; // 進入下局（含倒數）略寬
+const HAND_END_MODAL_ACT_W = 128;  // 退座 / 結束
+// 一排三顆置中，彼此留間距：join | stand | exit
+const HAND_END_MODAL_JOIN_X = CENTER_X - 144;
+const HAND_END_MODAL_STAND_X = CENTER_X + 34;
+const HAND_END_MODAL_EXIT_X = CENTER_X + 178;
 
 // 暫時隱藏右上角常駐「換桌 / 結束」按鈕；需要時改回 true。
 const SHOW_TOPRIGHT_ROOM_BUTTONS = true;
@@ -482,7 +479,17 @@ const SEAT_BET_AMOUNT_POSITIONS_6 = [
   { x: 540, y: 430 },  // 座位 2（再下移 50px、右移 30px）
   { x: 340, y: 315 },  // 座位 3
   { x: 190, y: 390 },  // 座位 4
-  { x: 170, y: 485 },  // 座位 5
+  { x: 180, y: 455 },  // 座位 5（下注籌碼：左移 20px、上移 15px）
+];
+
+// 各座位「籌碼(堆疊額)文字」相對預設位置的微調偏移，索引對應 SEAT_POSITIONS_6
+const SEAT_CHIPS_OFFSET_6 = [
+  { x: 0, y: 0 },   // 座位 0
+  { x: 0, y: 0 },   // 座位 1
+  { x: 0, y: 0 },   // 座位 2
+  { x: 0, y: 0 },   // 座位 3
+  { x: 0, y: 0 },   // 座位 4
+  { x: 0, y: 0 },   // 座位 5
 ];
 
 // 6 人桌座位座標（畫面座標；自己在下方）
@@ -756,7 +763,6 @@ export class TableScene extends Phaser.Scene {
     this._handEndMenuSeq = 0;
     this._handEndMenuEnd = 0;
     this.handEndMenuJoinBtn = null;
-    this.handEndMenuSwitchBtn = null;
     this.handEndMenuExitBtn = null;
     this.handEndMenuStandBtn = null;
     this.handEndModalOverlay = null;
@@ -1808,7 +1814,6 @@ export class TableScene extends Phaser.Scene {
       this.handEndModalTitle?.destroy();
       this.handEndModalBody?.destroy();
       this.handEndMenuJoinBtn?.destroy();
-      this.handEndMenuSwitchBtn?.destroy();
       this.handEndMenuExitBtn?.destroy();
       this.handEndMenuStandBtn?.destroy();
       this.input.off("pointerdown", this._hrPointerDown, this);
@@ -1903,9 +1908,8 @@ export class TableScene extends Phaser.Scene {
     this.handEndModalTitle?.setPosition(CENTER_X, HAND_END_MODAL_TITLE_Y + 8 + dy);
     this.handEndModalBody?.setPosition(CENTER_X, HAND_END_MODAL_BODY_Y + dy);
     this.handEndMenuJoinBtn?.setPosition?.(HAND_END_MODAL_JOIN_X, HAND_END_MODAL_BTN_Y + dy);
-    this.handEndMenuSwitchBtn?.setPosition?.(HAND_END_MODAL_SWITCH_X, HAND_END_MODAL_ROW2_Y + dy);
-    this.handEndMenuExitBtn?.setPosition?.(HAND_END_MODAL_EXIT_X, HAND_END_MODAL_ROW2_Y + dy);
-    this.handEndMenuStandBtn?.setPosition?.(HAND_END_MODAL_STAND_X, HAND_END_MODAL_ROW2_Y + dy);
+    this.handEndMenuExitBtn?.setPosition?.(HAND_END_MODAL_EXIT_X, HAND_END_MODAL_BTN_Y + dy);
+    this.handEndMenuStandBtn?.setPosition?.(HAND_END_MODAL_STAND_X, HAND_END_MODAL_BTN_Y + dy);
 
     // Hero join wait text (fixed position, no dy — same as nextHandCountdown)
     this.heroJoinWaitText?.setPosition(CENTER_X, TABLE_HINT_TEXT_Y);
@@ -3064,41 +3068,8 @@ export class TableScene extends Phaser.Scene {
       onClick: () => { this._handEndMenuEnd = 0; this.refreshHandEndMenu(); this.app.sendPacket("hand_ready", {}); },
       visible: false,
     });
-    this.handEndMenuSwitchBtn = createGradientButton(this, {
-      x: HAND_END_MODAL_SWITCH_X, y: HAND_END_MODAL_ROW2_Y,
-      width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
-      topColor: 0x1a5aaa, bottomColor: 0x0a2855, borderColor: 0x3d90f5,
-      label: "換桌", labelStyle: _btnStyle,
-      depth: HAND_END_MODAL_TEXT_DEPTH,
-      onClick: () => {
-        this._handEndMenuEnd = 0;
-        const heroSeat = this.resolveHeroSeatForDisplay(this.state?.table);
-        const heroPlayer = heroSeat !== null && Array.isArray(this.state?.table?.players)
-          ? this.state.table.players.find(p => isSameSeat(p?.seat, heroSeat)) : null;
-        const heroChips = Number(heroPlayer?.chips ?? 0);
-        const minBuyin = Number(this.state?.table?.min_buyin ?? 0);
-        if (minBuyin > 0 && heroChips < minBuyin) {
-          this._pendingSwitchAfterRebuy = true;
-          this._pendingSwitchMidHand = false;
-          this._rebuyDeclined = false;
-          const offer = this.state?.rebuyOffer || {
-            table_id: this.state?.table?.table_id,
-            current_chips: heroChips,
-            min_buyin: minBuyin,
-            max_buyin: Number(this.state?.table?.max_buyin ?? minBuyin),
-            default_buyin: minBuyin,
-          };
-          this.renderRebuyModal(offer);
-          return;
-        }
-        this.store.beginSwitchRoom?.();
-        const buyin = this.resolveSwitchRoomBuyin();
-        this.app.sendPacket("switch_room", { buyin });
-      },
-      visible: false,
-    });
     this.handEndMenuExitBtn = createGradientButton(this, {
-      x: HAND_END_MODAL_EXIT_X, y: HAND_END_MODAL_ROW2_Y,
+      x: HAND_END_MODAL_EXIT_X, y: HAND_END_MODAL_BTN_Y,
       width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
       topColor: 0xc02828, bottomColor: 0x6a1010, borderColor: 0xd43535,
       label: "結束", labelStyle: _btnStyle,
@@ -3112,10 +3083,10 @@ export class TableScene extends Phaser.Scene {
       visible: false,
     });
     this.handEndMenuStandBtn = createGradientButton(this, {
-      x: HAND_END_MODAL_STAND_X, y: HAND_END_MODAL_ROW2_Y,
+      x: HAND_END_MODAL_STAND_X, y: HAND_END_MODAL_BTN_Y,
       width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
-      topColor: 0x6a4b1a, bottomColor: 0x3a2708, borderColor: 0xd0a23c,
-      label: "退座觀戰", labelStyle: _btnStyle,
+      topColor: 0x1a5aaa, bottomColor: 0x0a2855, borderColor: 0x3d90f5,
+      label: "退座", labelStyle: _btnStyle,
       depth: HAND_END_MODAL_TEXT_DEPTH,
       onClick: () => {
         this._handEndMenuEnd = 0;
@@ -3678,7 +3649,8 @@ export class TableScene extends Phaser.Scene {
     seatView.name.setFontSize(`${nameFontSize}px`).setPosition(seatView.posX, nameTagCenterY).setOrigin(0.5, 0.5);
     const chipsFontSize = isHero ? "35px" : SEAT_INFO_FONT_SIZE;
     const chipsYGap = isHero ? -14 : -10;
-    seatView.chips.setFontSize(chipsFontSize).setPosition(seatView.posX, nameTagCenterY + nametagHalfH + chipsYGap).setOrigin(0.5, 0);
+    const chipsOffset = SEAT_CHIPS_OFFSET_6[seatView.slotIndex] || { x: 0, y: 0 };
+    seatView.chips.setFontSize(chipsFontSize).setPosition(seatView.posX + chipsOffset.x, nameTagCenterY + nametagHalfH + chipsYGap + chipsOffset.y).setOrigin(0.5, 0);
     seatView.actionBadge.setPosition(seatView.posX, seatView.posY + actionBadgeYOffset).setOrigin(0.5);
     const cdFxScale = isHero ? 1.32 : 1.12;
     const cdEdgeR = Math.round(TURN_GLOW_OUTER_RADIUS * cdFxScale * 0.68);
@@ -3686,7 +3658,8 @@ export class TableScene extends Phaser.Scene {
     const cdY = seatView.posY + AVATAR_Y_OFFSET + cdEdgeR;
     seatView.turnCountdownBg.setPosition(cdX, cdY);
     seatView.turnCountdown.setPosition(cdX, cdY);
-    const holeCardDepth = isHero ? 26 : SEAT_HOLE_CARD_DEPTH;
+    // hero 手牌與其他座位一樣壓在 name tag 後面（nametag 深度 = SEAT_TEXT_DEPTH - 0.5）。
+    const holeCardDepth = SEAT_HOLE_CARD_DEPTH;
     seatView.holeCards?.forEach((hc, i) => {
       const flipStep = seatView.avatarFlipX ? (1 - i) : i;
       hc.sprite.setDepth(holeCardDepth + flipStep * 0.1);
@@ -3823,17 +3796,36 @@ export class TableScene extends Phaser.Scene {
   buildSpectatorSitHint() {
     const W = 300;
     const H = 64;
-    const CR = 14;
+    const CR = 16;
     const cx = VIEW_WIDTH - W / 2 - 20;
     const cy = VIEW_HEIGHT - H / 2 - 26;
     const container = this.add.container(cx, cy).setDepth(60).setVisible(false);
 
-    const gfx = this.add.graphics();
-    // 橘色由上而下漸變
-    gfx.fillGradientStyle(0xffb24a, 0xffb24a, 0xff7a00, 0xff7a00, 1);
-    gfx.fillRoundedRect(-W / 2, -H / 2, W, H, CR);
-    gfx.lineStyle(2, 0xffe0b0, 1);
-    gfx.strokeRoundedRect(-W / 2, -H / 2, W, H, CR);
+    // 以 canvas 線性漸變產生平滑的橘色底（比頂點漸變更順），再裁成圓角。
+    const texKey = "spectator_sit_hint_bg";
+    if (this.textures.exists(texKey)) this.textures.remove(texKey);
+    const canvasTex = this.textures.createCanvas(texKey, W, H);
+    const ctx = canvasTex.getContext();
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, "#ffc879");
+    grad.addColorStop(0.5, "#ff9a33");
+    grad.addColorStop(1, "#f57a12");
+    const r = CR;
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.arcTo(W, 0, W, H, r);
+    ctx.arcTo(W, H, 0, H, r);
+    ctx.arcTo(0, H, 0, 0, r);
+    ctx.arcTo(0, 0, W, 0, r);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,224,176,0.9)";
+    ctx.stroke();
+    canvasTex.refresh();
+
+    const bg = this.add.image(0, 0, texKey).setOrigin(0.5);
 
     const label = this.add
       .text(0, 0, "觀戰中  請選位坐下", {
@@ -3846,7 +3838,7 @@ export class TableScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    container.add([gfx, label]);
+    container.add([bg, label]);
     return container;
   }
 
@@ -3919,7 +3911,6 @@ export class TableScene extends Phaser.Scene {
       this.handEndModalTitle?.setVisible(false);
       this.handEndModalBody?.setVisible(false);
       this.handEndMenuJoinBtn?.setVisible(false);
-      this.handEndMenuSwitchBtn?.setVisible(false);
       this.handEndMenuExitBtn?.setVisible(false);
       this.handEndMenuStandBtn?.setVisible(false);
       this._refreshTopButtonsState();
@@ -3943,7 +3934,6 @@ export class TableScene extends Phaser.Scene {
     this.handEndModalTitle?.setVisible(true);
     this.handEndModalBody?.setVisible(true);
     this.handEndMenuJoinBtn?.setVisible(true);
-    this.handEndMenuSwitchBtn?.setVisible(true);
     this.handEndMenuExitBtn?.setVisible(true);
     this.handEndMenuStandBtn?.setVisible(!this.state?.isSpectator);
 
@@ -4600,9 +4590,9 @@ export class TableScene extends Phaser.Scene {
     const revealFace = revealCards.length > 0;
     const isFolded = player?.in_hand === false
       || String(player?.last_action || "").toLowerCase().startsWith("fold");
-    // Hero always sees their own cards (even after folding); only suppress other folded players.
-    const fallbackVisibleCount = (isFolded && !isHero) ? 0 : Number(player?.hole_count ?? 0);
-    const visibleCount = (isFolded && !isHero && showdownCards.length === 0) ? 0 : (revealFace ? revealCards.length : fallbackVisibleCount);
+    // 棄牌後手牌一律隱藏（含 hero 自己）；除非有攤牌揭示。
+    const fallbackVisibleCount = isFolded ? 0 : Number(player?.hole_count ?? 0);
+    const visibleCount = (isFolded && showdownCards.length === 0) ? 0 : (revealFace ? revealCards.length : fallbackVisibleCount);
     return {
       revealFace,
       cardValues: revealCards,
@@ -5950,7 +5940,7 @@ export class TableScene extends Phaser.Scene {
     if (this.state?.isSpectator) {
       this.layoutActionButtons([]);
       this.closeRaiseActionPanel();
-      this.spectatorBadge?.setVisible(true);
+      this.spectatorBadge?.setVisible(false);
       this.spectatorSitHint?.setVisible(true);
     } else {
       this.layoutActionButtons(this._actionSentPending ? [] : allowed);
