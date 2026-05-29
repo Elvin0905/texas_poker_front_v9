@@ -117,6 +117,8 @@ function isTableFlowPacket(type) {
     "table_player_joined",
     "action_request",
     "turn",
+    "spectator_mode",
+    "seat_taken",
     "player_action",
     "deal_community",
     "deal_card",
@@ -638,6 +640,45 @@ export class Store extends EventTarget {
           this.state.table = data.table;
         }
         break;
+
+      // 切換為觀戰模式（stand_up 成功，或本來就在觀戰）
+      case "spectator_mode": {
+        this.state.isSpectator = true;
+        this.state.canAct = false;
+        this.state.heroSeat = null;
+        this.state.actionRequest = null;
+        if (Object.prototype.hasOwnProperty.call(data, "previous_seat")) {
+          this.state.previousSeat = data.previous_seat;
+        }
+        if (Number.isFinite(Number(data.table_chips))) {
+          this.state.tableChips = Number(data.table_chips);
+        }
+        if (data.table && Object.keys(data.table).length > 0) {
+          normalizeTableRoundTotalBet(data.table);
+          this.syncHandContext(data.table);
+          this.state.table = data.table;
+        }
+        break;
+      }
+
+      // 從觀戰入座成功
+      case "seat_taken": {
+        this.state.isSpectator = false;
+        this.state.canAct = false;
+        if (Number.isInteger(Number(data.hero_seat))) {
+          this.state.heroSeat = Number(data.hero_seat);
+        }
+        this.state.heroJoinedWaiting = Boolean(data.waiting_this_hand);
+        if (Number.isFinite(Number(data.table_chips))) {
+          this.state.tableChips = Number(data.table_chips);
+        }
+        if (data.table && Object.keys(data.table).length > 0) {
+          normalizeTableRoundTotalBet(data.table);
+          this.syncHandContext(data.table);
+          this.state.table = data.table;
+        }
+        break;
+      }
 
       case "table_countdown": {
         const secs = Number(data.seconds ?? 0);
