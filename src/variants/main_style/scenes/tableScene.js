@@ -960,7 +960,7 @@ export class TableScene extends Phaser.Scene {
     // 已入座、但因人數不足無法開局時，右上角顯示「離座」按鈕：按下後送 stand_up，
     // 退座留桌轉為觀戰（席位釋出，仍可換桌/離桌/重新入座）。
     this.standUpTopButton = this.add.image(STAND_UP_BUTTON_X, STAND_UP_BUTTON_Y, "game_table", "btn_standup_table");
-    this.standUpTopButton.setDisplaySize(160, 64).setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10).setVisible(false);
+    this.standUpTopButton.setDisplaySize(190, 76).setDepth(SWITCH_CONFIRM_TEXT_DEPTH + 10).setVisible(false);
     bindImageButton(this, this.standUpTopButton, {
       pressedScale: 0.96,
       onClick: () => {
@@ -4200,6 +4200,16 @@ export class TableScene extends Phaser.Scene {
       slot.flyCard = null;
     }
     this.tweens.killTweensOf(slot.frontCard);
+    // 停掉動畫後必須把槽位還原成一致狀態，否則會留下「孤兒 pending」：
+    // flyCard 已被銷毀、frontCard 仍隱藏，但 pendingCard 還指著某張牌。
+    // renderCommunityCards 看到 pendingCard===目標就會判定「正在處理中」而略過，
+    // 導致這張公牌永久消失（玩家切到別的分頁再切回來、發牌動畫途中被打斷時最常見）。
+    slot.pendingCard = null;
+    // 若牌面已揭示（shownCard 有值）但翻牌縮放動畫被中途停掉，frontCard 可能卡在
+    // scaleX≈0 的壓扁狀態，補正回正常大小並顯示，避免留下看不見/壓扁的牌。
+    if (slot.shownCard) {
+      slot.frontCard.setScale(COMMUNITY_CARD_SCALE).setVisible(true);
+    }
   }
 
   setCommunityCardImmediate(index, cardRaw) {
@@ -5065,7 +5075,10 @@ export class TableScene extends Phaser.Scene {
     // 2) 停掉飛向底池的收注籌碼動畫。
     this.clearRoundBetCollectFx();
     // 3) 停掉公牌（翻牌/轉牌/河牌）翻牌動畫，改由 renderState 直接畫成靜止狀態。
+    //    stopCommunitySlotAnimation 現在會清掉 pendingCard，被打斷的公牌會在下面的
+    //    renderState 重新補回（不重播飛牌動畫，直接 snap 成靜止）。
     this.communitySlots?.forEach((slot) => this.stopCommunitySlotAnimation?.(slot));
+    this.communityAnimationReady = false;
     // 4) 立刻以最新狀態重繪。
     this.renderState();
   }
@@ -5378,11 +5391,11 @@ export class TableScene extends Phaser.Scene {
       }
 
       const nextSeatCount = DEFAULT_SEAT_COUNT;
-      const seatNumbers = Array.isArray(table.players)
-        ? table.players.map((item) => Number(item.seat)).filter((n) => Number.isFinite(n))
-        : [];
-      const minSeat = seatNumbers.length > 0 ? Math.min(...seatNumbers) : this.seatStart;
-      const nextSeatStart = minSeat >= 1 ? 1 : DEFAULT_SEAT_START;
+      // 座位編號基底固定為 DEFAULT_SEAT_START（伺服器一律 0-indexed）。
+      // 不可從「目前在座的最小座位」推導 seatStart：座位 0 一旦空出，舊邏輯會把它翻成 1，
+      // 使每個玩家的顯示槽位 (seat - seatStart) 整體位移一格——hero 從左中(index5)跳到
+      // 左上(index4)，座位 0 再有人入座時又跳回。占用狀況無法判斷編號基底，故固定用基底值。
+      const nextSeatStart = DEFAULT_SEAT_START;
 
       if (nextSeatCount !== this.seatCount || nextSeatStart !== this.seatStart) {
         this.buildSeatViews(nextSeatCount, nextSeatStart);
