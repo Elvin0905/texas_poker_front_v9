@@ -1050,6 +1050,19 @@ export class TableScene extends Phaser.Scene {
       .setAlpha(0.88)
       .setVisible(false);
 
+    this.spectatorBadge = this.add
+      .text(CENTER_X, ACTION_ROW_Y, "觀戰中", {
+        fontSize: "24px",
+        color: "#ffe7a8",
+        fontStyle: "bold",
+        fontFamily: UI_FONT_STACK,
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(50)
+      .setVisible(false);
+
     this.heroJoinWaitText = this.add
       .text(CENTER_X, TABLE_HINT_TEXT_Y, "等待其他玩家確認中", {
         fontSize: "30px",
@@ -1710,6 +1723,7 @@ export class TableScene extends Phaser.Scene {
 
     this.events.once("shutdown", () => {
       this.unsubscribe?.();
+      this.spectatorBadge?.destroy(); this.spectatorBadge = null;
       this._winLightTimer?.remove(); this._winLightTimer = null;
       if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
       if (this.winLightImage) { this.winLightImage.destroy(); this.winLightImage = null; }
@@ -1780,6 +1794,7 @@ export class TableScene extends Phaser.Scene {
       const btn = this.actionButtons?.[action];
       if (btn) btn.y = newActionY;
     });
+    this.spectatorBadge?.setY(newActionY);
 
     // Raise panel：如果是開的，重新定位；否則初始位置會在下次 open 時自動套用 bottomDy
     if (this.isRaisePanelOpen) {
@@ -5791,7 +5806,14 @@ export class TableScene extends Phaser.Scene {
       sessionStorage.removeItem("ngame_sent_action_key");
       sessionStorage.removeItem("ngame_sent_action_at");
     }
-    this.layoutActionButtons(this._actionSentPending ? [] : allowed);
+    if (this.state?.isSpectator) {
+      this.layoutActionButtons([]);
+      this.closeRaiseActionPanel();
+      this.spectatorBadge?.setVisible(true);
+    } else {
+      this.layoutActionButtons(this._actionSentPending ? [] : allowed);
+      this.spectatorBadge?.setVisible(false);
+    }
 
     const handResultVersion = Number(this.state.handResultVersion ?? 0);
     const hasPendingHandResult = handResultVersion > this.lastSeenHandResultVersion;
