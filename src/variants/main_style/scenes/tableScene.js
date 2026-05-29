@@ -131,7 +131,7 @@ const HAND_END_MODAL_SWITCH_X = CENTER_X + 25;
 const HAND_END_MODAL_EXIT_X = CENTER_X + 195;
 
 // 暫時隱藏右上角常駐「換桌 / 結束」按鈕；需要時改回 true。
-const SHOW_TOPRIGHT_ROOM_BUTTONS = false;
+const SHOW_TOPRIGHT_ROOM_BUTTONS = true;
 
 // 玩家操作列（棄牌/過牌/跟注/全下）
 const ACTION_ROW_Y = 1330;
@@ -848,6 +848,12 @@ export class TableScene extends Phaser.Scene {
     bindImageButton(this, this.changeTableButton, {
       pressedScale: 0.96,
       onClick: () => {
+        // 觀戰態：直接換桌（仍保持觀戰），不檢查座位/籌碼、不彈充值框。
+        if (this.state?.isSpectator) {
+          this.store.beginSwitchRoom?.();
+          this.app.sendPacket("switch_room", {});
+          return;
+        }
         const isHandActive = this.state?.table?.status === "playing";
         if (isHandActive) {
           const heroSeat = this.resolveHeroSeatForDisplay(this.state?.table);
@@ -898,6 +904,13 @@ export class TableScene extends Phaser.Scene {
         console.log("[EXIT] btn clicked, page=", this.store.getState?.()?.page, "tableId=", this.store.getState?.()?.table?.table_id);
         this.closeSwitchRoomConfirmDialog();
         this.renderRebuyModal(null);
+        // 觀戰態：直接離桌回大廳，不檢查下注/座位。
+        if (this.state?.isSpectator) {
+          const tid = this.store.getState?.().table?.table_id ?? null;
+          this.store.beginLeaveTable?.(tid);
+          this.app.sendPacket("leave_room", {});
+          return;
+        }
         const isHandActive = this.state?.table?.status === "playing";
         const heroSwitchPending = this.store.getState?.().heroSwitchPending;
         if (isHandActive && !heroSwitchPending) {
@@ -3247,6 +3260,12 @@ export class TableScene extends Phaser.Scene {
       button.setVisible(false).clearTint().disableInteractive();
     });
 
+    // 觀戰態：完全不顯示行動按鈕（連灰色佔位也不要），上面已把所有按鈕隱藏。
+    if (this.state?.isSpectator) {
+      this.closeRaiseActionPanel();
+      return;
+    }
+
     if (this.app?.isHandReplayActive?.()) {
       this.closeRaiseActionPanel();
       return;
@@ -5527,7 +5546,13 @@ export class TableScene extends Phaser.Scene {
           seatView.sitPromptBg.off("pointerdown");
           if (this.state?.isSpectator) {
             const seatToTake = Number(displaySeatNo);
-            seatView.sitPromptBg.setInteractive({ useHandCursor: true });
+            // sitPromptBg 是 Graphics，必須顯式給圓形命中區 + callback，
+            // 否則 setInteractive({useHandCursor}) 會讓 hitAreaCallback=undefined 而每次指針事件報錯。
+            seatView.sitPromptBg.setInteractive(
+              new Phaser.Geom.Circle(0, 0, seatView.sitPromptBgRadius),
+              Phaser.Geom.Circle.Contains,
+            );
+            seatView.sitPromptBg.input.cursor = "pointer";
             seatView.sitPromptBg.once("pointerdown", () => {
               playUiClick(this);
               this.app.sendPacket("take_seat", { seat: seatToTake });
