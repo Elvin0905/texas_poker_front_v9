@@ -5462,8 +5462,17 @@ export class TableScene extends Phaser.Scene {
           seatView.sitPromptCircle.setVisible(true);
           seatView.sitPromptPlus.setVisible(true);
           seatView.sitPromptLabel.setVisible(true);
-          seatView.sitPromptBg.disableInteractive();
           seatView.sitPromptBg.off("pointerdown");
+          if (this.state?.isSpectator) {
+            const seatToTake = Number(displaySeatNo);
+            seatView.sitPromptBg.setInteractive({ useHandCursor: true });
+            seatView.sitPromptBg.once("pointerdown", () => {
+              playUiClick(this);
+              this.app.sendPacket("take_seat", { seat: seatToTake });
+            });
+          } else {
+            seatView.sitPromptBg.disableInteractive();
+          }
           this.hideSeatHoleCards(seatView);
           continue;
         }
@@ -5548,6 +5557,8 @@ export class TableScene extends Phaser.Scene {
         seatView.sitPromptCircle.setVisible(false);
         seatView.sitPromptPlus.setVisible(false);
         seatView.sitPromptLabel.setVisible(false);
+        seatView.sitPromptBg.disableInteractive();
+        seatView.sitPromptBg.off("pointerdown");
         if (actionBrandFrame) {
           const isNewBadge = actionAt !== this.lastShownBadgeAtBySeat?.[seatKey];
           if (isNewBadge) {
@@ -5766,6 +5777,8 @@ export class TableScene extends Phaser.Scene {
         seatView.sitPromptCircle.setVisible(false);
         seatView.sitPromptPlus.setVisible(false);
         seatView.sitPromptLabel.setVisible(false);
+        seatView.sitPromptBg.disableInteractive();
+        seatView.sitPromptBg.off("pointerdown");
         this.hideSeatHoleCards(seatView);
       });
       this.potText.setText("").setVisible(false);
