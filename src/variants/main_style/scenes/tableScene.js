@@ -3694,7 +3694,9 @@ export class TableScene extends Phaser.Scene {
     if (!seatView?.roleBadge) {
       return;
     }
-    const badgeY = seatView.posY + ROLE_BADGE_Y_ABOVE_HEAD;
+    // hero 自己的角色標籤（大盲/小盲/庄）再往上移 10px。
+    const isHeroSeat = isSameSeat(seatView?.displaySeatNo, this.resolveHeroSeatForDisplay(this.state?.table));
+    const badgeY = seatView.posY + ROLE_BADGE_Y_ABOVE_HEAD - (isHeroSeat ? 10 : 0);
     seatView.roleBadge.setPosition(seatView.posX, badgeY).setScale(0.63);
     seatView.waitingBadge?.setPosition(seatView.posX, badgeY + 38).setScale(0.62);
   }
