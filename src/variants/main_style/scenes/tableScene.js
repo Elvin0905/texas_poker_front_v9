@@ -478,7 +478,7 @@ const HERO_ACTION_BADGE_Y_OFFSET = -132;
 // 可手動微調：x/y 是下注金額文字座標
 const SEAT_BET_AMOUNT_POSITIONS_6 = [
   { x: 230, y: 995 }, // 座位 0
-  { x: 520, y: 840 },  // 座位 1（跟隨座位下移到底排，再上移 50px）
+  { x: 490, y: 995 },  // 座位 1（下注籌碼：與左下角 idx0(230,995) 左右鏡像、同高 y=995）
   { x: 540, y: 430 },  // 座位 2（再下移 50px、右移 30px）
   { x: 340, y: 315 },  // 座位 3
   { x: 190, y: 390 },  // 座位 4
@@ -498,7 +498,7 @@ const SEAT_CHIPS_OFFSET_6 = [
 // 6 人桌座位座標（畫面座標；自己在下方）
 const SEAT_POSITIONS_6 = [
   { x: 120, y: 975 }, // 玩家本人座位（下方）
-  { x: 610, y: 925 }, // 右下角：與左下角同排（再上移 50px）
+  { x: 610, y: 975 }, // 右下角：與左下角同高（y 對齊 idx0=975；iPhone 12 底部不再遮擋右下玩家＋籌碼）
   { x: 635, y: 505 }, // 右上角（再下移 50px、右移 30px）
   { x: 430, y: 215 },
   { x: 115, y: 295 },
@@ -1144,6 +1144,9 @@ export class TableScene extends Phaser.Scene {
     this.pendingHandResult = null;
     this._winLightTimer = null;
     this._winLightTween = null;
+    // 分池多贏家時用 _showExtraWinLightAt 產生的額外光效，必須追蹤才能在換桌時清掉，
+    // 否則觀戰中按換桌、若上一桌正在播 win light，特效會殘留到新桌不消失。
+    this._extraWinLights = [];
 
     // Light image shown behind winning seat (rotates, depth below profile bg/frame).
     this.winLightImage = this.add
@@ -1802,6 +1805,7 @@ export class TableScene extends Phaser.Scene {
       this._winLightTimer?.remove(); this._winLightTimer = null;
       if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
       if (this.winLightImage) { this.winLightImage.destroy(); this.winLightImage = null; }
+      this.clearExtraWinLights();
       if (this.turnCountdownTicker) {
         this.turnCountdownTicker.remove();
         this.turnCountdownTicker = null;
@@ -4865,7 +4869,11 @@ export class TableScene extends Phaser.Scene {
       repeat: -1,
       ease: "Linear",
     });
-    this.time.delayedCall(WIN_LIGHT_DURATION_MS, () => {
+    // 追蹤這顆額外光效，換桌時 clearExtraWinLights() 才能銷毀它。
+    const entry = { img, tween, timer: null };
+    if (!Array.isArray(this._extraWinLights)) this._extraWinLights = [];
+    this._extraWinLights.push(entry);
+    entry.timer = this.time.delayedCall(WIN_LIGHT_DURATION_MS, () => {
       this.tweens.add({
         targets: img,
         alpha: 0,
@@ -4873,13 +4881,38 @@ export class TableScene extends Phaser.Scene {
         onComplete: () => {
           this.tweens.remove(tween);
           img.destroy();
+          const i = this._extraWinLights.indexOf(entry);
+          if (i >= 0) this._extraWinLights.splice(i, 1);
         },
       });
     });
   }
 
+  // 立即清除所有「額外」win light（分池多贏家），含旋轉/淡出 tween 與計時器。
+  // 主 winLightImage 由各 reset 點自行隱藏。
+  clearExtraWinLights() {
+    if (!Array.isArray(this._extraWinLights)) {
+      this._extraWinLights = [];
+      return;
+    }
+    this._extraWinLights.forEach((entry) => {
+      try { entry?.timer?.remove(); } catch (_) {}
+      try { if (entry?.tween) this.tweens.remove(entry.tween); } catch (_) {}
+      try { if (entry?.img) this.tweens.killTweensOf(entry.img); } catch (_) {}
+      try { entry?.img?.destroy(); } catch (_) {}
+    });
+    this._extraWinLights = [];
+  }
+
   // Hook: play voice when award animation starts.
   onAwardAnimationStart(cue) {
+    // 觀戰換桌防呆：若這個發獎 cue 屬於「上一桌」（table_id 與目前桌不符），直接略過，
+    // 否則舊桌殘留的 award cue 會在切到新桌後才被消費，於新桌觸發 win light 且不消失。
+    const cueTableId = String(cue?.packet?.table_id ?? cue?.packet?.data?.table_id ?? "");
+    const curTableId = String(this.state?.table?.table_id ?? this.lastRenderedTableId ?? "");
+    if (cueTableId && curTableId && cueTableId !== curTableId) {
+      return;
+    }
     const playerResults = cue?.packet?.data?.player_results;
     let primaryX = layout.centerX;
     let primaryY = layout.centerY;
@@ -5392,7 +5425,9 @@ export class TableScene extends Phaser.Scene {
         // transient UI from the previous table before rendering the new one.
         this._winLightTimer?.remove(); this._winLightTimer = null;
         if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
+        this.tweens.killTweensOf(this.winLightImage);
         this.winLightImage?.setVisible(false).setAlpha(0.88);
+        this.clearExtraWinLights();
         this.winGifIsPlaying = false;
         this.pendingHandResult = null;
         if (this.newRoundHintTimer) {
@@ -5902,7 +5937,9 @@ export class TableScene extends Phaser.Scene {
         // Stop win light if still running from previous hand.
         this._winLightTimer?.remove(); this._winLightTimer = null;
         if (this._winLightTween) { this.tweens.remove(this._winLightTween); this._winLightTween = null; }
+        this.tweens.killTweensOf(this.winLightImage);
         if (this.winLightImage) { this.winLightImage.setVisible(false).setAlpha(0.88); }
+        this.clearExtraWinLights();
         this.winGifIsPlaying = false;
         this.seatViews.forEach((sv) => {
           sv.holeCards?.forEach((hc) => { hc.pendingShowdownFlip = false; });
