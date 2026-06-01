@@ -778,6 +778,9 @@ export class TableScene extends Phaser.Scene {
     this.lastSeenActionRequestKey = "";
     this.seatLastActionMap = {};
     this.seatActionMapReady = false;
+    // 全下聲效以「該座位上次響過的 last_action_at」去重，確保同一個 allin 動作只響一次，
+    // 不受換手/彈窗導致的 baseline、seatLastActionMap 重置影響（避免聲效重播）。
+    this._allInSfxLastAtBySeat = {};
     this.actionRoundKey = "";
     this.actionRoundBaselineAtBySeat = {};
     this.lastShownBadgeAtBySeat = {};
@@ -2064,7 +2067,7 @@ export class TableScene extends Phaser.Scene {
     } catch (_) {}
   }
 
-  trackSeatActionSfx(seatRaw, actionRaw, nextSeatActionMap) {
+  trackSeatActionSfx(seatRaw, actionRaw, nextSeatActionMap, actionAtRaw) {
     const seat = parseSeat(seatRaw);
     if (seat === null || !nextSeatActionMap) {
       return;
@@ -2080,6 +2083,17 @@ export class TableScene extends Phaser.Scene {
       return;
     }
     if (action === "allin") {
+      // 以伺服器動作時間戳 last_action_at 去重：同一個 allin 動作只響一次。
+      // 換手 / 「是否繼續遊戲」彈窗會重置 actionRoundBaselineAtBySeat，使上一手仍在桌上的
+      // 全下玩家被重新判定為 fresh allin、prev 又被清空，否則就會重播 allin_start 聲效。
+      const at = Number(actionAtRaw);
+      if (Number.isFinite(at)) {
+        if (this._allInSfxLastAtBySeat?.[seatKey] === at) {
+          return;
+        }
+        if (!this._allInSfxLastAtBySeat) this._allInSfxLastAtBySeat = {};
+        this._allInSfxLastAtBySeat[seatKey] = at;
+      }
       this.playSfx(ALLIN_START_SFX_KEY, ALLIN_START_SFX_VOLUME);
     }
   }
@@ -3118,7 +3132,7 @@ export class TableScene extends Phaser.Scene {
       x: HAND_END_MODAL_STAND_X, y: HAND_END_MODAL_BTN_Y,
       width: HAND_END_MODAL_ACT_W, height: HAND_END_MODAL_BTN_H, cornerRadius: 12,
       topColor: 0x1a5aaa, bottomColor: 0x0a2855, borderColor: 0x3d90f5,
-      label: "退座", labelStyle: _btnStyle,
+      label: "離座", labelStyle: _btnStyle,
       depth: HAND_END_MODAL_TEXT_DEPTH,
       onClick: () => {
         this._handEndMenuEnd = 0;
@@ -5331,7 +5345,7 @@ export class TableScene extends Phaser.Scene {
         if (code === "TAKE_SEAT_CHIPS_TOO_LOW") {
           this.showSpectatorToast("桌上籌碼不足，無法入座");
         } else if (code === "STAND_UP_NOT_ALLOWED") {
-          this.showSpectatorToast("只能在牌局之間退座");
+          this.showSpectatorToast("只能在牌局之間離座");
         }
       }
     }
@@ -5764,7 +5778,7 @@ export class TableScene extends Phaser.Scene {
         const hasFreshAction = Number.isFinite(actionAt) && actionAt > baselineAt && seatKey === maxRecentActionSeat;
         const rawActionForDisplay = (hasFreshAction && !isShowdownActive) ? player.last_action : null;
         const actionForDisplay = this.coerceAllInActionForDisplay(player, rawActionForDisplay);
-        this.trackSeatActionSfx(player.seat, actionForDisplay, nextSeatActionMap);
+        this.trackSeatActionSfx(player.seat, actionForDisplay, nextSeatActionMap, player.last_action_at);
         const actionBrandFrame = this.resolveSeatActionBrandFrame(actionForDisplay);
         seatView.name.setVisible(true);
         seatView.chips.setVisible(true);
