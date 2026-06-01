@@ -1975,20 +1975,23 @@ export class TableScene extends Phaser.Scene {
     const heroSeatDelta = heroSeatDy - (this._heroSeatDy ?? 0);
     this._heroSeatDy = heroSeatDy;
     if (Math.abs(heroSeatDelta) >= 0.5) {
-      const s0 = this.seatViews?.[0];
-      if (s0) {
-        s0.posY += heroSeatDelta;
+      // 底排兩個座位（slot 0 左下、slot 1 右下）一起上移，維持與行動按鈕的間距並保持左右平齊。
+      // 早期只移 slot 0，手機短屏時右下角玩家會比左下角低、不在同一排。
+      [0, 1].forEach((idx) => {
+        const sv = this.seatViews?.[idx];
+        if (!sv) return;
+        sv.posY += heroSeatDelta;
         [
-          s0.profileBg, s0.profileFrame, s0.avatar, s0.foldOverlay,
-          s0.roleBadge, s0.waitingBadge, s0.nametag, s0.name, s0.chips,
-          s0.actionBadge, s0.betCoin, s0.betAmount,
-          s0.sitPromptBg, s0.sitPromptCircle, s0.sitPromptPlus, s0.sitPromptLabel,
-          s0.sweepArc, s0.glowOuter, s0.glowInner,
-          s0.turnCountdownBg, s0.turnCountdown,
+          sv.profileBg, sv.profileFrame, sv.avatar, sv.foldOverlay,
+          sv.roleBadge, sv.waitingBadge, sv.nametag, sv.name, sv.chips,
+          sv.actionBadge, sv.betCoin, sv.betAmount,
+          sv.sitPromptBg, sv.sitPromptCircle, sv.sitPromptPlus, sv.sitPromptLabel,
+          sv.sweepArc, sv.glowOuter, sv.glowInner,
+          sv.turnCountdownBg, sv.turnCountdown,
         ].forEach(obj => { if (obj?.y != null) obj.y += heroSeatDelta; });
-        s0.betCoinStack?.forEach(s => { if (s?.y != null) s.y += heroSeatDelta; });
-        s0.holeCards?.forEach(hc => { if (hc?.sprite?.y != null) hc.sprite.y += heroSeatDelta; });
-      }
+        sv.betCoinStack?.forEach(s => { if (s?.y != null) s.y += heroSeatDelta; });
+        sv.holeCards?.forEach(hc => { if (hc?.sprite?.y != null) hc.sprite.y += heroSeatDelta; });
+      });
     }
   }
 
@@ -3739,7 +3742,8 @@ export class TableScene extends Phaser.Scene {
     const perSeat = Number.isFinite(slotIndex) ? SEAT_BET_AMOUNT_POSITIONS_6[slotIndex] : null;
     const amountX = Number(perSeat?.x ?? seatView.posX + 56);
     let amountY = Number(perSeat?.y ?? seatView.posY + 84);
-    if (slotIndex === 0) amountY += this._heroSeatDy || 0;
+    // slot 0/1 是底排，跟著 heroSeatDy 一起上移，下注籌碼才會貼齊已上移的座位。
+    if (slotIndex === 0 || slotIndex === 1) amountY += this._heroSeatDy || 0;
     seatView.betCoinStack?.forEach((img, ti) => img.setPosition(amountX, amountY - ti * 9));
     seatView.betAmount.setPosition(amountX, amountY);
   }
@@ -4524,7 +4528,7 @@ export class TableScene extends Phaser.Scene {
     for (let i = 0; i < CHIP_VALUES.length; i++) {
       if (betValue >= CHIP_VALUES[i]) { frame = CHIP_FRAMES[i]; break; }
     }
-    const betTargetY = betPos.y + (slotIndex === 0 ? (this._heroSeatDy || 0) : 0);
+    const betTargetY = betPos.y + ((slotIndex === 0 || slotIndex === 1) ? (this._heroSeatDy || 0) : 0);
     coin.setFrame(frame).setPosition(seatView.posX, seatView.posY).setVisible(true).setActive(true);
     this.tweens.add({
       targets: coin,
