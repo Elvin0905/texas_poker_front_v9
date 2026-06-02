@@ -380,10 +380,10 @@ const DEAL_CARD_FLY_MAX_MS = 300;
 // between cards uneven (the v82 regression). Instead, once primed we drain one
 // card every DEAL_CARD_QUEUE_INTERVAL_MS on a steady clock → even visual spacing.
 const DEAL_CARD_QUEUE_INTERVAL_MS = 140;
-// Jitter buffer: wait one interval before the first card so a small buffer
-// accumulates, then the timer drives a steady cadence immune to server-emit /
-// render-frame jitter.
-const DEAL_CARD_QUEUE_LEAD_MS = 140;
+// Jitter buffer: wait this long before the first card so a buffer accumulates,
+// then the timer drives a steady cadence immune to server-emit / render-frame
+// jitter. ~2× the emit gap keeps the cadence even from the very first gap.
+const DEAL_CARD_QUEUE_LEAD_MS = 280;
 // Keep the metronome alive for a few empty ticks so a slightly-late card stays
 // phase-locked to the steady cadence instead of playing the instant it arrives.
 const DEAL_CARD_QUEUE_GRACE_TICKS = 2;

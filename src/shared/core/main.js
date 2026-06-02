@@ -2458,6 +2458,13 @@ const game = new Phaser.Game({
   width: Math.floor((window.innerWidth || 720) * DPR),
   height: Math.floor((window.innerHeight || 1440) * DPR),
   transparent: true,
+  // 影格率上限鎖 30fps：forceSetTimeOut 讓 Phaser 用 setTimeout 而非 rAF 驅動主迴圈，
+  // 才能真正把上限壓到 target；超過 30 的裝置一律降到 30（省電/省效能）。
+  // 動畫節奏不受影響：tween 與 time.delayedCall 都是以毫秒計時，不是逐影格計。
+  fps: {
+    target: 30,
+    forceSetTimeOut: true,
+  },
   scale: {
     mode: Phaser.Scale.NONE,
     autoCenter: Phaser.Scale.NO_CENTER,
