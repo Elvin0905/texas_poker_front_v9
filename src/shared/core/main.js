@@ -2108,14 +2108,9 @@ function sendPacket(type, data = {}, options = {}) {
       store.emit();
       return true;
     }
-    // 若 WS 尚未開啟，寫入錯誤到 store 給 UI 顯示
-    store.applyPacket({
-      type: "error",
-      data: {
-        code: "WS_NOT_OPEN",
-        message: `連線尚未建立，無法送出：${type}`,
-      },
-    });
+    // WS 尚未開啟：靜默記錄即可，不要彈「系統通知」給玩家看。
+    // 這多半是連線剛斷／重連中的暫態，重連邏輯會自動恢復；彈窗只會嚇到玩家。
+    store.pushLog(`=> ${type} (dropped: ws_not_open)`);
     return false;
   }
   pushWsTrace("send", { type, data });
