@@ -4659,6 +4659,13 @@ export class TableScene extends Phaser.Scene {
       return;
     }
     const expectedFrameKey = String(frameKey);
+    // Already flipping toward this exact face? Don't restart it. Without this, a
+    // second reveal trigger for the same card+face mid-flip (deal-landing reveal +
+    // render-loop / hole_cards arriving while the flip is still animating) would
+    // stop and replay the flip — the "偶爾多一個翻牌動畫" double-flip.
+    if (holeCard.isFlipping && holeCard.targetFaceFrameKey === expectedFrameKey) {
+      return;
+    }
     holeCard.targetFaceFrameKey = expectedFrameKey;
 
     if (holeCard.faceFrameKey === expectedFrameKey && !holeCard.isFlipping) {
