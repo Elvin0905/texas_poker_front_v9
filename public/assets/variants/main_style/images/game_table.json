@@ -102,18 +102,18 @@
     },
     "brand_fold": {
       "frame": {
-        "x": 250,
-        "y": 160,
-        "w": 250,
-        "h": 160
+        "x": 251,
+        "y": 161,
+        "w": 248,
+        "h": 158
       },
       "rotated": false,
-      "trimmed": false,
+      "trimmed": true,
       "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 250,
-        "h": 160
+        "x": 1,
+        "y": 1,
+        "w": 248,
+        "h": 158
       },
       "sourceSize": {
         "w": 250,

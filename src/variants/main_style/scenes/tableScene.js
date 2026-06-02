@@ -375,13 +375,18 @@ const DEAL_CARD_START_ANGLE = -18;
 const DEAL_CARD_FLY_SPEED_PX_PER_MS = 2.6;
 const DEAL_CARD_FLY_MIN_MS = 150;
 const DEAL_CARD_FLY_MAX_MS = 300;
-// Rate limiter (not a free-running metronome): the server already emits cards
-// one-by-one at an even cadence, so we play each card the moment it arrives and
-// only enforce a minimum spacing. This keeps pacing driven by arrival time (the
-// source of truth) instead of an independent clock that drifts out of phase and
-// inserts spurious pauses. The min gap only kicks in to separate a burst (e.g.
-// two cards delivered back-to-back), so pick it below the server's emit gap.
-const DEAL_CARD_MIN_GAP_MS = 75;
+// Fixed-interval metronome (NOT arrival-driven): server-emit / network / render
+// timing is jittery, so playing each card "the moment it arrives" makes the gaps
+// between cards uneven (the v82 regression). Instead, once primed we drain one
+// card every DEAL_CARD_QUEUE_INTERVAL_MS on a steady clock → even visual spacing.
+const DEAL_CARD_QUEUE_INTERVAL_MS = 140;
+// Jitter buffer: wait one interval before the first card so a small buffer
+// accumulates, then the timer drives a steady cadence immune to server-emit /
+// render-frame jitter.
+const DEAL_CARD_QUEUE_LEAD_MS = 140;
+// Keep the metronome alive for a few empty ticks so a slightly-late card stays
+// phase-locked to the steady cadence instead of playing the instant it arrives.
+const DEAL_CARD_QUEUE_GRACE_TICKS = 2;
 const DEAL_CARD_POP_DURATION = 80;
 const DEAL_CARD_DEPTH = 27;
 const DEAL_CARD_TARGET_OFFSET_X_LEFT = -28;
@@ -729,7 +734,7 @@ export class TableScene extends Phaser.Scene {
     this.lastSeenDealCardVersion = 0;
     this.dealCardQueue = [];
     this.dealCardDrainTimer = null;
-    this._lastDealPlayAt = 0;
+    this._dealEmptyTicks = 0;
     this.tableContainer = null;
     this.tableLayoutListener = null;
     this.communitySlots = [];
@@ -5151,6 +5156,7 @@ export class TableScene extends Phaser.Scene {
       if (landingCard) landingCard.pendingDeal = false;
     });
     this.dealCardQueue = [];
+    this._dealEmptyTicks = 0;
     if (this.dealCardDrainTimer) { this.dealCardDrainTimer.remove(); this.dealCardDrainTimer = null; }
   }
 
@@ -5168,38 +5174,47 @@ export class TableScene extends Phaser.Scene {
       landingCard.sprite.setVisible(false);
     }
     this.dealCardQueue.push({ ...dealCard });
-    this._pumpDealCardQueue();
+    // Don't play on arrival — wait one lead interval so a jitter buffer builds,
+    // then the steady-cadence metronome drives playback at an even interval.
+    if (!this.dealCardDrainTimer) {
+      this._dealEmptyTicks = 0;
+      this._scheduleDealDrain(DEAL_CARD_QUEUE_LEAD_MS);
+    }
   }
 
-  // Play the next queued card if the minimum spacing since the last one has
-  // elapsed; otherwise schedule a single pump for exactly the remaining gap.
-  // Pacing follows arrival time, with the min gap only spacing out bursts.
-  _pumpDealCardQueue() {
-    if (this.dealCardDrainTimer) return;
+  _scheduleDealDrain(delay) {
+    this.dealCardDrainTimer = this.time.delayedCall(delay, () => {
+      this.dealCardDrainTimer = null;
+      this._drainDealCardQueue();
+    });
+  }
+
+  // Fixed-interval metronome: once primed (via the lead/jitter buffer in
+  // _enqueueDealCard), drain exactly one card every DEAL_CARD_QUEUE_INTERVAL_MS
+  // regardless of when cards actually arrive. This guarantees even visual spacing
+  // even when server-emit / network / render-frame timing is jittery.
+  _drainDealCardQueue() {
     if (this._clearCardsUntilNextHand) {
       this._clearDealCardQueue();
       return;
     }
-    if (this.dealCardQueue.length === 0) return;
-
-    const sinceLast = this.time.now - this._lastDealPlayAt;
-    if (sinceLast < DEAL_CARD_MIN_GAP_MS) {
-      this.dealCardDrainTimer = this.time.delayedCall(DEAL_CARD_MIN_GAP_MS - sinceLast, () => {
-        this.dealCardDrainTimer = null;
-        this._pumpDealCardQueue();
-      });
+    if (this.dealCardQueue.length === 0) {
+      // Queue ran dry: keep the metronome ticking for a few beats so a slightly
+      // late card stays phase-locked to the steady cadence. Only stop once the
+      // gap is clearly a real pause (server done, or a genuine long server gap).
+      this._dealEmptyTicks += 1;
+      if (this._dealEmptyTicks <= DEAL_CARD_QUEUE_GRACE_TICKS) {
+        this._scheduleDealDrain(DEAL_CARD_QUEUE_INTERVAL_MS);
+        return;
+      }
+      this._dealEmptyTicks = 0;
+      this.dealCardDrainTimer = null;
       return;
     }
-
-    this._lastDealPlayAt = this.time.now;
+    this._dealEmptyTicks = 0;
     const dealCard = this.dealCardQueue.shift();
     this.playDealCardEffect(dealCard);
-    if (this.dealCardQueue.length > 0) {
-      this.dealCardDrainTimer = this.time.delayedCall(DEAL_CARD_MIN_GAP_MS, () => {
-        this.dealCardDrainTimer = null;
-        this._pumpDealCardQueue();
-      });
-    }
+    this._scheduleDealDrain(DEAL_CARD_QUEUE_INTERVAL_MS);
   }
 
   playDealCardEffect(dealCard) {
