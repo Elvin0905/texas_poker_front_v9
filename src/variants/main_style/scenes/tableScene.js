@@ -728,6 +728,7 @@ export class TableScene extends Phaser.Scene {
     this.currentActiveSeat = null;
     this.currentTurnTimeout = null;
     this.currentTurnStartedAt = null;
+    this.currentTurnDeadlineAt = null;
     this.turnCountdownTicker = null;
     this.lastCountdownBeepSecond = null;
     this.countdownSfxInstance = null;
@@ -3278,6 +3279,12 @@ export class TableScene extends Phaser.Scene {
     if (this._actionSentPending) {
       return;
     }
+    // Deadline passed: refuse to send and lock (server already auto-acted).
+    if (this._isHeroActionDeadlinePassed()) {
+      this.closeRaiseActionPanel();
+      this.layoutActionButtons([]);
+      return;
+    }
     const raiseTo = this.normalizeRaisePanelSelected(this.raiseSelectedValue, this.raiseActionModel);
     const action = this.raiseActionType;
     this.closeRaiseActionPanel();
@@ -3872,6 +3879,22 @@ export class TableScene extends Phaser.Scene {
     return null;
   }
 
+  // 後端權威倒數截止時間（Unix epoch ms）。spec：倒數與停按鈕一律以此為準。
+  resolveActiveDeadlineAt(table, actionRequest) {
+    const candidates = [
+      table?.current_turn_deadline_at,
+      actionRequest?.deadline_at_ms,
+      table?.turn?.deadline_at_ms,
+    ];
+    for (const value of candidates) {
+      const n = Number(value);
+      if (Number.isFinite(n) && n > 0) {
+        return n;
+      }
+    }
+    return null;
+  }
+
   buildSpectatorSitHint() {
     // 觀戰提示直接用 atlas 圖（inview_hint，已含「觀戰中 請選位坐下」文字）。
     // 高度依「該 frame 的實際寬高比」推算，不可寫死比例——否則重新打包圖集、
@@ -4029,6 +4052,14 @@ export class TableScene extends Phaser.Scene {
   }
 
   getCurrentRemainSeconds() {
+    // Spec: 倒數一律以後端權威截止時間 deadline_at_ms 為準（deadline - now），
+    // 不要用「收包當下 + timeout」推算。只有後端沒給 deadline（舊後端 / 大老二）
+    // 時，才退回用 started_at + timeout 推算。
+    const deadlineAt = Number(this.currentTurnDeadlineAt);
+    if (Number.isFinite(deadlineAt) && deadlineAt > 0) {
+      return Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
+    }
+
     const timeout = Number(this.currentTurnTimeout);
     if (!Number.isFinite(timeout) || timeout <= 0) {
       return null;
@@ -4041,6 +4072,16 @@ export class TableScene extends Phaser.Scene {
 
     const elapsedSeconds = (Date.now() - startedAt) / 1000;
     return Math.max(0, Math.ceil(timeout - elapsedSeconds));
+  }
+
+  // True only while it's the hero's turn (actionRequest present) AND the turn
+  // countdown has hit 0. Used to lock the action buttons and refuse to send any
+  // action the instant the deadline passes: the server auto-acts at timeout, so a
+  // late client action would just conflict / be rejected.
+  _isHeroActionDeadlinePassed() {
+    if (!this.state?.actionRequest) return false;
+    const remain = this.getCurrentRemainSeconds();
+    return remain !== null && remain <= 0;
   }
 
   refreshHeroJoinWaitText() {
@@ -4130,6 +4171,17 @@ export class TableScene extends Phaser.Scene {
         .setAlpha(alpha)
         .setText(String(remainSeconds))
         .setVisible(true);
+    }
+
+    // Lock the hero's action buttons the instant the deadline passes — driven by
+    // this ticker, so it fires even if no state update arrives at exactly 0s.
+    // From here we also refuse to send (see sendAction / confirmRaiseAction).
+    if (remainSeconds !== null && remainSeconds <= 0 && this.state?.actionRequest && !this._actionSentPending) {
+      const anyVisible = ACTION_BUTTON_ORDER.some((a) => this.actionButtons?.[a]?.visible);
+      if (anyVisible || this.isRaisePanelOpen) {
+        this.layoutActionButtons([]);
+        this.closeRaiseActionPanel();
+      }
     }
   }
 
@@ -5538,6 +5590,7 @@ export class TableScene extends Phaser.Scene {
       const _prevTurnStartedAt = this.currentTurnStartedAt;
       this.currentTurnTimeout = this.resolveActiveTimeout(table, actionRequest);
       this.currentTurnStartedAt = this.resolveActiveStartedAt(table);
+      this.currentTurnDeadlineAt = this.resolveActiveDeadlineAt(table, actionRequest);
       // [COUNTDOWN-DIAG] temporary: trace when the turn anchor moves so we can see
       // what re-stamps started_at on window switch (value jumping up).
       if (this.currentTurnStartedAt !== _prevTurnStartedAt || this.currentTurnTimeout !== _prevTurnTimeout) {
@@ -6023,6 +6076,7 @@ export class TableScene extends Phaser.Scene {
       this.currentActiveSeat = null;
       this.currentTurnTimeout = null;
       this.currentTurnStartedAt = null;
+      this.currentTurnDeadlineAt = null;
       this.lastCountdownBeepSecond = null;
       this.stopCountdownSfx();
       this.lastResolvedHeroSeat = null;
@@ -6111,7 +6165,9 @@ export class TableScene extends Phaser.Scene {
       this._positionSpectatorSitHint();
       this.spectatorSitHint?.setVisible(true);
     } else {
-      this.layoutActionButtons(this._actionSentPending ? [] : allowed);
+      const _deadlinePassed = this._isHeroActionDeadlinePassed();
+      this.layoutActionButtons((this._actionSentPending || _deadlinePassed) ? [] : allowed);
+      if (_deadlinePassed) this.closeRaiseActionPanel();
       this.spectatorBadge?.setVisible(false);
       this.spectatorSitHint?.setVisible(false);
     }
@@ -6361,6 +6417,12 @@ export class TableScene extends Phaser.Scene {
       return;
     }
     if (this._actionSentPending) {
+      return;
+    }
+    // Deadline passed: lock the buttons and refuse to send (server already auto-acted).
+    if (this._isHeroActionDeadlinePassed()) {
+      this.layoutActionButtons([]);
+      this.closeRaiseActionPanel();
       return;
     }
     const allowedActions = (this.state.actionRequest?.allowed ?? []).map((a) => String(a).toLowerCase());

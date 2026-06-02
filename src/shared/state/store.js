@@ -20,11 +20,13 @@ function clone(value) {
 //     此時才重新下錨。
 // 換桌 / 新一手會走 table_state，把 current_turn_started_at 清成 null；只要錨點無效，
 // 即使 key 相同也會強制重新下錨，避免沿用上一手的舊錨點。
-function resolveTurnAnchor(table, timeoutSec, seatNo, round) {
+function resolveTurnAnchor(table, timeoutSec, seatNo, round, deadlineMs) {
   const now = Date.now();
   const key = `${Number.isFinite(seatNo) ? seatNo : "?"}|${round != null ? round : "?"}`;
+  // 後端權威截止時間（Unix epoch ms）。有就優先用，倒數天生單調（固定時間點）。
+  const deadlineAt = Number.isFinite(deadlineMs) && deadlineMs > 0 ? deadlineMs : null;
   if (!Number.isFinite(timeoutSec)) {
-    return { startedAt: now, timeout: null, key };
+    return { startedAt: now, timeout: null, key, deadlineAt };
   }
   const prevStarted = Number(table.current_turn_started_at);
   const prevTimeout = Number(table.current_turn_timeout);
@@ -35,10 +37,16 @@ function resolveTurnAnchor(table, timeoutSec, seatNo, round) {
     prevStarted > 0 &&
     Number.isFinite(prevTimeout);
   if (table.current_turn_anchor_key === key && prevAnchorValid) {
-    // 同一座位、同一 round 的重送：保留原錨點，避免倒數往上跳。
-    return { startedAt: prevStarted, timeout: prevTimeout, key };
+    // 同一座位、同一 round 的重送：保留原錨點與原截止時間，避免倒數往上跳。
+    const prevDeadline = Number(table.current_turn_deadline_at);
+    return {
+      startedAt: prevStarted,
+      timeout: prevTimeout,
+      key,
+      deadlineAt: (Number.isFinite(prevDeadline) && prevDeadline > 0) ? prevDeadline : deadlineAt,
+    };
   }
-  return { startedAt: now, timeout: timeoutSec, key };
+  return { startedAt: now, timeout: timeoutSec, key, deadlineAt };
 }
 
 function normalizeCardCode(cardRaw) {
@@ -772,6 +780,7 @@ export class Store extends EventTarget {
           this.state.table.current_turn_seat = null;
           this.state.table.current_turn_timeout = null;
           this.state.table.current_turn_started_at = null;
+          this.state.table.current_turn_deadline_at = null;
         }
         this.state.actionRequest = null;
         this.state.rebuyOffer = null;
@@ -937,9 +946,10 @@ export class Store extends EventTarget {
           }
           const timeoutSec = Number(data.timeout);
           const round = data.round != null ? data.round : this.state.table.round;
-          const anchor = resolveTurnAnchor(this.state.table, timeoutSec, seatNo, round);
+          const anchor = resolveTurnAnchor(this.state.table, timeoutSec, seatNo, round, Number(data.deadline_at_ms));
           this.state.table.current_turn_timeout = anchor.timeout;
           this.state.table.current_turn_started_at = anchor.startedAt;
+          this.state.table.current_turn_deadline_at = anchor.deadlineAt;
           this.state.table.current_turn_anchor_key = anchor.key;
         }
         {
@@ -963,9 +973,10 @@ export class Store extends EventTarget {
           this.state.table.current_turn_seat = Number.isFinite(seatNo) ? seatNo : null;
           const timeoutSec = Number(data.timeout);
           const round = data.round != null ? data.round : this.state.table.round;
-          const anchor = resolveTurnAnchor(this.state.table, timeoutSec, seatNo, round);
+          const anchor = resolveTurnAnchor(this.state.table, timeoutSec, seatNo, round, Number(data.deadline_at_ms));
           this.state.table.current_turn_timeout = anchor.timeout;
           this.state.table.current_turn_started_at = anchor.startedAt;
+          this.state.table.current_turn_deadline_at = anchor.deadlineAt;
           this.state.table.current_turn_anchor_key = anchor.key;
           if (data.round) {
             this.state.table.round = data.round;
@@ -1052,6 +1063,7 @@ export class Store extends EventTarget {
           this.state.table.current_turn_seat = Number.isFinite(actionSeat) ? actionSeat : null;
           this.state.table.current_turn_timeout = null;
           this.state.table.current_turn_started_at = null;
+          this.state.table.current_turn_deadline_at = null;
         }
         this.state.actionRequest = null;
         break;
@@ -1079,6 +1091,7 @@ export class Store extends EventTarget {
           this.state.table.current_turn_seat = null;
           this.state.table.current_turn_timeout = null;
           this.state.table.current_turn_started_at = null;
+          this.state.table.current_turn_deadline_at = null;
         }
         this.state.actionRequest = null;
         break;
@@ -1501,6 +1514,7 @@ export class Store extends EventTarget {
     this.state.table.current_turn_seat = null;
     this.state.table.current_turn_timeout = null;
     this.state.table.current_turn_started_at = null;
+    this.state.table.current_turn_deadline_at = null;
 
     // 只有當 action 是當前 request 那個座位時，才清掉本地 actionRequest
     // 避免別人行動時把我方 action UI 清空
@@ -1526,6 +1540,7 @@ export class Store extends EventTarget {
     this.state.table.current_turn_seat = null;
     this.state.table.current_turn_timeout = null;
     this.state.table.current_turn_started_at = null;
+    this.state.table.current_turn_deadline_at = null;
     if (Array.isArray(this.state.table.players)) {
       this.state.table.players.forEach((player) => {
         player.bet = 0;
