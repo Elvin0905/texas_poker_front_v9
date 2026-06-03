@@ -4055,8 +4055,14 @@ export class TableScene extends Phaser.Scene {
     // Spec: 倒數一律以後端權威截止時間 deadline_at_ms 為準（deadline - now），
     // 不要用「收包當下 + timeout」推算。只有後端沒給 deadline（舊後端 / 大老二）
     // 時，才退回用 started_at + timeout 推算。
+    //
+    // 例外：回放（hand replay）。回放資料裡的 deadline_at_ms 是「歷史」的牆鐘時間，
+    // 早就過期，deadline - now 會永遠是負值 → 倒數恆為 0、操作鎖死。回放時改用
+    // started_at + timeout 推算；該 started_at 會在回放播放當下被重新下錨（resolveTurnAnchor），
+    // 所以倒數能正常從 timeout 往下走。
+    const isReplay = Boolean(this.app?.isHandReplayActive?.());
     const deadlineAt = Number(this.currentTurnDeadlineAt);
-    if (Number.isFinite(deadlineAt) && deadlineAt > 0) {
+    if (!isReplay && Number.isFinite(deadlineAt) && deadlineAt > 0) {
       return Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
     }
 
