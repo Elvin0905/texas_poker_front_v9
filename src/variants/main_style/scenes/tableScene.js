@@ -2231,6 +2231,11 @@ export class TableScene extends Phaser.Scene {
       const username = _nameChars.slice(0, 4).join("");
       const contribAmount = Number(item?.contrib_amount ?? 0);
       const winAmount = Number(item?.win_amount ?? 0);
+      const returnAmount = Number(item?.return_amount ?? 0);
+      // 「贏分」欄顯示 win_amount - return_amount（扣掉退還的未跟注額），
+      // 但勝者/棄牌判定與 net 計算仍用原始 win_amount。
+      const displayWinAmount = (Number.isFinite(winAmount) ? winAmount : 0)
+        - (Number.isFinite(returnAmount) ? returnAmount : 0);
       const netRaw = Number(item?.net_amount);
       const netAmount = Number.isFinite(netRaw)
         ? netRaw
@@ -2243,7 +2248,7 @@ export class TableScene extends Phaser.Scene {
       const isKnownFold = lastAction.startsWith("fold") || (tablePlayer?.in_hand === false && !(Number.isFinite(winAmount) && winAmount > 0));
       const isFold = isKnownFold || (!rankText && cardFrames.length <= 0 && (!Number.isFinite(winAmount) || winAmount <= 0));
       const betText = formatAmount(contribAmount);
-      const winText = formatAmount(winAmount);
+      const winText = formatAmount(displayWinAmount);
       const netText = formatSignedAmount(netAmount);
       const resultText = isFold ? "棄牌" : (rankText || "--");
       const amountColor = isWinner
@@ -2255,7 +2260,7 @@ export class TableScene extends Phaser.Scene {
         isWinner,
         netAmount,
         contribAmount,
-        winAmount,
+        winAmount: displayWinAmount,
         betText,
         winText,
         netText,
