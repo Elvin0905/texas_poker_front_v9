@@ -432,7 +432,7 @@ const WIN_SPRITE_SIZE_FACTOR = 0.65;
 const SEAT_WIN_LIGHT_DEPTH = 16;
 const WIN_LIGHT_DURATION_MS = 4500;
 const COUNTDOWN_TIMER_SFX_KEY = "countdown_timer";
-const COUNTDOWN_TIMER_SFX_VOLUME = 0.9;
+const COUNTDOWN_TIMER_SFX_VOLUME = 1.5;
 const DEAL_CARD_LEFT_ANGLE = -7;
 const DEAL_CARD_RIGHT_ANGLE = 7;
 const HOLE_CARD_FLIP_HALF_DURATION = 110;
@@ -2065,7 +2065,8 @@ export class TableScene extends Phaser.Scene {
     if (!this.countdownSfxSound) return;
     const outputScale = Number(this.app?.getSfxOutputVolume?.(1) ?? 0);
     if (outputScale <= 0) return;
-    const outVolume = Math.max(0, Math.min(1, COUNTDOWN_TIMER_SFX_VOLUME * outputScale));
+    // 倒數警示音允許放大到 >1（WebAudio 增益可放大），上限 2.0，比一般音效更響亮、更醒目。
+    const outVolume = Math.max(0, Math.min(2, COUNTDOWN_TIMER_SFX_VOLUME * outputScale));
     if (outVolume <= 0) return;
     try {
       if (this.countdownSfxSound.isPlaying) this.countdownSfxSound.stop();
