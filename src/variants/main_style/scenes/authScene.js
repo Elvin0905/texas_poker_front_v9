@@ -2,6 +2,10 @@ import { bindImageButton, applyGoldTitleGradient, drawEnhancedBorder, createGrad
 import { SoundSettingsPanel } from "../ui/soundSettingsPanel.js";
 import { layout, onLayoutResize } from "../../../shared/core/layout.js";
 
+// Google 登入（Google Identity Services / GSI）。credential(ID token) 會透過 app
+// 既有的 WebSocket 以 google_login 送給後端，後端回 login_ok（已有處理）。
+const GOOGLE_CLIENT_ID = "710155903331-63qeqmh24lnkrl0950r658mte2gmk5jm.apps.googleusercontent.com";
+
 const BOX_W = 565;
 const BOX_H = 80;
 const BOX_CR = 14;
@@ -334,7 +338,10 @@ export class AuthScene extends Phaser.Scene {
     this.fbBtn = this.add.image(0, 0, "login", "fb").setDisplaySize(86, 86);
     bindImageButton(this, this.fbBtn, { onClick: () => this._showThirdParty("Facebook") });
     this.googleBtn = this.add.image(0, 0, "login", "google").setDisplaySize(86, 86);
-    bindImageButton(this, this.googleBtn, { onClick: () => this._showThirdParty("Google") });
+    // 保留原本的圓形 Google 圖標（永遠可見）；點擊時觸發 Google 登入（GSI One Tap）。
+    // 拿到 credential(ID token) → 走 app 既有 WS 送 google_login，後端回 login_ok（已有處理）。
+    bindImageButton(this, this.googleBtn, { onClick: () => this._triggerGoogleLogin() });
+    this._initGoogleSignIn();
     this.lineBtn = this.add.image(0, 0, "login", "line").setDisplaySize(86, 86);
     bindImageButton(this, this.lineBtn, { onClick: () => this._showThirdParty("LINE") });
 
@@ -935,6 +942,47 @@ export class AuthScene extends Phaser.Scene {
 
   _showUnderConstruction() {
     this.store.applyPacket({ type: "error", data: { code: "FEATURE_UNDER_CONSTRUCTION", message: "正在施工中" } });
+  }
+
+  // 初始化 GSI（供 _triggerGoogleLogin 的 One Tap 使用）。script 為 async defer，
+  // 可能尚未載好 → 輪詢約 10 秒。失敗不影響其他登入方式。
+  _initGoogleSignIn() {
+    this._googleReady = false;
+    this._googleInitTries = 0;
+    const tryInit = () => {
+      const gid = window.google?.accounts?.id;
+      if (!gid) {
+        if (++this._googleInitTries > 40) return;
+        this._googleInitTimer = setTimeout(tryInit, 250);
+        return;
+      }
+      try {
+        gid.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (response) => {
+            if (response?.credential) {
+              this.app.sendPacket("google_login", { credential: response.credential });
+            }
+          },
+        });
+        this._googleReady = true;
+      } catch (_) {
+        // 初始化失敗 → _triggerGoogleLogin 會退回提示。
+      }
+    };
+    tryInit();
+  }
+
+  _triggerGoogleLogin() {
+    const gid = window.google?.accounts?.id;
+    if (this._googleReady && gid) {
+      try {
+        gid.prompt();
+        return;
+      } catch (_) {}
+    }
+    // GSI 還沒就緒（剛載入 / 載不到）→ 退回原本的提示。
+    this._showThirdParty("Google");
   }
 
   _showThirdParty(name) {
@@ -1574,6 +1622,7 @@ export class AuthScene extends Phaser.Scene {
   _destroyScene() {
     if (this._tmOverlay?.visible) this._hideTermModal();
     if (this._fpOverlay?.visible) this._hideForgotModal();
+    if (this._googleInitTimer) { clearTimeout(this._googleInitTimer); this._googleInitTimer = null; }
     clearTimeout(this._kbTimer);
     if (this._kbOverlay) { this._kbOverlay.remove(); this._kbOverlay = null; }
     const root = document.getElementById('phaser-root');
