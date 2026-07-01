@@ -65,6 +65,10 @@ export class BootScene extends Phaser.Scene {
     // 若檔案尚未產生（404）只會發 loaderror，不影響其它資源；合併步驟會自動跳過。
     this.load.atlas("game_table2", `${imageBase}/game_table2.webp`, `${imageBase}/game_table2.json`);
 
+    // Big Two 牌桌圖集，因為 Big Two 牌桌的 frame 與原本的 game_table 不同，所以不併入 game_table。
+    this.load.atlas("big_two_game_table",  `${imageBase}/big_two_game_table.webp`,  `${imageBase}/big_two_game_table.json`);
+    this.load.atlas("big_two_game_table2", `${imageBase}/big_two_game_table2.webp`, `${imageBase}/big_two_game_table2.json`);
+
     this.load.atlas("win", `${imageBase}/win.webp`, `${imageBase}/win.json`);
 
     // Audio

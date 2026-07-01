@@ -1,0 +1,275 @@
+{
+  "frames": {
+    "brand_full_house": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 250,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 250,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 250,
+        "h": 160
+      }
+    },
+    "brand_pair": {
+      "frame": {
+        "x": 250,
+        "y": 0,
+        "w": 250,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 250,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 250,
+        "h": 160
+      }
+    },
+    "brand_quads": {
+      "frame": {
+        "x": 500,
+        "y": 0,
+        "w": 250,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 250,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 250,
+        "h": 160
+      }
+    },
+    "brand_single": {
+      "frame": {
+        "x": 0,
+        "y": 160,
+        "w": 250,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 250,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 250,
+        "h": 160
+      }
+    },
+    "brand_straight": {
+      "frame": {
+        "x": 250,
+        "y": 160,
+        "w": 250,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 250,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 250,
+        "h": 160
+      }
+    },
+    "brand_straight_flush": {
+      "frame": {
+        "x": 500,
+        "y": 160,
+        "w": 250,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 250,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 250,
+        "h": 160
+      }
+    },
+    "btn_pass": {
+      "frame": {
+        "x": 0,
+        "y": 320,
+        "w": 210,
+        "h": 130
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 210,
+        "h": 130
+      },
+      "sourceSize": {
+        "w": 210,
+        "h": 130
+      }
+    },
+    "btn_play": {
+      "frame": {
+        "x": 210,
+        "y": 320,
+        "w": 210,
+        "h": 130
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 210,
+        "h": 130
+      },
+      "sourceSize": {
+        "w": 210,
+        "h": 130
+      }
+    },
+    "btn_select": {
+      "frame": {
+        "x": 420,
+        "y": 320,
+        "w": 210,
+        "h": 130
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 210,
+        "h": 130
+      },
+      "sourceSize": {
+        "w": 210,
+        "h": 130
+      }
+    },
+    "card_back": {
+      "frame": {
+        "x": 630,
+        "y": 320,
+        "w": 130,
+        "h": 180
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 130,
+        "h": 180
+      },
+      "sourceSize": {
+        "w": 130,
+        "h": 180
+      }
+    },
+    "icon_sound_off": {
+      "frame": {
+        "x": 760,
+        "y": 320,
+        "w": 93,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 93,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 93,
+        "h": 92
+      }
+    },
+    "icon_sound_on": {
+      "frame": {
+        "x": 853,
+        "y": 320,
+        "w": 93,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 93,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 93,
+        "h": 92
+      }
+    },
+    "table": {
+      "frame": {
+        "x": 0,
+        "y": 500,
+        "w": 878,
+        "h": 1235
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 878,
+        "h": 1235
+      },
+      "sourceSize": {
+        "w": 878,
+        "h": 1235
+      }
+    }
+  },
+  "meta": {
+    "app": "Media Tool Atlas Packer",
+    "version": "1.0",
+    "image": "atlas.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 946,
+      "h": 1735
+    },
+    "scale": "1"
+  }
+}
