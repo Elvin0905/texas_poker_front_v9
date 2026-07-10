@@ -212,11 +212,17 @@ export class Store extends EventTarget {
 			// 大老二專屬狀態
 			bigTwoHeroCards: [], // 大老二英雄手牌（13張）
 			bigTwoHeroCardsVersion: 0, // 每次更新 +1
+			bigTwoHeroCardsRestored: false, // 由重連 sessionStorage 還原（非新發牌）→ 場景靜態顯示、不重播發牌動畫
 			bigTwoLastPlay: null, // 最新出牌：{ seat, cards }
 			bigTwoLastPlayVersion: 0, // 每次出牌 +1
 			bigTwoHandResult: null, // 本局結果
 			bigTwoHandResultVersion: 0, // 每次結果 +1
+			bigTwoReveals: null, // 局末各家公開牌（來自 hand_end.reveals / player_results；big_two 專屬，供翻牌動畫）
 			bigTwoActionSeq: null, // 最新 action_seq（來自 turn 或 action_request）
+			// 下一手 ready window 狀態（來自通用 hand_ready_state / hand_ready_ack 事件）。新增欄位、僅供
+			// 大老二場景讀取顯示「等待其他玩家 (n/m)」；撲克不讀此欄位，故其行為不受影響。
+			handReadyState: null, // { table_id, hand_id, ready_count, required_count, pending_rebuy, all_ready }
+			handReadyAck: null, // { …, accepted, reason, expires_at }（本端 hand_ready 的回執）
 		};
 	}
 
@@ -264,6 +270,8 @@ export class Store extends EventTarget {
 		this.state.bigTwoLastPlayVersion += 1;
 		this.state.bigTwoHandResult = null;
 		this.state.bigTwoActionSeq = null;
+		this.state.handReadyState = null; // 換桌：清掉上一桌的 ready window 狀態（新增欄位，撲克不讀）
+		this.state.handReadyAck = null;
 		this.emit();
 	}
 
@@ -680,6 +688,18 @@ export class Store extends EventTarget {
 				}
 				break;
 
+			// 玩家進度查詢成功（get_my_progress 的回應，§10.35）：更新 user.progress_summary（全域摘要），
+			// 供大廳統計面板（等級/場次/勝率/贏場）顯示最新值。純新增訊息型別；不更動任何既有 case。
+			// （game_stats／achievements 目前不使用，先忽略。）
+			case "my_progress_ok":
+				if (data.progress_summary) {
+					this.state.user = {
+						...(this.state.user ?? {}),
+						progress_summary: data.progress_summary,
+					};
+				}
+				break;
+
 			case "update_profile_ok": {
 				this.state.user = {
 					...(this.state.user ?? {}),
@@ -776,6 +796,7 @@ export class Store extends EventTarget {
 					normalizeTableRoundTotalBet(data.table);
 					this.syncHandContext(data.table);
 					this.state.table = data.table;
+					this._maybeRestoreBigTwoHero(data);
 				}
 				break;
 
@@ -785,6 +806,19 @@ export class Store extends EventTarget {
 				this.state.canAct = false;
 				this.state.heroSeat = null;
 				this.state.actionRequest = null;
+				// 大老二：退座轉觀戰時清掉英雄自己的手牌與中央出牌，避免觀戰畫面殘留剛才那局（additive、big_two-gated；
+				// 撲克不讀 bigTwo* 欄位，故不受影響）。bump 版本觸發場景 _checkHeroCards / _checkLastPlay 重繪為空。
+				if (
+					String(
+						data?.table?.game_id || this.state.table?.game_id || "",
+					) === "big_two"
+				) {
+					this.state.bigTwoHeroCards = [];
+					this.state.bigTwoHeroCardsVersion += 1;
+					this.state.bigTwoHeroCardsRestored = false;
+					this.state.bigTwoLastPlay = null;
+					this.state.bigTwoLastPlayVersion += 1;
+				}
 				if (Object.prototype.hasOwnProperty.call(data, "previous_seat")) {
 					this.state.previousSeat = data.previous_seat;
 				}
@@ -795,6 +829,7 @@ export class Store extends EventTarget {
 					normalizeTableRoundTotalBet(data.table);
 					this.syncHandContext(data.table);
 					this.state.table = data.table;
+					this._maybeRestoreBigTwoHero(data);
 				}
 				break;
 			}
@@ -814,6 +849,7 @@ export class Store extends EventTarget {
 					normalizeTableRoundTotalBet(data.table);
 					this.syncHandContext(data.table);
 					this.state.table = data.table;
+					this._maybeRestoreBigTwoHero(data);
 				}
 				break;
 			}
@@ -834,6 +870,8 @@ export class Store extends EventTarget {
 				this.state.bigTwoLastPlay = null;
 				this.state.bigTwoLastPlayVersion += 1; // 觸發場景清除上局中央牌面
 				this.state.bigTwoActionSeq = null;
+				this.state.handReadyState = null; // 新一局：清除上一手的 ready window 狀態（新增欄位，撲克不讀）
+				this.state.handReadyAck = null;
 				// 新一手開始，清除上一手的 sessionStorage 手牌快取
 				try {
 					sessionStorage.removeItem("ngame_hole_cards");
@@ -1032,6 +1070,7 @@ export class Store extends EventTarget {
 							} catch (_) {}
 						}
 					}
+					this._maybeRestoreBigTwoHero(data);
 				}
 				break;
 			}
@@ -1411,6 +1450,7 @@ export class Store extends EventTarget {
 				if (isBigTwo) {
 					this.state.bigTwoHeroCards = cards;
 					this.state.bigTwoHeroCardsVersion += 1;
+					this.state.bigTwoHeroCardsRestored = false; // 真發牌 → 允許發牌動畫
 				} else {
 					this.setKnownHoleCards(heroSeat, cards, false);
 				}
@@ -1444,6 +1484,20 @@ export class Store extends EventTarget {
 			case "hand_end":
 				if (type === "hand_end") {
 					this.applyShowdownReveals(data);
+					// 大老二專屬（additive，不影響撲克）：另存局末各家公開牌，供 bigTwoScene 局末翻牌動畫讀取。
+					// 撲克攤牌仍走上面的 applyShowdownReveals；此處只多寫一個 big_two 專用欄位、不改任何既有路徑。
+					const _isBigTwoEnd =
+						String(data.game_id || this.state.table?.game_id || "") === "big_two";
+					if (_isBigTwoEnd && (data.reveals || Array.isArray(data.player_results))) {
+						this.state.bigTwoReveals = {
+							hand_id: data.hand_id ?? null,
+							table_id: data.table_id ?? null,
+							reveals: data.reveals ?? null,
+							player_results: Array.isArray(data.player_results)
+								? data.player_results
+								: null,
+						};
+					}
 				}
 				if (
 					type === "award" &&
@@ -1587,6 +1641,25 @@ export class Store extends EventTarget {
 				this.state.bigTwoHandResult = data;
 				this.state.bigTwoHandResultVersion =
 					(this.state.bigTwoHandResultVersion || 0) + 1;
+				break;
+
+			// 下一手 ready window（通用事件，spec §10.23 / §10.24）。新增 case、僅寫入新欄位供大老二場景讀取；
+			// 不修改任何既有 case / 欄位，撲克路徑與送出封包一律不變（純讀取進來的封包，不送任何東西）。
+			case "hand_ready_state":
+				this.state.handReadyState = clone(data);
+				break;
+			case "hand_ready_ack":
+				this.state.handReadyAck = clone(data);
+				// ack 亦帶最新 ready_count/required_count/all_ready，一併更新供顯示（無 state 時以 ack 補上）。
+				this.state.handReadyState = {
+					...(this.state.handReadyState || {}),
+					table_id: data.table_id,
+					hand_id: data.hand_id,
+					ready_count: data.ready_count,
+					required_count: data.required_count,
+					pending_rebuy: data.pending_rebuy,
+					all_ready: data.all_ready,
+				};
 				break;
 
 			// 錯誤訊息
@@ -1772,10 +1845,22 @@ export class Store extends EventTarget {
 			}
 		}
 
+		// 大老二：伺服器逾時自動代打的廣播會用 play_timeout / pass_timeout 當 action 名稱。
+		// 僅在大老二桌把結尾的 _timeout 去掉，正規化成 play / pass，讓下方中央牌堆、hand_count、
+		// 過牌標籤等既有分支照常判斷（否則逾時自動出的牌會扣手牌卻不進中央牌堆）。
+		// 撲克桌 isBigTwoAction 為 false → btAction 完全等於原 data.action，不做任何正規化；
+		// 本函數也不改寫任何送回伺服器的資料，故撲克邏輯與後端邏輯皆零影響。
+		const isBigTwoAction =
+			this.state.page === "bigTwo" ||
+			String(data.game_id || this.state.table?.game_id || "") === "big_two";
+		const btAction = isBigTwoAction
+			? String(data.action || "").replace(/_timeout$/, "")
+			: data.action;
+
 		if (player) {
 			player.bet = Number(player.bet ?? 0) + paid;
 			player.chips = Math.max(0, Number(player.chips ?? 0) - paid);
-			player.last_action = data.action;
+			player.last_action = btAction;
 			player.last_action_at = Date.now();
 			if (
 				String(data.action || "")
@@ -1794,13 +1879,10 @@ export class Store extends EventTarget {
 				player.hand_count = authCount;
 			}
 		}
-		// 大老二：記錄最新出牌
-		const isBigTwoAction =
-			this.state.page === "bigTwo" ||
-			String(data.game_id || this.state.table?.game_id || "") === "big_two";
+		// 大老二：記錄最新出牌（play_timeout 已於上方正規化為 play）
 		if (
 			isBigTwoAction &&
-			(data.action === "play_cards" || data.action === "play") &&
+			(btAction === "play_cards" || btAction === "play") &&
 			Array.isArray(data.cards) &&
 			data.cards.length > 0
 		) {
@@ -1821,7 +1903,7 @@ export class Store extends EventTarget {
 				}
 			}
 		}
-		if (isBigTwoAction && data.action === "pass") {
+		if (isBigTwoAction && btAction === "pass") {
 			// pass 不清除 bigTwoLastPlay，讓中央繼續顯示上一次出的牌
 		}
 		if (paid > 0) {
@@ -1947,6 +2029,37 @@ export class Store extends EventTarget {
 		if (normalized.length > 0) {
 			this.state.holeCardsBySeat[key] = normalized;
 		}
+	}
+
+	// 大老二重連還原英雄手牌（big_two 專屬、additive；撲克/後端零影響）。由各桌面快照 case 呼叫：
+	// 伺服器重連不重送 hole_cards，故從 sessionStorage 還原（hand_start 已於換手清除，存的必為本局）。
+	_maybeRestoreBigTwoHero(data) {
+		try {
+			const isBigTwo =
+				String(data?.table?.game_id || data?.game_id || this.state.table?.game_id || "") === "big_two";
+			if (!isBigTwo) return;
+			// 觀戰者不還原手牌：退座後 heroSeat=null，Number(null)=0 會與座位 0 的舊英雄誤判為同座而還原，
+			// 導致退座轉觀戰仍殘留自己的手牌。觀戰一律不還原。
+			if (this.state.isSpectator) return;
+			const heroSeat = Number(this.state.heroSeat);
+			const storedSeat = Number(sessionStorage.getItem("ngame_hole_cards_seat") ?? "");
+			const storedHandId = sessionStorage.getItem("ngame_hole_cards_hand_id");
+			const curHandId = String(data?.table?.hand_id ?? this.state.handId ?? "");
+			const btLen = this.state.bigTwoHeroCards?.length ?? 0;
+			// hand_start 已清 sessionStorage → 存的必為本局；hand_id 缺失時只以座位比對。
+			const handOk = !storedHandId || !curHandId || storedHandId === curHandId;
+			if (!Number.isInteger(heroSeat) || btLen > 0 || storedSeat !== heroSeat || !handOk) {
+				return;
+			}
+			const cards = toCardArray(
+				JSON.parse(sessionStorage.getItem("ngame_hole_cards") || "[]"),
+			);
+			if (cards.length > 0) {
+				this.state.bigTwoHeroCards = cards;
+				this.state.bigTwoHeroCardsVersion += 1;
+				this.state.bigTwoHeroCardsRestored = true;
+			}
+		} catch (_) {}
 	}
 
 	applyShowdownReveals(data) {

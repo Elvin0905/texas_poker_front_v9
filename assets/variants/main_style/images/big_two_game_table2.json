@@ -1,0 +1,135 @@
+{
+  "frames": {
+    "bg": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 1440
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 1440
+      },
+      "sourceSize": {
+        "w": 720,
+        "h": 1440
+      }
+    },
+    "btn_change_table": {
+      "frame": {
+        "x": 0,
+        "y": 1440,
+        "w": 200,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 200,
+        "h": 80
+      }
+    },
+    "btn_exit_table": {
+      "frame": {
+        "x": 200,
+        "y": 1440,
+        "w": 200,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 200,
+        "h": 80
+      }
+    },
+    "btn_standup_table": {
+      "frame": {
+        "x": 400,
+        "y": 1440,
+        "w": 200,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 200,
+        "h": 80
+      }
+    },
+    "inview_hint": {
+      "frame": {
+        "x": 0,
+        "y": 1520,
+        "w": 600,
+        "h": 181
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 600,
+        "h": 181
+      },
+      "sourceSize": {
+        "w": 600,
+        "h": 181
+      }
+    },
+    "light": {
+      "frame": {
+        "x": 0,
+        "y": 1701,
+        "w": 300,
+        "h": 300
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 300,
+        "h": 300
+      },
+      "sourceSize": {
+        "w": 300,
+        "h": 300
+      }
+    }
+  },
+  "meta": {
+    "app": "Media Tool Atlas Packer",
+    "version": "1.0",
+    "image": "atlas.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 720,
+      "h": 2001
+    },
+    "scale": "1"
+  }
+}

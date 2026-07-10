@@ -89,6 +89,34 @@ export class BootScene extends Phaser.Scene {
       this.load.audio(key, `${audioBase}/${fileName}`);
     });
 
+    // Big Two 專屬語音（僅 bigTwoScene 使用）：於此預載，避免首次「請選牌出牌」語音因場景內
+    // 非同步載入尚未就緒而無聲。對德州撲克無影響——poker（tableScene）不引用這些 key。
+    this.load.audio("bt_play_prompt", `${audioBase}/voice/play_bt.mp3`);
+    this.load.audio("bt_first_play_prompt", `${audioBase}/voice/voice_first_play_bt.mp3`);
+    this.load.audio("bt_no_card_pass", `${audioBase}/voice/no_card_and_pass_bt.mp3`);
+    // 大老二專屬「過牌」語音（check_bt.mp3）：僅大老二過牌時使用，與德州撲克 voice_check（check.mp3）分開。
+    this.load.audio("bt_check", `${audioBase}/voice/check_bt.mp3`);
+    // 大老二專屬「入座」語音（player_join_bt.mp3）：英雄由觀戰入座時播放，與德州撲克 player_join.mp3 分開。
+    this.load.audio("bt_player_join", `${audioBase}/voice/player_join_bt.mp3`);
+    // 大老二專屬「恭喜贏家」語音（congrats_winner_bt.mp3）：結算彈窗開啟時播放，與德州撲克 congrats_winner.mp3 分開。
+    this.load.audio("bt_congrats_winner", `${audioBase}/voice/congrats_winner_bt.mp3`);
+    // 大老二專屬「派彩」語音（award_bt.mp3）：贏家發光出現時播放，與德州撲克 award.mp3 分開。
+    this.load.audio("bt_award", `${audioBase}/voice/award_bt.mp3`);
+
+    // 大老二出牌語音：英雄出牌落到中央牌堆時播放。單張＝各張牌專屬（{rank}_{suit}_bt.mp3，10 用 "10"、
+    // 花色 c/d/h/s）；多張＝牌型（single/pair/straight/full_house/quads/straight_flush）。檔案由團隊陸續補齊，
+    // 缺檔只會 loaderror、播放前以 cache.audio.exists 防護，不影響其它。poker 不引用這些 key。
+    const BT_PLAY_RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    const BT_PLAY_SUITS = ["c", "d", "h", "s"];
+    BT_PLAY_RANKS.forEach((r) =>
+      BT_PLAY_SUITS.forEach((su) =>
+        this.load.audio(`${r}_${su}_bt`, `${audioBase}/voice/${r}_${su}_bt.mp3`),
+      ),
+    );
+    ["single", "pair", "straight", "full_house", "quads", "straight_flush"].forEach((c) =>
+      this.load.audio(`${c}_bt`, `${audioBase}/voice/${c}_bt.mp3`),
+    );
+
     VOICE_ASSET_LIST.forEach((item) => {
       this.load.audio(item.key, item.path);
     });

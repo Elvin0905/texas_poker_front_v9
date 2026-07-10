@@ -52,6 +52,18 @@ body::before {
   filter: blur(8px);
 }
 
+html.mobile-power-save body::before {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  height: 100lvh;
+  -webkit-transform: none;
+  transform: none;
+  -webkit-filter: none;
+  filter: none;
+}
+
 #phaser-root {
   position: fixed;
   inset: 0;

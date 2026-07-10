@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google 第三方登入 WS 範例</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #171717;
+      color: #f5f5f5;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(760px, 100%);
+      display: grid;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: #d4d4d4;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #3f3f46;
+      border-radius: 8px;
+      background: #262626;
+      color: #f5f5f5;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    #connectWsButton {
+      background: #52525b;
+      color: #fff;
+    }
+
+    #googleLoginButton {
+      background: #f5f5f5;
+      color: #171717;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .55;
+    }
+
+    .note {
+      margin: 0;
+      color: #a3a3a3;
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    pre {
+      min-height: 220px;
+      max-height: 420px;
+      overflow: auto;
+      margin: 0;
+      border: 1px solid #3f3f46;
+      border-radius: 8px;
+      background: #0a0a0a;
+      color: #d4d4d4;
+      padding: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Google 第三方登入 WS 範例</h1>
+
+    <label>
+      Google Client ID
+      <input id="clientIdInput" autocomplete="off" spellcheck="false">
+    </label>
+
+    <label>
+      Redirect URI / Origin
+      <input id="redirectUriInput" autocomplete="off" spellcheck="false">
+    </label>
+
+    <label>
+      WebSocket 連線網址
+      <input id="wsUrlInput" autocomplete="off" spellcheck="false">
+    </label>
+
+    <p class="note">
+      這個範例使用 Google Identity Services popup code flow。Google 會把 authorization code 回給本頁，
+      本頁再送 <code>google_login</code> 到遊戲 WebSocket。請用 http/https 開啟，不要使用 file://，
+      並在 Google Cloud Console 的 Authorized JavaScript origins 加入目前 origin。popup code flow 通常使用 origin，
+      例如 <code>http://127.0.0.1:8010</code>，不是完整 HTML 檔案路徑。
+    </p>
+
+    <div class="actions">
+      <button id="connectWsButton" type="button">連線 WS</button>
+      <button id="googleLoginButton" type="button" disabled>使用 Google 登入</button>
+    </div>
+
+    <pre id="logOutput"></pre>
+  </main>
+
+  <script>
+    const DEFAULT_CLIENT_ID = "710155903331-63qeqmh24lnkrl0950r658mte2gmk5jm.apps.googleusercontent.com";
+    const DEFAULT_WS_URL = location.protocol === "https:"
+      ? `wss://${location.host}`
+      : "ws://127.0.0.1:8787";
+
+    const clientIdInput = document.querySelector("#clientIdInput");
+    const redirectUriInput = document.querySelector("#redirectUriInput");
+    const wsUrlInput = document.querySelector("#wsUrlInput");
+    const connectWsButton = document.querySelector("#connectWsButton");
+    const googleLoginButton = document.querySelector("#googleLoginButton");
+    const logOutput = document.querySelector("#logOutput");
+
+    let socket = null;
+    let googleCodeClient = null;
+
+    clientIdInput.value = new URLSearchParams(location.search).get("client_id") || DEFAULT_CLIENT_ID;
+    redirectUriInput.value = new URLSearchParams(location.search).get("redirect_uri") || location.origin || "";
+    wsUrlInput.value = new URLSearchParams(location.search).get("ws") || DEFAULT_WS_URL;
+
+    function log(message, data) {
+      const time = new Date().toLocaleTimeString();
+      const text = data === undefined ? message : `${message}\n${JSON.stringify(data, null, 2)}`;
+      logOutput.textContent += `[${time}] ${text}\n\n`;
+      logOutput.scrollTop = logOutput.scrollHeight;
+    }
+
+    function getRedirectUri() {
+      const redirectUri = redirectUriInput.value.trim();
+      if (!redirectUri || redirectUri === "null") {
+        throw new Error("請填入 Redirect URI / Origin，並用 http/https 開啟此頁");
+      }
+      return redirectUri;
+    }
+
+    function ensureGoogleCodeClient() {
+      if (!window.google || !google.accounts || !google.accounts.oauth2) {
+        throw new Error("Google Identity Services 尚未載入，請稍後再試");
+      }
+
+      const clientId = clientIdInput.value.trim();
+      if (!clientId) {
+        throw new Error("請填入 Google Client ID");
+      }
+
+      googleCodeClient = google.accounts.oauth2.initCodeClient({
+        client_id: clientId,
+        scope: "openid email profile",
+        ux_mode: "popup",
+        callback: (response) => {
+          if (response.error) {
+            log("Google 登入失敗", response);
+            return;
+          }
+
+          const code = String(response.code || "").trim();
+          if (!code) {
+            log("Google callback 缺少 authorization code", response);
+            return;
+          }
+
+          sendGoogleLoginCode(code);
+        },
+      });
+    }
+
+    function connectWebSocket() {
+      const wsUrl = wsUrlInput.value.trim();
+      if (!wsUrl) {
+        log("請填入 WebSocket 連線網址");
+        return;
+      }
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        log("WS 已連線");
+        return;
+      }
+
+      googleLoginButton.disabled = true;
+      socket = new WebSocket(wsUrl);
+
+      socket.addEventListener("open", () => {
+        log("WS 已連線", { wsUrl });
+        googleLoginButton.disabled = false;
+      });
+
+      socket.addEventListener("message", (event) => {
+        try {
+          log("收到 WS 訊息", JSON.parse(event.data));
+        } catch (_) {
+          log("收到 WS 訊息", event.data);
+        }
+      });
+
+      socket.addEventListener("close", (event) => {
+        log("WS 已關閉", { code: event.code, reason: event.reason });
+        googleLoginButton.disabled = true;
+      });
+
+      socket.addEventListener("error", () => {
+        log("WS 發生錯誤");
+      });
+    }
+
+    function sendGoogleLoginCode(code) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        log("WS 尚未連線，無法送出 google_login");
+        return;
+      }
+
+      const payload = {
+        type: "google_login",
+        data: {
+          code,
+          redirect_uri: getRedirectUri(),
+          client_id: clientIdInput.value.trim(),
+        },
+      };
+
+      socket.send(JSON.stringify(payload));
+      log("已送出 google_login", {
+        ...payload,
+        data: {
+          ...payload.data,
+          code: `${code.slice(0, 12)}...`,
+        },
+      });
+    }
+
+    connectWsButton.addEventListener("click", connectWebSocket);
+
+    googleLoginButton.addEventListener("click", () => {
+      try {
+        ensureGoogleCodeClient();
+        googleCodeClient.requestCode();
+      } catch (error) {
+        log(error.message || String(error));
+      }
+    });
+
+    log("已就緒", {
+      redirect_uri: redirectUriInput.value,
+      hint: "可用 ?ws=wss%3A%2F%2Fexample.com&client_id=...&redirect_uri=... 帶入設定",
+    });
+  </script>
+</body>
+</html>

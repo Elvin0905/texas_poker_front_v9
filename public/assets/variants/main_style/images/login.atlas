@@ -1,0 +1,118 @@
+
+atlas.webp
+size: 1708,1984
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+bg_loading
+  rotate: false
+  xy: 8, 8
+  size: 750, 1640
+  orig: 750, 1640
+  offset: 0, 0
+  index: -1
+bg_login
+  rotate: false
+  xy: 774, 8
+  size: 750, 1640
+  orig: 750, 1640
+  offset: 0, 0
+  index: -1
+click_login_btn
+  rotate: false
+  xy: 8, 1664
+  size: 482, 148
+  orig: 482, 148
+  offset: 0, 0
+  index: -1
+click_register_btn
+  rotate: false
+  xy: 506, 1664
+  size: 482, 148
+  orig: 482, 148
+  offset: 0, 0
+  index: -1
+closed_eye
+  rotate: false
+  xy: 1004, 1664
+  size: 79, 40
+  orig: 79, 40
+  offset: 0, 0
+  index: -1
+fb
+  rotate: false
+  xy: 1099, 1664
+  size: 112, 112
+  orig: 112, 112
+  offset: 0, 0
+  index: -1
+google
+  rotate: false
+  xy: 1227, 1664
+  size: 112, 112
+  orig: 112, 112
+  offset: 0, 0
+  index: -1
+ig
+  rotate: false
+  xy: 1355, 1664
+  size: 112, 112
+  orig: 112, 112
+  offset: 0, 0
+  index: -1
+line
+  rotate: false
+  xy: 1483, 1664
+  size: 112, 112
+  orig: 112, 112
+  offset: 0, 0
+  index: -1
+lock
+  rotate: false
+  xy: 1611, 1664
+  size: 89, 114
+  orig: 89, 114
+  offset: 0, 0
+  index: -1
+login_btn
+  rotate: false
+  xy: 8, 1828
+  size: 391, 128
+  orig: 391, 128
+  offset: 0, 0
+  index: -1
+mail
+  rotate: false
+  xy: 415, 1828
+  size: 117, 91
+  orig: 117, 91
+  offset: 0, 0
+  index: -1
+opened_eye
+  rotate: false
+  xy: 548, 1828
+  size: 79, 40
+  orig: 79, 40
+  offset: 0, 0
+  index: -1
+register_btn
+  rotate: false
+  xy: 643, 1828
+  size: 391, 128
+  orig: 391, 128
+  offset: 0, 0
+  index: -1
+user
+  rotate: false
+  xy: 1050, 1828
+  size: 99, 110
+  orig: 99, 110
+  offset: 0, 0
+  index: -1
+visitor_login
+  rotate: false
+  xy: 1165, 1828
+  size: 482, 148
+  orig: 482, 148
+  offset: 0, 0
+  index: -1

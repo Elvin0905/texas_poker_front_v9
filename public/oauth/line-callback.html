@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LINE 登入中…</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #151515; color: #d4d4d4;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    body { display: grid; place-items: center; padding: 24px; text-align: center; }
+  </style>
+</head>
+<body>
+  <p id="msg">LINE 登入處理中，請稍候…</p>
+  <script>
+    // LINE OAuth 導回頁：讀取 ?code/state/error，postMessage 回開啟此視窗的遊戲頁面後自動關閉。
+    // 由 authScene 的 _handleLineOAuthMessage 接收並送出 line_login。redirect_uri 需與 LINE console 完全一致。
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var payload = {
+        source: "game-oauth-callback",
+        provider: "line",
+        code: params.get("code"),
+        state: params.get("state"),
+        error: params.get("error"),
+        error_description: params.get("error_description"),
+      };
+      try {
+        if (window.opener) {
+          // 導回頁與遊戲同源，targetOrigin 用 location.origin 即為遊戲頁 origin。
+          window.opener.postMessage(payload, location.origin);
+        }
+      } catch (e) {}
+      var el = document.getElementById("msg");
+      if (el) el.textContent = "登入完成，可關閉此視窗。";
+      window.close();
+    })();
+  </script>
+</body>
+</html>

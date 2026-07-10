@@ -1,0 +1,48 @@
+
+atlas.webp
+size: 720,2001
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+bg
+  rotate: false
+  xy: 0, 0
+  size: 720, 1440
+  orig: 720, 1440
+  offset: 0, 0
+  index: -1
+btn_change_table
+  rotate: false
+  xy: 0, 1440
+  size: 200, 80
+  orig: 200, 80
+  offset: 0, 0
+  index: -1
+btn_exit_table
+  rotate: false
+  xy: 200, 1440
+  size: 200, 80
+  orig: 200, 80
+  offset: 0, 0
+  index: -1
+btn_standup_table
+  rotate: false
+  xy: 400, 1440
+  size: 200, 80
+  orig: 200, 80
+  offset: 0, 0
+  index: -1
+inview_hint
+  rotate: false
+  xy: 0, 1520
+  size: 600, 181
+  orig: 600, 181
+  offset: 0, 0
+  index: -1
+light
+  rotate: false
+  xy: 0, 1701
+  size: 300, 300
+  orig: 300, 300
+  offset: 0, 0
+  index: -1

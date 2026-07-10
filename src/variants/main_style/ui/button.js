@@ -97,6 +97,12 @@ export function createGradientButton(scene, {
       maskGfx.setPosition(nx, ny);
       text.setPosition(nx, ny);
     },
+    setScale(scale) {
+      const safeScale = Math.max(0.01, Number(scale) || 1);
+      gradGfx.setScale(safeScale);
+      maskGfx.setScale(safeScale);
+      text.setScale(safeScale);
+    },
     setEnabled(enabled) {
       _enabled = Boolean(enabled);
       gradGfx.setAlpha(_enabled ? 1 : 0.45);
@@ -337,4 +343,3 @@ export function createRectButton(
   api.setEnabled(isEnabled);
   return api;
 }
-

@@ -6,6 +6,18 @@ import { layout, onLayoutResize } from "../../../shared/core/layout.js";
 // 既有的 WebSocket 以 google_login 送給後端，後端回 login_ok（已有處理）。
 const GOOGLE_CLIENT_ID = "710155903331-63qeqmh24lnkrl0950r658mte2gmk5jm.apps.googleusercontent.com";
 
+// LINE 登入（LINE Login v2.1 popup code flow，比照 docs/line_custom_button_login_example.html）。
+// 點 LINE 鈕 → 開 access.line.me 授權 popup → 導回 /oauth/line-callback.html → postMessage 回本頁 →
+// 送 line_login { code, redirect_uri, nonce } 給後端。redirect_uri 需在 LINE console 白名單且與此完全一致。
+const LINE_CHANNEL_ID = "2010421378";
+const LINE_LOGIN_SCOPE = "openid profile email";
+
+// Instagram 登入（Instagram OAuth popup code flow，比照 docs/instagram_custom_button_login_example.html）。
+// INSTAGRAM_APP_ID 為 Meta/Instagram app 的 client_id（公開值）。目前留空 → 點 IG 鈕維持「串接中」占位，
+// 不會開授權視窗；日後把 App ID 填入此常數即自動啟用（redirect_uri 需在 Meta app 白名單、後端需處理 instagram_login）。
+const INSTAGRAM_APP_ID = "";
+const INSTAGRAM_LOGIN_SCOPE = "instagram_business_basic";
+
 const BOX_W = 565;
 const BOX_H = 80;
 const BOX_CR = 14;
@@ -343,7 +355,14 @@ export class AuthScene extends Phaser.Scene {
     bindImageButton(this, this.googleBtn, { onClick: () => this._triggerGoogleLogin() });
     this._initGoogleSignIn();
     this.lineBtn = this.add.image(0, 0, "login", "line").setDisplaySize(86, 86);
-    bindImageButton(this, this.lineBtn, { onClick: () => this._showThirdParty("LINE") });
+    // LINE 登入：開授權 popup，導回頁 postMessage 回來後送 line_login（比照 Google 走 app 既有 WS）。
+    bindImageButton(this, this.lineBtn, { onClick: () => this._triggerLineLogin() });
+    this._initLineLogin();
+    // Instagram 圖標（login 圖集的 "ig" frame，與 fb/google/line 同一張圖集），排在 LINE 右側；尺寸 86×86。
+    // 點擊走 _triggerInstagramLogin（App ID 未填時自動退回「串接中」占位）。
+    this.igBtn = this.add.image(0, 0, "login", "ig").setDisplaySize(86, 86);
+    bindImageButton(this, this.igBtn, { onClick: () => this._triggerInstagramLogin() });
+    this._initInstagramLogin();
 
     this.agreeGfx = this.add.graphics();
     this.agreeZone = this.add.zone(0, 0, 32, 32).setInteractive({ useHandCursor: true });
@@ -499,9 +518,11 @@ export class AuthScene extends Phaser.Scene {
     }
 
     const socialY = cy + s(344);
-    this.fbBtn?.setPosition(cx - 120, socialY);
-    this.googleBtn?.setPosition(cx, socialY);
-    this.lineBtn?.setPosition(cx + 120, socialY);
+    // 四個社群鈕（fb / google / line / instagram）等距置中，維持 120px 間距。
+    this.fbBtn?.setPosition(cx - 180, socialY);
+    this.googleBtn?.setPosition(cx - 60, socialY);
+    this.lineBtn?.setPosition(cx + 60, socialY);
+    this.igBtn?.setPosition(cx + 180, socialY);
 
     const agreeY = cy + s(434);
     const circleX = cx - 210;
@@ -987,6 +1008,142 @@ export class AuthScene extends Phaser.Scene {
 
   _showThirdParty(name) {
     this.store.applyPacket({ type: "error", data: { code: "THIRD_PARTY_NOT_IMPLEMENTED", message: `${name} 串接中，尚未實作` } });
+  }
+
+  // LINE 導回頁與本頁同源，透過 postMessage 送回 authorization code。此監聽於 create 綁定、shutdown 移除。
+  _initLineLogin() {
+    this._lineMsgBound = (event) => this._handleLineOAuthMessage(event);
+    window.addEventListener("message", this._lineMsgBound);
+  }
+
+  _lineRedirectUri() {
+    return `${location.origin}/oauth/line-callback.html`;
+  }
+
+  _randomHex(byteLength) {
+    const bytes = new Uint8Array(byteLength);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  // 點 LINE 鈕：產生 state/nonce（防 CSRF、綁定 id_token）存 sessionStorage，開 LINE 授權 popup。
+  _triggerLineLogin() {
+    let state;
+    let nonce;
+    try {
+      state = this._randomHex(16);
+      nonce = this._randomHex(16);
+    } catch (_) {
+      // crypto 不可用（極少數環境）→ 退回原本的「串接中」提示。
+      this._showThirdParty("LINE");
+      return;
+    }
+    sessionStorage.setItem("line:oauth_state", state);
+    sessionStorage.setItem("line:nonce", nonce);
+
+    const authUrl = new URL("https://access.line.me/oauth2/v2.1/authorize");
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("client_id", LINE_CHANNEL_ID);
+    authUrl.searchParams.set("redirect_uri", this._lineRedirectUri());
+    authUrl.searchParams.set("scope", LINE_LOGIN_SCOPE);
+    authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("nonce", nonce);
+
+    window.open(authUrl.toString(), "line_oauth", "popup,width=540,height=720");
+  }
+
+  // 收到導回頁的 postMessage：驗證來源同源 + state 一致 → 送 line_login。
+  _handleLineOAuthMessage(event) {
+    if (event.origin !== location.origin) return;
+    const data = event.data || {};
+    if (data.source !== "game-oauth-callback" || data.provider !== "line") return;
+
+    const expectedState = sessionStorage.getItem("line:oauth_state");
+    sessionStorage.removeItem("line:oauth_state");
+    if (!data.state || data.state !== expectedState) {
+      this.store.applyPacket({ type: "error", data: { code: "LINE_OAUTH_STATE_MISMATCH", message: "LINE 登入驗證失敗，請重試" } });
+      return;
+    }
+    if (data.error) {
+      this.store.applyPacket({ type: "error", data: { code: "LINE_OAUTH_ERROR", message: `LINE 登入失敗：${data.error}` } });
+      return;
+    }
+    const code = String(data.code || "").trim();
+    if (!code) {
+      this.store.applyPacket({ type: "error", data: { code: "LINE_OAUTH_NO_CODE", message: "LINE 登入未取得授權碼" } });
+      return;
+    }
+
+    const nonce = sessionStorage.getItem("line:nonce") || "";
+    sessionStorage.removeItem("line:nonce");
+    this.app.sendPacket("line_login", {
+      code,
+      redirect_uri: this._lineRedirectUri(),
+      nonce,
+    });
+  }
+
+  // Instagram 導回頁與本頁同源，透過 postMessage 送回 authorization code。監聽於 create 綁定、shutdown 移除。
+  _initInstagramLogin() {
+    this._igMsgBound = (event) => this._handleInstagramOAuthMessage(event);
+    window.addEventListener("message", this._igMsgBound);
+  }
+
+  _instagramRedirectUri() {
+    return `${location.origin}/oauth/instagram-callback.html`;
+  }
+
+  // 點 Instagram 鈕：App ID 未設定 → 退回「串接中」占位；否則產生 state（Instagram 無 nonce）開授權 popup。
+  _triggerInstagramLogin() {
+    if (!INSTAGRAM_APP_ID) {
+      this._showThirdParty("Instagram");
+      return;
+    }
+    let state;
+    try {
+      state = this._randomHex(16);
+    } catch (_) {
+      this._showThirdParty("Instagram");
+      return;
+    }
+    sessionStorage.setItem("instagram:oauth_state", state);
+
+    const authUrl = new URL("https://api.instagram.com/oauth/authorize");
+    authUrl.searchParams.set("client_id", INSTAGRAM_APP_ID);
+    authUrl.searchParams.set("redirect_uri", this._instagramRedirectUri());
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("scope", INSTAGRAM_LOGIN_SCOPE);
+    authUrl.searchParams.set("state", state);
+
+    window.open(authUrl.toString(), "instagram_oauth", "popup,width=540,height=720");
+  }
+
+  // 收到導回頁的 postMessage：驗證來源同源 + state 一致 → 送 instagram_login（Instagram 無 nonce）。
+  _handleInstagramOAuthMessage(event) {
+    if (event.origin !== location.origin) return;
+    const data = event.data || {};
+    if (data.source !== "game-oauth-callback" || data.provider !== "instagram") return;
+
+    const expectedState = sessionStorage.getItem("instagram:oauth_state");
+    sessionStorage.removeItem("instagram:oauth_state");
+    if (!data.state || data.state !== expectedState) {
+      this.store.applyPacket({ type: "error", data: { code: "INSTAGRAM_OAUTH_STATE_MISMATCH", message: "Instagram 登入驗證失敗，請重試" } });
+      return;
+    }
+    if (data.error) {
+      this.store.applyPacket({ type: "error", data: { code: "INSTAGRAM_OAUTH_ERROR", message: `Instagram 登入失敗：${data.error}` } });
+      return;
+    }
+    const code = String(data.code || "").trim();
+    if (!code) {
+      this.store.applyPacket({ type: "error", data: { code: "INSTAGRAM_OAUTH_NO_CODE", message: "Instagram 登入未取得授權碼" } });
+      return;
+    }
+
+    this.app.sendPacket("instagram_login", {
+      code,
+      redirect_uri: this._instagramRedirectUri(),
+    });
   }
 
   _setupBgm() {
@@ -1623,6 +1780,8 @@ export class AuthScene extends Phaser.Scene {
     if (this._tmOverlay?.visible) this._hideTermModal();
     if (this._fpOverlay?.visible) this._hideForgotModal();
     if (this._googleInitTimer) { clearTimeout(this._googleInitTimer); this._googleInitTimer = null; }
+    if (this._lineMsgBound) { window.removeEventListener("message", this._lineMsgBound); this._lineMsgBound = null; }
+    if (this._igMsgBound) { window.removeEventListener("message", this._igMsgBound); this._igMsgBound = null; }
     clearTimeout(this._kbTimer);
     if (this._kbOverlay) { this._kbOverlay.remove(); this._kbOverlay = null; }
     const root = document.getElementById('phaser-root');

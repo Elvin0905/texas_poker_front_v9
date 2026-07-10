@@ -103,6 +103,20 @@ Ts, Th, Td, Tc
 | `d` | diamond | ♦ |
 | `c` | club | ♣ |
 
+## 1.2 麻將牌碼
+
+麻將使用 tile code，不使用撲克牌 card code：
+
+```text
+m1-m9: 萬子
+p1-p9: 筒子
+s1-s9: 條子
+z1-z4: 東、南、西、北
+z5-z7: 中、發、白
+```
+
+目前 `mahjong` 規則為 `tw_16_no_flowers`：台灣 16 張、四人、無花牌。
+
 ## 2. 遊戲與通用概念
 
 | 名稱 | 說明 |
@@ -118,14 +132,18 @@ Ts, Th, Td, Tc
 |---|---|---|---|
 | `texas_holdem` | 德州撲克 | 是 | 進入遊戲後會收到可選場次，前端使用 `stakes[].id` 加入遊戲桌。 |
 | `big_two` | 大老二 | 是 | 進入遊戲後會收到可選場次，前端使用 `stakes[].id` 加入遊戲桌。 |
+| `mahjong` | 台灣十六張麻將 | 是 | 規則為 `tw_16_no_flowers`，使用 `m10`、`m100`、`m1000`、`m10000` 場次與第 1.2 節麻將牌碼。 |
 
 ## 3. Client -> Server 訊息總表
 
 | type | 分類 | 說明 |
 |---|---|---|
 | `login` | 帳號 | 會員登入。 |
-| `google_login` | 帳號 | 使用 Google ID token 登入。 |
+| `google_login` | 帳號 | 使用 Google ID token 或 authorization code 登入。 |
 | `line_login` | 帳號 | 使用 LINE ID token 或 authorization code 登入。 |
+| `facebook_login` | 帳號 | 使用 Facebook authorization code 登入。 |
+| `instagram_login` | 帳號 | 使用 Instagram authorization code 登入。 |
+| `threads_login` | 帳號 | 使用 Threads authorization code 登入。 |
 | `guest_login` | 帳號 | 訪客登入，可選是否為陪玩員。 |
 | `auth_token` | 帳號 | 使用 token 驗證與重連。 |
 | `register_verification_request` | 帳號 | 註冊前請求信箱或手機驗證碼。 |
@@ -150,6 +168,7 @@ Ts, Th, Td, Tc
 | `hand_replay` | 報表 | 查詢自己參與過的牌局回放。 |
 | `hand_reports` | 報表 | 查詢自己的手牌報表。 |
 | `daily_settlement_14d` | 報表 | 查詢自己的近 14 天每日結算。 |
+| `get_my_progress` | 玩家進度 | 查詢自己的等級、戰績與成就。 |
 
 ## 4. Server -> Client 訊息總表
 
@@ -185,19 +204,21 @@ Ts, Th, Td, Tc
 | `player_action` | 通用 | 廣播玩家操作結果。 |
 | `award` | 通用 | 派彩結果。 |
 | `hand_end` | 通用 | 牌局結束結果。 |
+| `level_up` | 玩家進度 | 玩家升級或解鎖成就。 |
 | `hand_ready_ack` | 通用 | 玩家準備下一手的確認結果。 |
 | `hand_replay_ok` | 報表 | 手牌回放查詢成功。 |
 | `hand_reports_ok` | 報表 | 手牌報表查詢成功。 |
 | `daily_settlement_14d_ok` | 報表 | 近 14 天每日結算查詢成功。 |
+| `my_progress_ok` | 玩家進度 | 玩家進度查詢成功。 |
 | `error` | 錯誤 | 請求失敗或狀態不允許。 |
 | `post_blinds` | 德州撲克 | 德州撲克盲注已支付。 |
 | `betting_start` | 德州撲克 | 德州撲克下注輪開始。 |
 | `betting_complete` | 德州撲克 | 德州撲克下注輪結束。 |
 | `deal_community` | 德州撲克 | 德州撲克公共牌發牌。 |
 | `showdown` | 德州撲克 | 德州撲克攤牌資訊。 |
-| `hand_result` | 大老二 | 大老二單局結束時的結果與結算摘要。 |
+| `hand_result` | 通用 | 單局結束時的結果與結算摘要。 |
 
-## 5. 帳號與認證訊息
+## 5. 帳號與登入
 
 ### 5.1 login 會員登入
 
@@ -236,7 +257,177 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"LOGIN_FAILED","message":"帳號或密碼錯誤"}}
 ```
 
-### 5.2 guest_login 訪客登入
+### 5.2 google_login Google 登入
+
+用途：使用 Google 帳號登入。支援 Google Identity Services 的 ID token flow，也支援自製按鈕搭配 OAuth authorization code popup flow。
+
+方向：Client -> Server
+
+`data` 欄位：
+
+| 欄位 | 型別 | 必填 | 限制 | 說明 |
+|---|---|---|---|---|
+| `credential` | string | 條件 | 非空字串 | Google 官方 Sign in / One Tap callback 回傳的 ID token。`id_token`、`token` 為相容別名。 |
+| `code` | string | 條件 | 非空字串 | 自製 Google 按鈕使用 `google.accounts.oauth2.initCodeClient()` popup flow 回傳的 authorization code。未傳 `credential` 時必填。 |
+| `redirect_uri` | string | code flow 建議必填 | URL origin 或已授權 redirect URI | code flow 換 token 時使用。popup flow 請傳呼叫頁面的 `window.location.origin`，或由後端 `GOOGLE_OAUTH_REDIRECT_URI` 統一設定。 |
+| `origin` | string | 否 | URL origin | `redirect_uri` 的相容別名。 |
+| `client_id` | string | 否 | 必須在後端允許清單內 | 多 Google client id 時指定本次前端使用的 client id；未填使用後端預設第一組。 |
+
+成功回應：`login_ok`。
+
+失敗回應：`error`，常見 `GOOGLE_LOGIN_INVALID_DATA`、`GOOGLE_LOGIN_TOKEN_MISSING`、`GOOGLE_LOGIN_TIMEOUT`、`GOOGLE_LOGIN_BACKEND_ERROR`、`GOOGLE_LOGIN_FAILED`。
+
+前端處理：自製按鈕不要把 Google `access_token` 當登入憑證送後端。請用 authorization code flow，scope 至少包含 `openid email profile`，Google callback 收到 `response.code` 後送本訊息。登入成功後保存 `token`，後續重連送 `auth_token`。
+
+請求範例：
+
+ID token flow：
+
+```json
+{"type":"google_login","data":{"credential":"google-id-token"}}
+```
+
+自製按鈕 code flow：
+
+```json
+{"type":"google_login","data":{"code":"google-authorization-code","redirect_uri":"https://game.example.com","client_id":"710155903331-63qeqmh24lnkrl0950r658mte2gmk5jm.apps.googleusercontent.com"}}
+```
+
+成功範例：
+
+```json
+{"type":"login_ok","data":{"member_no":"M202605200003","username":"Google 玩家","avatar":"/api/member-avatars/12/abc.png","is_guest":false,"is_companion":false,"token":"token-value","wallet_balance":10000,"progress_summary":{"level":1,"xp_total":0,"xp_to_next_level":100,"hands_played":0,"wins":0,"win_rate":0.0,"title_code":"rookie","title_label":"新手","badge_code":"starter","badge_label":"起步"}}}
+```
+
+失敗範例：
+
+```json
+{"type":"error","data":{"code":"GOOGLE_LOGIN_TOKEN_MISSING","message":"缺少 Google ID token 或授權碼"}}
+```
+
+### 5.3 line_login LINE 登入
+
+用途：使用 LINE 帳號登入。支援 LINE ID token，也支援 authorization code flow。
+
+方向：Client -> Server
+
+`data` 欄位：
+
+| 欄位 | 型別 | 必填 | 限制 | 說明 |
+|---|---|---|---|---|
+| `id_token` | string | 條件 | 非空字串 | LINE Login 回傳的 ID token。`credential`、`token` 為相容別名。 |
+| `code` | string | 條件 | 非空字串 | LINE authorization code。未傳 `id_token` 時必填。 |
+| `redirect_uri` | string | code flow 必填 | 必須與 LINE Login 設定一致 | 後端用 authorization code 換 ID token 時使用。 |
+| `nonce` | string | 否 | 字串 | 若前端登入請求有帶 nonce，後端驗證 ID token 時會一併驗證。 |
+
+成功回應：`login_ok`。
+
+失敗回應：`error`，常見 `LINE_LOGIN_INVALID_DATA`、`LINE_LOGIN_TOKEN_MISSING`、`LINE_LOGIN_REDIRECT_URI_MISSING`、`LINE_LOGIN_TIMEOUT`、`LINE_LOGIN_BACKEND_ERROR`、`LINE_LOGIN_FAILED`。
+
+前端處理：登入成功後保存 `token`，後續重連送 `auth_token`。使用 code flow 時必須傳 `redirect_uri`，且需與 LINE Developer Console 設定一致。
+
+請求範例：
+
+ID token flow：
+
+```json
+{"type":"line_login","data":{"id_token":"line-id-token","nonce":"nonce-value"}}
+```
+
+authorization code flow：
+
+```json
+{"type":"line_login","data":{"code":"line-authorization-code","redirect_uri":"https://game.example.com/line/callback"}}
+```
+
+成功範例：
+
+```json
+{"type":"login_ok","data":{"member_no":"M202605200004","username":"LINE 玩家","avatar":"avatar_001","is_guest":false,"is_companion":false,"token":"token-value","wallet_balance":10000,"progress_summary":{"level":1,"xp_total":0,"xp_to_next_level":100,"hands_played":0,"wins":0,"win_rate":0.0,"title_code":"rookie","title_label":"新手","badge_code":"starter","badge_label":"起步"}}}
+```
+
+失敗範例：
+
+```json
+{"type":"error","data":{"code":"LINE_LOGIN_REDIRECT_URI_MISSING","message":"缺少 LINE redirect_uri"}}
+```
+
+### 5.4 facebook_login Facebook 登入
+
+Client 先完成 Facebook OAuth authorization code flow，拿到 `code` 後送到 WebSocket。
+Server 會用後端設定的 Facebook App Secret 換取 access token，再讀取 Facebook profile，最後沿用平台第三方登入流程建立或登入會員。
+
+Client -> Server:
+
+| 欄位 | 型別 | 必填 | 說明 |
+|---|---|---|---|
+| `code` | string | 是 | Facebook OAuth authorization code。 |
+| `redirect_uri` | string | 建議 | 必須與前端啟動 OAuth 時使用的 redirect URI 完全一致；若省略則使用後端 `FACEBOOK_OAUTH_REDIRECT_URI`。 |
+| `origin` | string | 否 | `redirect_uri` 的相容 fallback。 |
+
+成功回應：`login_ok`
+
+錯誤回應：`error`
+
+常見錯誤碼：`FACEBOOK_LOGIN_INVALID_DATA`、`FACEBOOK_LOGIN_CODE_MISSING`、`FACEBOOK_LOGIN_TIMEOUT`、`FACEBOOK_LOGIN_BACKEND_ERROR`、`FACEBOOK_LOGIN_FAILED`
+
+範例：
+
+```json
+{"type":"facebook_login","data":{"code":"facebook-authorization-code","redirect_uri":"https://game.example.com/auth/facebook/callback"}}
+```
+
+### 5.5 instagram_login Instagram 登入
+
+Client 先完成 Instagram OAuth authorization code flow，拿到 `code` 後送到 WebSocket。
+Server 會用後端設定的 Instagram App Secret 換取 access token，再讀取 Instagram profile，最後沿用平台第三方登入流程建立或登入會員。
+
+Client -> Server:
+
+| 欄位 | 型別 | 必填 | 說明 |
+|---|---|---|---|
+| `code` | string | 是 | Instagram OAuth authorization code。 |
+| `redirect_uri` | string | 建議 | 必須與前端啟動 OAuth 時使用的 redirect URI 完全一致；若省略則使用後端 `INSTAGRAM_OAUTH_REDIRECT_URI`。 |
+| `origin` | string | 否 | `redirect_uri` 的相容 fallback。 |
+
+成功回應：`login_ok`
+
+錯誤回應：`error`
+
+常見錯誤碼：`INSTAGRAM_LOGIN_INVALID_DATA`、`INSTAGRAM_LOGIN_CODE_MISSING`、`INSTAGRAM_LOGIN_TIMEOUT`、`INSTAGRAM_LOGIN_BACKEND_ERROR`、`INSTAGRAM_LOGIN_FAILED`
+
+範例：
+
+```json
+{"type":"instagram_login","data":{"code":"instagram-authorization-code","redirect_uri":"https://game.example.com/auth/instagram/callback"}}
+```
+
+### 5.6 threads_login Threads 登入
+
+Client 先完成 Threads OAuth authorization code flow，拿到 `code` 後送到 WebSocket。
+Server 會用後端設定的 Threads App Secret 換取 access token，再讀取 Threads profile，最後沿用平台第三方登入流程建立或登入會員。
+
+Client -> Server:
+
+| 欄位 | 型別 | 必填 | 說明 |
+|---|---|---|---|
+| `code` | string | 是 | Threads OAuth authorization code。 |
+| `redirect_uri` | string | 建議 | 必須與前端啟動 OAuth 時使用的 redirect URI 完全一致；若省略則使用後端 `THREADS_OAUTH_REDIRECT_URI`。 |
+| `origin` | string | 否 | `redirect_uri` 的相容 fallback。 |
+
+成功回應：`login_ok`
+
+錯誤回應：`error`
+
+常見錯誤碼：`THREADS_LOGIN_INVALID_DATA`、`THREADS_LOGIN_CODE_MISSING`、`THREADS_LOGIN_TIMEOUT`、`THREADS_LOGIN_BACKEND_ERROR`、`THREADS_LOGIN_FAILED`
+
+範例：
+
+```json
+{"type":"threads_login","data":{"code":"threads-authorization-code","redirect_uri":"https://game.example.com/auth/threads/callback"}}
+```
+
+### 5.7 guest_login 訪客登入
 
 用途：建立訪客身份登入。壓測或陪玩員可帶 `is_companion`。
 
@@ -274,7 +465,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"GUEST_BACKEND_ERROR","message":"訪客登入服務異常"}}
 ```
 
-### 5.3 auth_token token 驗證與重連
+### 5.8 auth_token token 驗證與重連
 
 用途：頁面重新整理、回到前景或 WebSocket 重連時恢復登入狀態。
 
@@ -311,7 +502,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"AUTH_TOKEN_INVALID","message":"登入憑證無效"}}
 ```
 
-### 5.4 register_verification_request 註冊驗證碼
+### 5.9 register_verification_request 註冊驗證碼
 
 用途：註冊前先請求信箱或手機驗證碼。
 
@@ -347,7 +538,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"REGISTER_VERIFICATION_INVALID_DATA","message":"註冊驗證資料格式錯誤"}}
 ```
 
-### 5.5 register 註冊會員
+### 5.10 register 註冊會員
 
 用途：使用註冊驗證碼建立正式會員。
 
@@ -386,7 +577,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"REGISTER_VERIFICATION_CODE_INVALID","message":"註冊驗證碼錯誤"}}
 ```
 
-### 5.6 forgot_password_request 忘記密碼驗證碼
+### 5.11 forgot_password_request 忘記密碼驗證碼
 
 用途：以信箱或手機號碼請求忘記密碼驗證碼。
 
@@ -422,7 +613,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"PASSWORD_RESET_ACCOUNT_MISSING","message":"請輸入信箱或手機號碼"}}
 ```
 
-### 5.7 forgot_password_reset 重設密碼
+### 5.12 forgot_password_reset 重設密碼
 
 用途：使用驗證碼與新密碼完成重設。
 
@@ -461,7 +652,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"PASSWORD_RESET_CODE_INVALID","message":"驗證碼錯誤"}}
 ```
 
-### 5.8 update_profile 更新個人資料
+### 5.13 update_profile 更新個人資料
 
 用途：更新玩家暱稱或頭像。
 
@@ -498,7 +689,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"PROFILE_UPDATE_FAILED","message":"更新個人資料失敗"}}
 ```
 
-### 5.9 logout 登出
+### 5.14 logout 登出
 
 用途：登出目前帳號並清除目前 token。
 
@@ -534,7 +725,7 @@ Ts, Th, Td, Tc
 {"type":"error","data":{"code":"LOGOUT_FAILED","message":"登出失敗"}}
 ```
 
-## 6. 通用 Client -> Server 訊息
+## 6. Client -> Server 遊戲操作
 
 ### 6.1 ping 延遲測量
 
@@ -664,10 +855,24 @@ Ts, Th, Td, Tc
 {"type":"enter_game","data":{"game_id":"big_two"}}
 ```
 
+麻將範例:
+
+```json
+{"type":"enter_game","data":{"game_id":"mahjong"}}
+```
+
 成功範例：
+
+大老二範例:
 
 ```json
 {"type":"game_lobby_state","data":{"game_id":"big_two","game_name":"big_two","stakes":[{"id":"b10","base_score":10,"min_buyin":1000,"max_buyin":20000,"display":"底分 10"}],"total_table_count":1,"total_player_count":2}}
+```
+
+麻將範例:
+
+```json
+{"type":"game_lobby_state","data":{"game_id":"mahjong","game_name":"台灣十六張麻將","stakes":[{"id":"m10","ruleset":"tw_16_no_flowers","base_score":10,"small_blind":0,"big_blind":10,"min_buyin":1000,"max_buyin":20000,"display":"Taiwan 16 Mahjong 10 - buyin 1000 ~ 20000"}],"total_table_count":1,"total_player_count":4}}
 ```
 
 失敗範例：
@@ -686,8 +891,8 @@ Client -> Server
 
 | 欄位 | 型別 | 必填 | 範例 | 說明 |
 |---|---|---|---|---|
-| `game_id` | string | 是 | `texas_holdem`、`big_two` | 要加入的遊戲 ID。 |
-| `stakes_id` | string | 是 | `t25_50`、`b10` | 要加入的盲注/場次 ID，來源為 `game_lobby_state.stakes[].id`。 |
+| `game_id` | string | 是 | `texas_holdem`、`big_two`、`mahjong` | 要加入的遊戲 ID。 |
+| `stakes_id` | string | 是 | `t25_50`、`b10`、`m10` | 要加入的盲注/場次 ID，來源為 `game_lobby_state.stakes[].id`。 |
 | `buyin` | integer | 否 | `1000` | 帶入籌碼。一般入座未帶時會使用該場預設/最低帶入；觀戰模式未帶時不會先轉入籌碼，之後 `take_seat` 會檢查目前 game wallet / table chips 是否達到最低帶入。 |
 | `mode` | string | 否 | `spectator` | 帶 `"spectator"` 時進入觀戰模式。也支援 `spectate`、`observer`、`watch`。 |
 | `spectator` | boolean | 否 | `true` | 另一種進入觀戰模式的寫法；效果等同 `mode:"spectator"`。 |
@@ -717,6 +922,12 @@ Big Two 一般入座範例：
 {"type":"join_stakes","data":{"game_id":"big_two","stakes_id":"b10","buyin":1000}}
 ```
 
+麻將一般入座範例：
+
+```json
+{"type":"join_stakes","data":{"game_id":"mahjong","stakes_id":"m10","buyin":1000}}
+```
+
 Texas 成功範例：
 
 ```json
@@ -733,6 +944,12 @@ Big Two 成功範例：
 
 ```json
 {"type":"table_joined","data":{"game_id":"big_two","hero_seat":0,"table":{"table_id":"big_two_b10_xxxx","game_id":"big_two","stakes_id":"b10","players":[]},"waiting_this_hand":false}}
+```
+
+麻將成功範例：
+
+```json
+{"type":"table_joined","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","stakes_id":"m10","seat":0,"hero_seat":0,"is_spectator":false,"buyin":1000,"table_chips":1000,"wallet_balance":9000,"table":{"table_id":"mahjong_m10_xxxx","game_id":"mahjong","ruleset":"tw_16_no_flowers","stakes_id":"m10","base_score":10,"max_players":4,"available_seats":[1,2,3],"status":"waiting","players":[{"user_id":362,"username":"玩家","seat":0,"chips":1000,"hand_count":0,"melds":[],"discards":[]}],"mahjong_state":null}}}
 ```
 
 錯誤範例：
@@ -762,8 +979,22 @@ Client -> Server.
 
 成功範例：
 
+德州範例：
+
 ```json
 {"type":"seat_taken","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","hero_seat":2,"is_spectator":false,"can_act":false,"table_chips":1000,"waiting_this_hand":true,"table":{}}}
+```
+
+大老二範例：
+
+```json
+{"type":"seat_taken","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","hero_seat":2,"is_spectator":false,"can_act":false,"table_chips":1000,"waiting_this_hand":true,"table":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","players":[{"user_id":362,"username":"玩家","seat":2,"chips":1000}],"play_state":{"current_seat":0,"last_play":null,"passed_seats":[],"finished_seats":[]},"current_turn_seat":0,"current_turn_timeout":10,"current_turn_started_at":1780387590974,"current_turn_deadline_at":1780387600974}}}
+```
+
+麻將範例：
+
+```json
+{"type":"seat_taken","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","stakes_id":"m10","seat":2,"hero_seat":2,"is_spectator":false,"buyin":1000,"table_chips":1000,"table":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","ruleset":"tw_16_no_flowers","stakes_id":"m10","players":[{"user_id":362,"username":"玩家","seat":2,"chips":1000,"hand_count":0,"melds":[],"discards":[]}],"mahjong_state":null}}}
 ```
 
 常見錯誤：
@@ -794,8 +1025,22 @@ Client -> Server
 
 成功範例：
 
+德州範例：
+
 ```json
 {"type":"spectator_mode","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","previous_seat":2,"hero_seat":null,"is_spectator":true,"can_act":false,"table_chips":1500,"table":{}}}
+```
+
+大老二範例：
+
+```json
+{"type":"spectator_mode","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","previous_seat":2,"hero_seat":null,"is_spectator":true,"can_act":false,"table_chips":1500,"table":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","players":[],"last_hand_result":null}}}
+```
+
+麻將範例：
+
+```json
+{"type":"spectator_mode","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","previous_seat":2,"hero_seat":null,"is_spectator":true,"table":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","ruleset":"tw_16_no_flowers","stakes_id":"m10","players":[],"mahjong_state":null}}}
 ```
 
 錯誤範例：
@@ -809,6 +1054,7 @@ Client -> Server
 - `stand_up` 不會把 game wallet / table chips 轉回主錢包。
 - 玩家會留在目前桌上，並持續收到公開桌況事件。
 - 玩家之後可以再送 `take_seat` 坐回座位；`take_seat` 會檢查目前 table chips 是否達到該桌最低帶入。
+- 大老二只允許在真正手局間空檔退座；牌局進行中、半局加入等待中或不能安全變更座位時會回 `STAND_UP_NOT_ALLOWED`。
 
 ### 6.7 leave_room 離開目前遊戲桌
 
@@ -842,6 +1088,12 @@ Client -> Server
 {"type":"leave_room","data":{}}
 ```
 
+麻將範例:
+
+```json
+{"type":"leave_room","data":{}}
+```
+
 成功範例：
 
 德州範例:
@@ -854,6 +1106,12 @@ Client -> Server
 
 ```json
 {"type":"game_lobby_state","data":{"game_id":"big_two","stakes":[]}}
+```
+
+麻將範例:
+
+```json
+{"type":"game_lobby_state","data":{"game_id":"mahjong","stakes":[{"id":"m10","ruleset":"tw_16_no_flowers","base_score":10,"min_buyin":1000,"max_buyin":20000}]}}
 ```
 
 失敗範例：
@@ -955,6 +1213,12 @@ Client -> Server
 {"type":"table_state","data":{"game_id":"big_two","hero_seat":0,"table":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","players":[]}}}
 ```
 
+麻將範例：
+
+```json
+{"type":"table_state","data":{"game_id":"mahjong","hero_seat":0,"table":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","ruleset":"tw_16_no_flowers","stakes_id":"m10","players":[],"mahjong_state":null}}}
+```
+
 失敗範例：
 
 ```json
@@ -963,7 +1227,7 @@ Client -> Server
 
 ### 6.10 player_action 送出回合操作
 
-用途：送出目前遊戲桌的回合操作。德州與大老二共用同一個 Client -> Server type。
+用途：送出目前遊戲桌的回合操作。德州、大老二與麻將共用同一個 Client -> Server type。
 
 方向：Client -> Server
 
@@ -971,16 +1235,19 @@ Client -> Server
 
 | 欄位 | 型別 | 必填 | 限制 | 說明 |
 |---|---|---|---|---|
-| `action` | string | 是 | 依遊戲與 `action_request.allowed` | 德州可為 `fold`、`call`、`check`、`bet`、`raise`、`allin`；大老二可為 `play_cards`、`pass`。 |
+| `action` | string | 是 | 依遊戲與 `action_request.allowed` / `action_request.allowed_actions` | 德州可為 `fold`、`call`、`check`、`bet`、`raise`、`allin`；大老二可為 `play_cards`、`pass`，後端也接受舊值 `play`；麻將可為 `discard`、`chi`、`pong`、`kong`、`hu`、`pass`。 |
 | `raise_to` | integer | 條件 | 德州加注時需要 | 目標總下注額。 |
 | `cards` | string[] | 條件 | 大老二出牌時需要 | 要出的牌。 |
+| `tile` | string | 條件 | 麻將打牌、暗槓、加槓時常用 | 麻將牌碼，格式見第 1.2 節。 |
+| `tiles` | string[] | 條件 | 麻將吃牌時需要 | 吃牌時使用的兩張手牌；必須符合 `action_request.allowed_actions[].combos`。 |
+| `kind` | string | 條件 | 麻將槓牌時可能需要 | `exposed`、`concealed` 或 `added`。 |
 | `action_seq` | integer | 條件 | 大老二 `action_request` 會提供 | 避免舊操作封包被重複接受。 |
 
 成功回應：`player_action`，後續可能有 `turn`、`action_request`、`award`、`hand_end`。
 
 失敗回應：`error`，常見 `ACTION_INVALID_DATA`、`ACTION_REJECTED`、`NOT_YOUR_TURN`。
 
-前端處理：按鈕應依 `action_request.allowed` 顯示。
+前端處理：按鈕應依 `action_request.allowed` 或 `action_request.allowed_actions` 顯示。
 
 請求範例：
 
@@ -996,6 +1263,24 @@ Client -> Server
 {"type":"player_action","data":{"action":"play_cards","cards":["3d"],"action_seq":12}}
 ```
 
+大老二備註：`play_cards` 與舊值 `play` 都會被後端視為出牌；目前廣播的 `player_action.data.action` 保持既有值 `"play"`，避免影響舊客戶端。
+
+麻將打牌範例：
+
+```json
+{"type":"player_action","data":{"action":"discard","tile":"m1"}}
+```
+
+麻將吃碰槓胡範例：
+
+```json
+{"type":"player_action","data":{"action":"chi","tiles":["m1","m2"]}}
+{"type":"player_action","data":{"action":"pong"}}
+{"type":"player_action","data":{"action":"kong","kind":"concealed","tile":"z5"}}
+{"type":"player_action","data":{"action":"hu"}}
+{"type":"player_action","data":{"action":"pass"}}
+```
+
 成功範例：
 
 德州範例：
@@ -1007,7 +1292,13 @@ Client -> Server
 大老二範例：
 
 ```json
-{"type":"player_action","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"action":"play_cards","cards":["3d"],"remaining_count":12}}
+{"type":"player_action","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"action":"play","cards":["3d"],"remaining_count":12}}
+```
+
+麻將範例：
+
+```json
+{"type":"player_action","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":0,"action":"discard","tile":"m1","timeout":false}}
 ```
 
 失敗範例：
@@ -1069,7 +1360,7 @@ Client -> Server
 {"type":"error","data":{"code":"REBUY_NOT_PENDING","message":"目前沒有等待回覆的補籌提示"}}
 ```
 
-## 7. 報表訊息
+## 7. 報表與玩家進度
 
 ### 7.1 hand_replay 查詢手牌回放
 
@@ -1184,7 +1475,43 @@ Client -> Server
 {"type":"error","data":{"code":"DAILY_SETTLEMENT_FAILED","message":"讀取每日結算失敗"}}
 ```
 
-## 8. 德州撲克 Texas Hold'em
+### 7.4 get_my_progress 查詢自己的玩家進度
+
+用途：查詢目前登入玩家的等級、經驗值、總戰績、指定遊戲戰績與已解鎖成就。
+
+方向：Client -> Server
+
+`data` 欄位：
+
+| 欄位 | 型別 | 必填 | 限制 | 說明 |
+|---|---|---|---|---|
+| `game_id` | string | 否 | 見第 2 章 game_id 表 | 不傳時伺服器會依目前所在遊戲推斷；仍無法推斷時使用預設遊戲。 |
+
+成功回應：`my_progress_ok`。
+
+失敗回應：`error`，常見 `MY_PROGRESS_INVALID_DATA`、`NOT_AUTHENTICATED`、`MY_PROGRESS_FAILED`。
+
+前端處理：可在個人資訊面板、牌桌玩家資訊彈窗或結算後刷新進度。一般牌桌狀態只需要使用 `level`、`title`、`badge` 等輕量欄位；完整成就列表請用此訊息查詢，避免每次 `table_state` 都傳大量資料。
+
+請求範例：
+
+```json
+{"type":"get_my_progress","data":{"game_id":"texas_holdem"}}
+```
+
+成功範例：
+
+```json
+{"type":"my_progress_ok","data":{"user_id":362,"game_id":"texas_holdem","progress_summary":{"level":12,"xp_total":13040,"xp_current_level":940,"xp_next_level":2500,"xp_to_next_level":1560,"hands_played":320,"wins":88,"losses":240,"pushes":12,"win_rate":0.275,"title_code":"sharp","title_label":"牌桌好手","badge_code":"winner","badge_label":"勝場"},"game_stats":{"level":12,"xp_total":13040,"hands_played":320,"wins":88,"win_rate":0.275},"achievements":[{"achievement_code":"first_win","display_name":"首勝","unlocked_at":"2026-06-04T12:00:00"}]}}
+```
+
+失敗範例：
+
+```json
+{"type":"error","data":{"code":"MY_PROGRESS_FAILED","message":"讀取玩家進度失敗"}}
+```
+
+## 8. Texas Hold'em 事件
 
 ### 8.1 post_blinds 德州盲注
 
@@ -1246,21 +1573,40 @@ Client -> Server
 {"type":"showdown","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","hand_id":10,"reason":"showdown","reveals":{"0":{"seat":0,"hole":["As","Ah"],"best5":["As","Ah","Kd","4d","3c"],"hand_rank":"one_pair"}}}}
 ```
 
-## 9. 大老二
+## 9. 結果
 
-### 9.1 hand_result 大老二單局結束結果
+### 9.1 hand_result 單局結束結果
 
-用途：通知大老二單局已結束，並回傳勝方、剩牌、分數變化與結算摘要。
+用途：通知單局已結束，並回傳勝方、剩牌、分數變化與結算摘要。
 
 方向：Server -> Client
 
 事件範例：
 
+大老二範例：
+
 ```json
-{"type":"hand_result","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","hand_id":3,"winner_seat":0,"results":[{"seat":0,"remaining_count":0,"score_delta":30},{"seat":1,"remaining_count":3,"score_delta":-30}]}}
+{"type":"hand_result","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","hand_id":3,"winner_seat":0,"base_score":10,"finished_seats":[0,1],"pot":30,"results":[{"seat":0,"remaining_count":0,"score_delta":27,"is_winner":true},{"seat":1,"remaining_count":3,"score_delta":-30,"is_winner":false}]}}
 ```
 
-## 10. 通用 Server -> Client 事件資料
+大老二 `results[]` 欄位：
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| `seat` | integer | 座位號。 |
+| `score_delta` | integer | 本局結算後的籌碼變化；等同結算明細中的 `net_amount`。 |
+| `remaining_count` | integer | 結算時手上剩餘張數，贏家為 0。 |
+| `is_winner` | boolean | 是否為本局贏家。 |
+
+大老二 `finished_seats` 為官方結算排名順序，第一個座位等同 `winner_seat`。
+
+麻將範例：
+
+```json
+{"type":"hand_result","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"winner_seats":[0],"win_tile":"m5","discarder_seat":null,"self_draw":true,"robbed_kong":false,"after_kong":false,"scores":{"0":{"winning":true,"total_tai":4,"patterns":[{"name":"dealer","tai":1},{"name":"men_qing","tai":1},{"name":"self_draw","tai":1},{"name":"men_qing_self_draw_bonus","tai":1}],"pair":["m5","m5"],"melds":[]}},"rake":{"pot_total":120,"base_score":10,"rake_percent":0,"rake_cap_amount":0,"rake_amount":0,"payout_total":120,"payment_details":[{"from_seat":1,"to_seat":0,"tai":4,"amount":40},{"from_seat":2,"to_seat":0,"tai":4,"amount":40},{"from_seat":3,"to_seat":0,"tai":4,"amount":40}]},"player_results":[{"seat":0,"user_id":362,"username":"玩家","hand_rank":"tai_4","final_hand":["m1","m2","m3","p1","p2","p3","s1","s2","s3","z1","z1","z1","m5","m5","z5","z5","z5"],"melds":[],"tai":4,"patterns":[{"name":"dealer","tai":1},{"name":"men_qing","tai":1},{"name":"self_draw","tai":1},{"name":"men_qing_self_draw_bonus","tai":1}],"contrib_amount":0,"win_amount":120,"net_amount":120,"is_winner":true,"result_type":"WIN"},{"seat":1,"user_id":363,"username":"對家","hand_rank":"not_winner","final_hand":[],"melds":[],"tai":0,"patterns":[],"contrib_amount":40,"win_amount":0,"net_amount":-40,"is_winner":false,"result_type":"LOSS"}]}}
+```
+
+## 10. Server -> Client 訊息
 
 ### 10.1 login_ok 會員登入成功
 
@@ -1268,10 +1614,23 @@ Client -> Server
 
 方向：Server -> Client
 
+`data` 欄位：
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| `member_no` | string/null | 會員編號。 |
+| `username` | string | 顯示名稱。 |
+| `avatar` | string | 頭像代碼或頭像 URL；Google 匯入後通常為 `/api/member-avatars/...`。 |
+| `is_guest` | boolean | 是否為訪客帳號。 |
+| `is_companion` | boolean | 是否為陪玩帳號。 |
+| `token` | string | 後續 `auth_token` 使用的登入 token。 |
+| `wallet_balance` | integer | 主錢包餘額。 |
+| `progress_summary` | object | 玩家等級、經驗值、勝率、稱號與徽章摘要。 |
+
 事件範例：
 
 ```json
-{"type":"login_ok","data":{"token":"token-value","wallet_balance":10000}}
+{"type":"login_ok","data":{"member_no":"M202605200001","username":"玩家","avatar":"/api/member-avatars/12/abc.png","is_guest":false,"is_companion":false,"token":"token-value","wallet_balance":10000,"progress_summary":{"level":12,"xp_total":13040,"xp_to_next_level":1560,"hands_played":320,"wins":88,"win_rate":0.275,"title_code":"sharp","title_label":"牌桌好手","badge_code":"winner","badge_label":"勝場"}}}
 ```
 
 ### 10.2 auth_ok token 驗證成功
@@ -1280,10 +1639,23 @@ Client -> Server
 
 方向：Server -> Client
 
+`data` 欄位：
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| `token` | string | 驗證成功的 token；若使用外部登入連結交換，可能是新產生的 token。 |
+| `member_no` | string/null | 會員編號。 |
+| `username` | string | 顯示名稱。 |
+| `avatar` | string | 頭像代碼或頭像 URL。 |
+| `is_guest` | boolean | 是否為訪客帳號。 |
+| `is_companion` | boolean | 是否為陪玩帳號。 |
+| `wallet_balance` | integer | 主錢包餘額。 |
+| `progress_summary` | object | 玩家等級、經驗值、勝率、稱號與徽章摘要。 |
+
 事件範例：
 
 ```json
-{"type":"auth_ok","data":{"token":"token-value","wallet_balance":10000}}
+{"type":"auth_ok","data":{"token":"token-value","member_no":"M202605200001","username":"玩家","avatar":"/api/member-avatars/12/abc.png","is_guest":false,"is_companion":false,"wallet_balance":10000,"progress_summary":{"level":12,"xp_total":13040,"xp_to_next_level":1560,"hands_played":320,"wins":88,"win_rate":0.275,"title_code":"sharp","title_label":"牌桌好手","badge_code":"winner","badge_label":"勝場"}}}
 ```
 
 ### 10.3 register_verification_code_sent 註冊驗證碼已建立
@@ -1379,7 +1751,7 @@ Client -> Server
 事件範例：
 
 ```json
-{"type":"lobby_state","data":{"games":[]}}
+{"type":"lobby_state","data":{"games":[{"game_id":"texas_holdem","game_name":"德州撲克","is_active":true},{"game_id":"big_two","game_name":"大老二","is_active":true},{"game_id":"mahjong","game_name":"台灣十六張麻將","is_active":true}]}}
 ```
 
 ### 10.11 game_lobby_state 遊戲大廳狀態
@@ -1390,8 +1762,16 @@ Client -> Server
 
 事件範例：
 
+大老二範例：
+
 ```json
 {"type":"game_lobby_state","data":{"game_id":"big_two","stakes":[]}}
+```
+
+麻將範例：
+
+```json
+{"type":"game_lobby_state","data":{"game_id":"mahjong","game_name":"台灣十六張麻將","stakes":[{"id":"m10","ruleset":"tw_16_no_flowers","base_score":10,"small_blind":0,"big_blind":10,"min_buyin":1000,"max_buyin":20000,"display":"Taiwan 16 Mahjong 10 - buyin 1000 ~ 20000"},{"id":"m100","ruleset":"tw_16_no_flowers","base_score":100,"small_blind":0,"big_blind":100,"min_buyin":10000,"max_buyin":200000,"display":"Taiwan 16 Mahjong 100 - buyin 10000 ~ 200000"}],"total_table_count":1,"total_player_count":4}}
 ```
 
 ### 10.12 wallet_state 錢包狀態
@@ -1412,30 +1792,48 @@ Client -> Server
 
 方向：Server -> Client
 
+說明：`data.table.players[]` 與 `table_state` 相同，會帶 `level`、`title`、`title_label`、`badge`、`badge_label` 作為牌桌顯示用玩家進度摘要。
+
 事件範例：
 
 德州範例：
 
 ```json
-{"type":"table_joined","data":{"game_id":"texas_holdem","hero_seat":5,"waiting_this_hand":true,"table":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","players":[]}}}
+{"type":"table_joined","data":{"game_id":"texas_holdem","hero_seat":5,"waiting_this_hand":true,"table":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","players":[{"user_id":362,"username":"玩家","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":5,"chips":1000}]}}}
 ```
 
 大老二範例：
 
 ```json
-{"type":"table_joined","data":{"game_id":"big_two","hero_seat":0,"waiting_this_hand":false,"table":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","players":[]}}}
+{"type":"table_joined","data":{"game_id":"big_two","hero_seat":0,"waiting_this_hand":false,"table":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","players":[{"user_id":362,"username":"玩家","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":0,"chips":1000}]}}}
+```
+
+麻將範例：
+
+```json
+{"type":"table_joined","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","stakes_id":"m10","seat":0,"hero_seat":0,"is_spectator":false,"buyin":1000,"table_chips":1000,"wallet_balance":9000,"table":{"table_id":"mahjong_m10_xxxx","game_id":"mahjong","ruleset":"tw_16_no_flowers","stakes_id":"m10","base_score":10,"max_players":4,"available_seats":[1,2,3],"status":"waiting","hand_id":0,"dealer_seat":null,"dealer_streak":0,"players":[{"user_id":362,"username":"玩家","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":0,"chips":1000,"hand_count":0,"melds":[],"discards":[]}],"mahjong_state":null}}}
 ```
 
 ### 10.14 seat_taken 選座成功
 
-Server -> Client.
+方向：Server -> Client
 
 `take_seat` 成功後送給該玩家。
 
+說明：`data.table.players[]` 與 `table_state` 相同，會帶 `level`、`title`、`title_label`、`badge`、`badge_label`。前端應以 `table` 更新整桌狀態，並以 `hero_seat` 設定自己的座位。
+
 範例：
 
+德州範例：
+
 ```json
-{"type":"seat_taken","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","hero_seat":2,"is_spectator":false,"can_act":false,"table_chips":1000,"waiting_this_hand":true,"table":{}}}
+{"type":"seat_taken","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","hero_seat":2,"is_spectator":false,"can_act":false,"table_chips":1000,"waiting_this_hand":true,"table":{"players":[{"user_id":362,"username":"玩家","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":2,"chips":1000}]}}}
+```
+
+麻將範例：
+
+```json
+{"type":"seat_taken","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","stakes_id":"m10","seat":2,"hero_seat":2,"is_spectator":false,"buyin":1000,"table_chips":1000,"wallet_balance":9000,"table":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","ruleset":"tw_16_no_flowers","stakes_id":"m10","players":[{"user_id":362,"username":"玩家","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":2,"chips":1000,"hand_count":0,"melds":[],"discards":[]}],"mahjong_state":null}}}
 ```
 
 ### 10.15 spectator_mode 已切換為觀戰模式
@@ -1446,8 +1844,16 @@ Server -> Client
 
 範例：
 
+德州範例：
+
 ```json
 {"type":"spectator_mode","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","previous_seat":2,"hero_seat":null,"is_spectator":true,"can_act":false,"table_chips":1500,"table":{}}}
+```
+
+麻將範例：
+
+```json
+{"type":"spectator_mode","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","previous_seat":2,"hero_seat":null,"is_spectator":true,"table":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","ruleset":"tw_16_no_flowers","stakes_id":"m10","players":[],"mahjong_state":null}}}
 ```
 
 ### 10.16 table_player_joined 玩家加入桌子
@@ -1456,18 +1862,26 @@ Server -> Client
 
 方向：Server -> Client
 
+`player` 進度欄位：
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| `level` | integer | 玩家等級。 |
+| `title` / `title_label` | string | 稱號代碼與顯示文字。 |
+| `badge` / `badge_label` | string | 徽章代碼與顯示文字。 |
+
 事件範例：
 
 德州範例：
 
 ```json
-{"type":"table_player_joined","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","player":{"seat":5,"chips":1000,"in_hand":false}}}
+{"type":"table_player_joined","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","player":{"user_id":362,"username":"玩家","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":5,"chips":1000,"in_hand":false}}}
 ```
 
 大老二範例：
 
 ```json
-{"type":"table_player_joined","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","player":{"seat":0,"chips":1000,"in_hand":true}}}
+{"type":"table_player_joined","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","player":{"user_id":362,"username":"玩家","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":0,"chips":1000,"in_hand":true}}}
 ```
 
 ### 10.17 table_countdown 開局倒數
@@ -1487,7 +1901,15 @@ Server -> Client
 大老二範例：
 
 ```json
-{"type":"table_countdown","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","seconds":3}}
+{"type":"table_countdown","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","seconds":3,"next_deal_at":1780387603974}}
+```
+
+大老二同時會在 `table_state.table.next_deal_at` 與 `table_state.table.start_countdown_seconds` 提供可重建的倒數狀態，供倒數開始後才入桌、重連或換桌的玩家使用。
+
+麻將範例：
+
+```json
+{"type":"table_countdown","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","countdown":2}}
 ```
 
 ### 10.18 hand_start 牌局開始
@@ -1510,6 +1932,12 @@ Server -> Client
 {"type":"hand_start","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"table":{}}}
 ```
 
+麻將範例：
+
+```json
+{"type":"hand_start","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"dealer_seat":0,"dealer_streak":0,"ruleset":"tw_16_no_flowers"}}
+```
+
 ### 10.19 table_state 遊戲桌狀態
 
 用途：同步目前遊戲桌完整狀態。
@@ -1521,10 +1949,22 @@ Server -> Client
 德州範例：
 
 ```json
-{"type":"table_state","data":{"game_id":"texas_holdem","hero_seat":5,"table":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","players":[],"current_turn_seat":5,"current_turn_timeout":10,"current_turn_started_at":1780387590974,"current_turn_deadline_at":1780387600974}}}
+{"type":"table_state","data":{"game_id":"texas_holdem","hero_seat":5,"table":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","stakes_id":"t25_50","players":[{"user_id":362,"username":"玩家","avatar":"/api/member-avatars/12/abc.png","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":5,"chips":1000}],"current_turn_seat":5,"current_turn_timeout":10,"current_turn_started_at":1780387590974,"current_turn_deadline_at":1780387600974}}}
 ```
 
-德州目前行動欄位：
+`table.players[]` 玩家進度欄位：
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| `level` | integer | 玩家等級，最低為 1。 |
+| `title` | string | 稱號代碼，例如 `rookie`、`sharp`、`veteran`。 |
+| `title_label` | string | 稱號顯示文字。 |
+| `badge` | string | 徽章代碼，例如 `starter`、`winner`、`big_win`。 |
+| `badge_label` | string | 徽章顯示文字。 |
+
+這些欄位是牌桌顯示用的輕量摘要；完整經驗值、勝率與成就列表請用 `get_my_progress` 查詢。
+
+目前行動欄位（德州、大老二與麻將）：
 
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
@@ -1533,16 +1973,36 @@ Server -> Client
 | `current_turn_started_at` | integer/null | 後端開始此玩家行動的 Unix epoch milliseconds。 |
 | `current_turn_deadline_at` | integer/null | 後端可見倒數截止時間，Unix epoch milliseconds。 |
 
-德州前端處理：
+前端處理（德州、大老二與麻將）：
 
 - `table_state` 是權威狀態；如果前端用 `table_state.table` 覆蓋桌面資料，必須同步保存 `current_turn_*`。
 - 操作按鈕只在 `current_turn_seat` 等於自己的座位，且 `Date.now() < current_turn_deadline_at` 時開啟。
 - 若 `current_turn_deadline_at` 已過或為 `null`，應停用操作按鈕。
+- 麻將 `phase:"claim"` 時，可能有多位玩家同時收到 `action_request`；前端應以自己實際收到的 `action_request.allowed_actions` 開啟吃、碰、槓、胡、過水按鈕。
+
+開局等待欄位（目前大老二會在倒數中提供）：
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| `next_deal_at` | integer/null | 下一局預計發牌時間，Unix epoch milliseconds；沒有開局倒數時為 `null`。 |
+| `start_countdown_seconds` | integer | 由後端快照推算的剩餘開局倒數秒數；沒有開局倒數時為 0。 |
+
+大老二結算快照：
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| `last_hand_result` | object/null | 最近一局官方 `hand_result` payload；新一局開始時清為 `null`。晚進桌或換桌觀戰者可用它重建結算彈窗。 |
 
 大老二範例：
 
 ```json
-{"type":"table_state","data":{"game_id":"big_two","hero_seat":0,"table":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","players":[]}}}
+{"type":"table_state","data":{"game_id":"big_two","hero_seat":0,"table":{"game_id":"big_two","table_id":"big_two_b10_xxxx","stakes_id":"b10","players":[{"user_id":362,"username":"玩家","avatar":"/api/member-avatars/12/abc.png","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":0,"chips":1000}],"play_state":{"current_seat":0,"last_play":null,"passed_seats":[],"finished_seats":[]},"current_turn_seat":0,"current_turn_timeout":10,"current_turn_started_at":1780387590974,"current_turn_deadline_at":1780387600974,"next_deal_at":null,"start_countdown_seconds":0,"last_hand_result":null}}}
+```
+
+麻將範例：
+
+```json
+{"type":"table_state","data":{"game_id":"mahjong","hero_seat":0,"table":{"table_id":"mahjong_m10_xxxx","game_id":"mahjong","ruleset":"tw_16_no_flowers","stakes_id":"m10","base_score":10,"max_players":4,"available_seats":[],"status":"playing","hand_id":1,"dealer_seat":0,"dealer_streak":0,"players":[{"user_id":362,"username":"玩家","avatar":"/api/member-avatars/12/abc.png","level":12,"title":"sharp","title_label":"牌桌好手","badge":"winner","badge_label":"勝場","seat":0,"chips":1000,"hand_count":17,"melds":[],"discards":[]}],"mahjong_state":{"phase":"discard","current_seat":0,"dealer_seat":0,"dealer_streak":0,"prevailing_wind":"z1","seat_winds":{"0":"z1","1":"z2","2":"z3","3":"z4"},"wall_remaining":83,"last_discard":{},"pending_claim":null},"current_turn_seat":0,"current_turn_timeout":12,"current_turn_started_at":1780387590974,"current_turn_deadline_at":1780387602974}}}
 ```
 
 ### 10.20 rebuy_offer 補籌提示
@@ -1619,17 +2079,32 @@ Server -> Client
 {"type":"action_request","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","hand_id":10,"seat":5,"to_call":50,"current_bet":100,"my_bet":50,"min_raise_to":150,"big_blind":50,"pot":500,"round_total_bet":500,"allowed":["fold","call","raise","allin"],"timeout":10,"started_at_ms":1780387590974,"deadline_at_ms":1780387600974}}
 ```
 
-德州前端處理：
+前端處理：
 
-- `started_at_ms` / `deadline_at_ms` 為後端時間的 Unix epoch milliseconds。
+- 德州與大老二的 `started_at_ms` / `deadline_at_ms` 為後端時間的 Unix epoch milliseconds。
 - 倒數請以 `deadline_at_ms - Date.now()` 計算，不要只用收到封包當下加 `timeout`。
 - 當目前時間大於等於 `deadline_at_ms` 時，應立即停用操作按鈕，不再送 `player_action`。
 - 後端仍有內部收單寬限秒數處理網路抖動；此寬限不顯示給玩家，也不應延長前端可操作時間。
+- 麻將目前使用 `timeout_sec` 與 `allowed_actions`；倒數也可由最近一次 `table_state.table.current_turn_deadline_at` 顯示。
 
 大老二範例：
 
 ```json
-{"type":"action_request","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"allowed":["play_cards","pass"],"timeout":10,"action_seq":12}}
+{"type":"action_request","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"allowed":["play","pass"],"timeout":10,"started_at_ms":1780387590974,"deadline_at_ms":1780387600974,"action_seq":12}}
+```
+
+大老二備註：`allowed` 目前沿用舊值 `play`；前端送 `player_action` 時可使用 `play_cards` 或 `play`，兩者都代表出牌。
+
+麻將打牌範例：
+
+```json
+{"type":"action_request","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":0,"request_kind":"discard","action_no":21,"timeout_sec":12,"allowed_actions":[{"action":"discard","tiles":["m1","m2","m3"]},{"action":"hu","win_type":"self_draw"},{"action":"kong","kind":"concealed","tile":"z5"}],"actions":[{"action":"discard","tiles":["m1","m2","m3"]},{"action":"hu","win_type":"self_draw"},{"action":"kong","kind":"concealed","tile":"z5"}],"current_tile":"m5","wall_remaining":83}}
+```
+
+麻將吃碰槓胡範例：
+
+```json
+{"type":"action_request","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":1,"request_kind":"claim","action_no":22,"timeout_sec":5,"allowed_actions":[{"action":"hu","tile":"m3","priority":3,"win_type":"discard"},{"action":"pong","tile":"m3","priority":2},{"action":"chi","tile":"m3","combos":[["m1","m2"],["m2","m4"]],"priority":1},{"action":"pass","priority":0}],"actions":[{"action":"hu","tile":"m3","priority":3,"win_type":"discard"},{"action":"pong","tile":"m3","priority":2},{"action":"chi","tile":"m3","combos":[["m1","m2"],["m2","m4"]],"priority":1},{"action":"pass","priority":0}],"claim_tile":"m3","discarder_seat":0,"robbed_kong":false}}
 ```
 
 ### 10.24 deal_card 公開派牌動畫
@@ -1652,6 +2127,12 @@ Server -> Client
 {"type":"deal_card","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"card_index":0}}
 ```
 
+麻將範例：
+
+```json
+{"type":"deal_card","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":0,"count":1,"wall_remaining":82,"supplement":false}}
+```
+
 ### 10.25 deal_private 自己的私牌
 
 用途：把實際牌面只送給該玩家本人。
@@ -1670,6 +2151,12 @@ Server -> Client
 
 ```json
 {"type":"deal_private","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"card_index":0,"card":"3d"}}
+```
+
+麻將範例：
+
+```json
+{"type":"deal_private","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":0,"tile":"m5","card":"m5","supplement":false}}
 ```
 
 ### 10.26 hole_cards 同步自己的手牌
@@ -1692,6 +2179,12 @@ Server -> Client
 {"type":"hole_cards","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"cards":["3d","4d","5d"]}}
 ```
 
+麻將範例：
+
+```json
+{"type":"hole_cards","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":0,"cards":["m1","m2","m3","s7","s8","s9","z1","z1","z1","z5","z5","z5","m5","m5"],"melds":[{"type":"pong","tiles":["p1","p1","p1"],"claimed_tile":"p1","from_seat":3,"concealed":false}]}}
+```
+
 ### 10.27 turn 輪到座位
 
 用途：通知目前輪到哪個座位。
@@ -1706,7 +2199,7 @@ Server -> Client
 {"type":"turn","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","hand_id":10,"seat":5,"timeout":10,"round":"preflop","started_at_ms":1780387590974,"deadline_at_ms":1780387600974}}
 ```
 
-德州前端處理：
+前端處理（德州、大老二與麻將）：
 
 - `turn` 是全桌廣播，用來顯示目前輪到哪個座位。
 - 倒數顯示請以 `deadline_at_ms` 為準；若 `table_state.table.current_turn_deadline_at` 同步出現，兩者應為同一個後端截止時間。
@@ -1715,7 +2208,13 @@ Server -> Client
 大老二範例：
 
 ```json
-{"type":"turn","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"timeout":10,"action_seq":12}}
+{"type":"turn","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"timeout":10,"started_at_ms":1780387590974,"deadline_at_ms":1780387600974,"action_seq":12}}
+```
+
+麻將範例：
+
+```json
+{"type":"turn","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":0,"action_no":21,"request_kind":"discard","timeout_sec":12}}
 ```
 
 ### 10.28 player_action 玩家操作結果
@@ -1738,6 +2237,19 @@ Server -> Client
 {"type":"player_action","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"seat":0,"action":"pass","remaining_count":12}}
 ```
 
+麻將打牌範例：
+
+```json
+{"type":"player_action","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":0,"action":"discard","tile":"m1","timeout":false}}
+```
+
+麻將吃碰槓範例：
+
+```json
+{"type":"player_action","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":1,"action":"chi","tile":"m3","from_seat":0,"tiles":["m1","m2"]}}
+{"type":"player_action","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"seat":2,"action":"kong","kind":"concealed","tile":"z5"}}
+```
+
 ### 10.29 award 派彩結果
 
 用途：通知派彩結果。
@@ -1756,6 +2268,12 @@ Server -> Client
 
 ```json
 {"type":"award","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"awards":[],"player_results":[]}}
+```
+
+麻將範例：
+
+```json
+{"type":"award","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"winner_seats":[0],"win_tile":"m5","discarder_seat":null,"self_draw":true,"scores":{"0":{"winning":true,"total_tai":4,"patterns":[{"name":"dealer","tai":1},{"name":"men_qing","tai":1},{"name":"self_draw","tai":1},{"name":"men_qing_self_draw_bonus","tai":1}]}},"rake":{"pot_total":120,"base_score":10,"rake_percent":0,"rake_cap_amount":0,"rake_amount":0,"payout_total":120,"payment_details":[{"from_seat":1,"to_seat":0,"tai":4,"amount":40},{"from_seat":2,"to_seat":0,"tai":4,"amount":40},{"from_seat":3,"to_seat":0,"tai":4,"amount":40}]},"awards":[{"seat":0,"username":"玩家","amount":120,"hand_rank":"tai_4"}],"player_results":[{"seat":0,"username":"玩家","hand_rank":"tai_4","tai":4,"win_amount":120,"net_amount":120,"is_winner":true,"result_type":"WIN"},{"seat":1,"username":"對家","hand_rank":"not_winner","tai":0,"contrib_amount":40,"net_amount":-40,"is_winner":false,"result_type":"LOSS"}]}}
 ```
 
 ### 10.30 hand_end 牌局結束
@@ -1778,7 +2296,41 @@ Server -> Client
 {"type":"hand_end","data":{"game_id":"big_two","table_id":"big_two_b10_xxxx","hand_id":3,"reason":"completed","player_results":[]}}
 ```
 
-### 10.31 hand_replay_ok 手牌回放查詢成功
+麻將範例：
+
+```json
+{"type":"hand_end","data":{"game_id":"mahjong","table_id":"mahjong_m10_xxxx","hand_id":1,"winner_seats":[0],"win_tile":"m5","discarder_seat":null,"self_draw":true,"robbed_kong":false,"after_kong":false,"scores":{"0":{"winning":true,"total_tai":4,"patterns":[{"name":"dealer","tai":1},{"name":"men_qing","tai":1},{"name":"self_draw","tai":1},{"name":"men_qing_self_draw_bonus","tai":1}]}},"awards":[{"seat":0,"username":"玩家","amount":120,"hand_rank":"tai_4"}],"reveals":{"winner_seats":[0],"hands":{"0":["m1","m2","m3","p1","p2","p3","s1","s2","s3","z1","z1","z1","m5","m5","z5","z5","z5"],"1":[],"2":[],"3":[]},"melds":{"0":[],"1":[],"2":[],"3":[]},"scores":{"0":{"winning":true,"total_tai":4,"patterns":[{"name":"dealer","tai":1},{"name":"men_qing","tai":1},{"name":"self_draw","tai":1},{"name":"men_qing_self_draw_bonus","tai":1}]}}},"player_results":[{"seat":0,"username":"玩家","hand_rank":"tai_4","tai":4,"win_amount":120,"net_amount":120,"is_winner":true,"result_type":"WIN"},{"seat":1,"username":"對家","hand_rank":"not_winner","tai":0,"contrib_amount":40,"net_amount":-40,"is_winner":false,"result_type":"LOSS"}]}}
+```
+
+### 10.31 level_up 玩家升級或解鎖成就
+
+用途：牌局結算後通知桌上玩家，有玩家等級提升或解鎖成就。
+
+方向：Server -> Client
+
+`data` 欄位：
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| `user_id` | integer | 發生進度變化的玩家 ID。 |
+| `game_id` | string | 遊戲代碼。 |
+| `table_id` | string | 桌號 ID。 |
+| `hand_id` | integer | 觸發進度變化的手牌 ID。 |
+| `previous_level` | integer | 變化前等級。 |
+| `level` | integer | 變化後等級。 |
+| `xp_awarded` | integer | 本手獲得經驗值。 |
+| `progress_summary` | object | 變化後的玩家全域進度摘要。 |
+| `unlocked_achievements` | array | 本手新解鎖成就；只升級未解鎖成就時為空陣列。 |
+
+事件範例：
+
+```json
+{"type":"level_up","data":{"user_id":362,"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","hand_id":88,"previous_level":11,"level":12,"xp_awarded":42,"progress_summary":{"level":12,"xp_total":13040,"xp_to_next_level":1560,"title_code":"sharp","title_label":"牌桌好手","badge_code":"winner","badge_label":"勝場"},"unlocked_achievements":[{"achievement_code":"wins_10","display_name":"十勝玩家","progress_value":10}]}}
+```
+
+前端處理：若 `level > previous_level`，可播放升級提示並更新本地玩家資料；若 `unlocked_achievements` 非空，可顯示成就提示。收到後也應更新 `table_state.table.players[*]` 中同 `user_id` 的 `level`、`title`、`badge` 顯示。此事件可能廣播給整桌，因此前端要用 `user_id` 判斷是否為自己。
+
+### 10.32 hand_replay_ok 手牌回放查詢成功
 
 用途：回傳手牌回放資料。
 
@@ -1790,7 +2342,7 @@ Server -> Client
 {"type":"hand_replay_ok","data":{"hero_seat":0,"hero_hole_cards":[],"replay":{}}}
 ```
 
-### 10.32 hand_reports_ok 手牌報表查詢成功
+### 10.33 hand_reports_ok 手牌報表查詢成功
 
 用途：回傳手牌報表列表。
 
@@ -1802,7 +2354,7 @@ Server -> Client
 {"type":"hand_reports_ok","data":{"user_id":362,"items":[]}}
 ```
 
-### 10.33 daily_settlement_14d_ok 14 天結算查詢成功
+### 10.34 daily_settlement_14d_ok 14 天結算查詢成功
 
 用途：回傳近 14 天每日結算。
 
@@ -1814,7 +2366,50 @@ Server -> Client
 {"type":"daily_settlement_14d_ok","data":{"user_id":362,"items":[]}}
 ```
 
-### 10.34 error 錯誤訊息
+### 10.35 my_progress_ok 玩家進度查詢成功
+
+用途：回傳 `get_my_progress` 的查詢結果，包含玩家總進度、指定遊戲進度與成就列表。
+
+方向：Server -> Client
+
+`data` 欄位：
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| `user_id` | integer | 目前登入玩家 ID。 |
+| `game_id` | string/null | 查詢的遊戲代碼。 |
+| `progress_summary` | object | 玩家全域進度摘要。 |
+| `game_stats` | object/null | 指定 `game_id` 的分遊戲進度；未指定時可為 `null`。 |
+| `achievements` | array | 已解鎖成就，依解鎖時間由新到舊排序。 |
+
+`progress_summary` / `game_stats` 常用欄位：
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| `level` | integer | 等級，最低為 1。 |
+| `xp_total` | integer | 累積經驗值。 |
+| `xp_current_level` | integer | 目前等級內已累積經驗。 |
+| `xp_next_level` | integer | 從目前等級升到下一級所需總經驗。 |
+| `xp_to_next_level` | integer | 距離下一級還需要的經驗。 |
+| `hands_played` | integer | 累積遊玩手數。 |
+| `wins` / `losses` / `pushes` | integer | 勝、敗、平手或只退回手數。 |
+| `win_rate` | number | 勝率，0 到 1。 |
+| `current_win_streak` | integer | 目前連勝。 |
+| `best_win_streak` | integer | 最佳連勝。 |
+| `biggest_win_amount` | number | 單手最大淨贏。 |
+| `biggest_loss_amount` | number | 單手最大淨輸絕對值。 |
+| `title_code` / `title_label` | string | 稱號代碼與顯示文字。 |
+| `badge_code` / `badge_label` | string | 徽章代碼與顯示文字。 |
+
+事件範例：
+
+```json
+{"type":"my_progress_ok","data":{"user_id":362,"game_id":"texas_holdem","progress_summary":{"level":12,"xp_total":13040,"xp_current_level":940,"xp_next_level":2500,"xp_to_next_level":1560,"hands_played":320,"wins":88,"losses":240,"pushes":12,"win_rate":0.275,"title_code":"sharp","title_label":"牌桌好手","badge_code":"winner","badge_label":"勝場"},"game_stats":{"level":12,"xp_total":13040,"hands_played":320,"wins":88,"win_rate":0.275},"achievements":[{"achievement_code":"first_win","category":"progress","display_name":"首勝","description":"贏得第一手遊戲。","progress_value":1,"unlocked_at":"2026-06-04T12:00:00"}]}}
+```
+
+前端處理：玩家資訊面板可直接以 `progress_summary` 顯示全域等級與稱號；遊戲內統計頁可優先使用 `game_stats`。若只需要牌桌座位上方顯示，使用 `table_state.table.players[*]` 的輕量欄位即可。
+
+### 10.36 error 錯誤訊息
 
 用途：通知請求失敗或狀態不允許。
 
@@ -1867,11 +2462,27 @@ Server -> Client
 7. 收 `hole_cards` 顯示自己的手牌。
 8. 收 `action_request` 時送 `player_action`。
 
+### 12.3 會員進台灣十六張麻將
+
+1. 送 `login`。
+2. 收 `login_ok`，保存 `token`。
+3. 送 `enter_game`，`game_id=mahjong`。
+4. 收 `game_lobby_state`，選擇 `m10`、`m100`、`m1000` 或 `m10000`。
+5. 送 `join_stakes`。
+6. 收 `table_joined`，切到桌面並等待四人開局。
+7. 收 `hole_cards` 顯示自己的 16/17 張手牌與 `melds`。
+8. 收 `action_request` 時依 `allowed_actions` 送 `discard`、`chi`、`pong`、`kong`、`hu` 或 `pass`。
+
 ## 13. Client -> Server 成功/失敗範例索引
 
 | 訊息 | 請求範例 | 成功回應 | 失敗回應 |
 |---|---|---|---|
 | `login` | `{"type":"login","data":{"username":"user@example.com","password":"password123"}}` | `login_ok` | `LOGIN_FAILED` |
+| `google_login` | `{"type":"google_login","data":{"code":"google-authorization-code","redirect_uri":"https://game.example.com"}}` | `login_ok` | `GOOGLE_LOGIN_TOKEN_MISSING` |
+| `line_login` | `{"type":"line_login","data":{"code":"line-authorization-code","redirect_uri":"https://game.example.com/line/callback"}}` | `login_ok` | `LINE_LOGIN_REDIRECT_URI_MISSING` |
+| `facebook_login` | `{"type":"facebook_login","data":{"code":"facebook-authorization-code","redirect_uri":"https://game.example.com/auth/facebook/callback"}}` | `login_ok` | `FACEBOOK_LOGIN_FAILED` |
+| `instagram_login` | `{"type":"instagram_login","data":{"code":"instagram-authorization-code","redirect_uri":"https://game.example.com/auth/instagram/callback"}}` | `login_ok` | `INSTAGRAM_LOGIN_FAILED` |
+| `threads_login` | `{"type":"threads_login","data":{"code":"threads-authorization-code","redirect_uri":"https://game.example.com/auth/threads/callback"}}` | `login_ok` | `THREADS_LOGIN_FAILED` |
 | `guest_login` | `{"type":"guest_login","data":{}}` | `login_ok` | `GUEST_BACKEND_ERROR` |
 | `auth_token` | `{"type":"auth_token","data":{"token":"token-value"}}` | `auth_ok` | `AUTH_TOKEN_INVALID` |
 | `register_verification_request` | `{"type":"register_verification_request","data":{"username":"0912345678"}}` | `register_verification_code_sent` | `REGISTER_VERIFICATION_INVALID_DATA` |
@@ -1882,16 +2493,19 @@ Server -> Client
 | `logout` | `{"type":"logout","data":{}}` | `logout_ok` | `LOGOUT_FAILED` |
 | `ping` | `{"type":"ping","data":{}}` | `pong` | `INVALID_MESSAGE` |
 | `enter_lobby` | `{"type":"enter_lobby","data":{}}` | `lobby_state` | `NOT_AUTHENTICATED` |
-| `enter_game` | `{"type":"enter_game","data":{"game_id":"big_two"}}` | `game_lobby_state` | `ENTER_GAME_MISSING_ID` |
-| `join_stakes` | `{"type":"join_stakes","data":{"game_id":"big_two","stakes_id":"b10","buyin":1000}}` | `table_joined` | `BUYIN_TOO_LOW` |
+| `enter_game` | `{"type":"enter_game","data":{"game_id":"mahjong"}}` | `game_lobby_state` | `ENTER_GAME_MISSING_ID` |
+| `join_stakes` | `{"type":"join_stakes","data":{"game_id":"mahjong","stakes_id":"m10","buyin":1000}}` | `table_joined` | `BUYIN_TOO_LOW` |
+| `take_seat` | `{"type":"take_seat","data":{"seat":2}}` | `seat_taken` | `TAKE_SEAT_CHIPS_TOO_LOW` |
+| `stand_up` | `{"type":"stand_up","data":{}}` | `spectator_mode` | `STAND_UP_NOT_ALLOWED` |
 | `leave_room` | `{"type":"leave_room","data":{}}` | `game_lobby_state` | `LEAVE_ROOM_FAILED` |
 | `switch_room` | `{"type":"switch_room","data":{"buyin":1000}}` | `table_joined` | `SWITCH_ROOM_TABLE_FULL` |
 | `get_table_state` | `{"type":"get_table_state","data":{}}` | `table_state` | `NOT_IN_TABLE` |
-| `player_action` | `{"type":"player_action","data":{"action":"pass"}}` | `player_action` | `ACTION_REJECTED` |
+| `player_action` | `{"type":"player_action","data":{"action":"discard","tile":"m1"}}` | `player_action` | `ACTION_REJECTED` |
 | `rebuy_decision` | `{"type":"rebuy_decision","data":{"accepted":true,"amount":1000}}` | `rebuy_ack` | `REBUY_NOT_PENDING` |
 | `hand_replay` | `{"type":"hand_replay","data":{"game_id":"texas_holdem","table_id":"texas_holdem_t25_50_xxxx","hand_id":10}}` | `hand_replay_ok` | `HAND_REPLAY_FORBIDDEN` |
 | `hand_reports` | `{"type":"hand_reports","data":{"game_id":"big_two","report_date":"2026-05-20"}}` | `hand_reports_ok` | `HAND_REPORTS_INVALID_DATA` |
 | `daily_settlement_14d` | `{"type":"daily_settlement_14d","data":{"game_id":"big_two"}}` | `daily_settlement_14d_ok` | `DAILY_SETTLEMENT_FAILED` |
+| `get_my_progress` | `{"type":"get_my_progress","data":{"game_id":"texas_holdem"}}` | `my_progress_ok` | `MY_PROGRESS_FAILED` |
 
 ## 14. Server -> Client 逐項事件範例索引
 
@@ -1925,13 +2539,15 @@ Server -> Client
 | `player_action` | `{"type":"player_action","data":{"game_id":"big_two","seat":0,"action":"pass"}}` |
 | `award` | `{"type":"award","data":{"game_id":"texas_holdem","awards":[]}}` |
 | `hand_end` | `{"type":"hand_end","data":{"game_id":"big_two","hand_id":3,"player_results":[]}}` |
+| `level_up` | `{"type":"level_up","data":{"user_id":362,"previous_level":11,"level":12,"xp_awarded":42}}` |
 | `hand_replay_ok` | `{"type":"hand_replay_ok","data":{"hero_seat":0,"hero_hole_cards":[],"replay":{}}}` |
 | `hand_reports_ok` | `{"type":"hand_reports_ok","data":{"user_id":362,"items":[]}}` |
 | `daily_settlement_14d_ok` | `{"type":"daily_settlement_14d_ok","data":{"user_id":362,"items":[]}}` |
+| `my_progress_ok` | `{"type":"my_progress_ok","data":{"user_id":362,"progress_summary":{"level":12},"achievements":[]}}` |
 | `post_blinds` | `{"type":"post_blinds","data":{"game_id":"texas_holdem","sb_amount":25,"bb_amount":50}}` |
 | `betting_start` | `{"type":"betting_start","data":{"game_id":"texas_holdem","round":"flop"}}` |
 | `betting_complete` | `{"type":"betting_complete","data":{"game_id":"texas_holdem","pot":750}}` |
 | `deal_community` | `{"type":"deal_community","data":{"game_id":"texas_holdem","cards":["As","4d","Kd"]}}` |
 | `showdown` | `{"type":"showdown","data":{"game_id":"texas_holdem","reveals":{}}}` |
-| `hand_result` | `{"type":"hand_result","data":{"game_id":"big_two","winner_seat":0,"results":[]}}` | 大老二單局結束時的結果與結算摘要。 |
+| `hand_result` | `{"type":"hand_result","data":{"game_id":"mahjong","winner_seats":[0],"scores":{"0":{"total_tai":4,"patterns":[]}}}}` |
 | `error` | `{"type":"error","data":{"code":"ACTION_REJECTED","message":"動作不合法"}}` |

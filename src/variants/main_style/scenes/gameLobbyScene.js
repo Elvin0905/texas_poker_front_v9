@@ -228,12 +228,14 @@ export class GameLobbyScene extends Phaser.Scene {
 
     // Stats bar  (info_bar center y=281, spans y=180–382)
     this.roomScrollContainer.add(this.add.image(360, 281, "Lobby", "info_bar").setDisplaySize(700, 202).setCrop(2, 3, 367, 101));
+    // 保留四格數值文字的參照，供 renderProfileInfo 由伺服器 progress_summary 更新（等級/場次/勝率/贏場）。
+    this._statValueTexts = {};
     [
-      { x: 107.5, label: "等級", value: "Lv.1" },
-      { x: 273,   label: "場次", value: "-" },
-      { x: 447,   label: "勝率", value: "-" },
-      { x: 612.5, label: "贏場", value: "-" },
-    ].forEach(({ x, label, value }) => {
+      { x: 107.5, key: "level",   label: "等級", value: "Lv.1" },
+      { x: 273,   key: "hands",   label: "場次", value: "-" },
+      { x: 447,   key: "winRate", label: "勝率", value: "-" },
+      { x: 612.5, key: "wins",    label: "贏場", value: "-" },
+    ].forEach(({ x, key, label, value }) => {
       const valTxt = this.add.text(x, 264, value, {
         fontFamily: UI_FONT_STACK, fontSize: "32px", fontStyle: "bold", color: "#f8bb3e",
       }).setOrigin(0.5);
@@ -241,6 +243,7 @@ export class GameLobbyScene extends Phaser.Scene {
       vg.addColorStop(0, "#f7e59e");
       vg.addColorStop(1, "#f8bb3e");
       valTxt.setFill(vg);
+      this._statValueTexts[key] = valTxt;
       this.roomScrollContainer.add(valTxt);
 
       const lblTxt = this.add.text(x, 298, label, {
@@ -816,10 +819,12 @@ export class GameLobbyScene extends Phaser.Scene {
         this.renderState(s);
       }
       _refreshGameLobby();
+      this._refreshMyProgress();
     });
 
     // Also refresh on fresh create so stakes are always up-to-date.
     _refreshGameLobby();
+    this._refreshMyProgress();
 
     // Handle fresh create after replay exit (gameLobby was stopped, not sleeping)
     const _initPdv = this.store.getState?.()?.pendingOpenDailySettlement ?? 0;
@@ -1959,6 +1964,27 @@ export class GameLobbyScene extends Phaser.Scene {
     this.renderBuyinModal();
   }
 
+  // 查詢玩家進度（get_my_progress，§7.4）。回應 my_progress_ok 會更新 user.progress_summary，
+  // 由 renderProfileInfo 重繪統計面板（等級/場次/勝率/贏場）。於進大廳/喚醒時呼叫。
+  _refreshMyProgress() {
+    const send = () => {
+      const gid = String(this.store.getState?.()?.gameLobby?.game_id || "texas_holdem");
+      this.app.sendPacket?.("get_my_progress", { game_id: gid });
+    };
+    send();
+    // The backend commits per-hand progress a few seconds after the hand ends (measured ~5s on a
+    // 結束→lobby return), longer than a single retry can cover — so the create/wake-time query reads
+    // stale numbers and the 場次/勝率/贏場 panel lags a hand until a full re-entry. Stagger a few
+    // re-queries across the observed commit window so the panel self-heals in place, without a
+    // re-entry. Shared lobby → applies to poker + Big Two alike (does not touch tableScene.js).
+    // Best-effort backstop; the proper fix is a backend progress push (see
+    // LOBBY_PROGRESS_BACKEND_REQUESTS.md). Scene time events auto-cancel on shutdown.
+    (this._progressRetryTimers || []).forEach((t) => t?.remove?.());
+    this._progressRetryTimers = [1500, 3500, 6000].map((ms) =>
+      this.time.delayedCall(ms, send),
+    );
+  }
+
   renderProfileInfo(state) {
     const user = state?.user || {};
     const rawName = String(user.nickname || user.display_name || user.username || "");
@@ -1974,6 +2000,27 @@ export class GameLobbyScene extends Phaser.Scene {
     if (this.addOnBtn) {
       this.addOnBtn.x = this.walletText.x + this.walletText.width + 15 + this.addOnBtn.displayWidth / 2;
     }
+
+    // 統計面板（等級/場次/勝率/贏場）：直接讀伺服器已帶入的 progress_summary（login_ok/auth_ok 於啟動即送、
+    // 存於 state.user）。此為全域摘要（跨所有遊戲）；純顯示，不另發查詢。
+    const ps = user.progress_summary;
+    if (ps) {
+      this._setStatValue("level", `Lv.${Number(ps.level ?? 1)}`);
+      this._setStatValue("hands", String(Number(ps.hands_played ?? 0)));
+      this._setStatValue("winRate", `${Math.round(Number(ps.win_rate ?? 0) * 100)}%`);
+      this._setStatValue("wins", String(Number(ps.wins ?? 0)));
+    }
+  }
+
+  // 更新單一統計數值文字並重套金色漸層（值相同則跳過）。
+  _setStatValue(key, text) {
+    const t = this._statValueTexts?.[key];
+    if (!t || t.text === text) return;
+    t.setText(text);
+    const g = t.context.createLinearGradient(0, 0, 0, t.height);
+    g.addColorStop(0, "#f7e59e");
+    g.addColorStop(1, "#f8bb3e");
+    t.setFill(g);
   }
 
   formatAmount(value) {
